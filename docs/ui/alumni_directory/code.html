@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gontor Alumni Directory</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-on-surface": "#f2f1ee",
+                        "on-tertiary-fixed-variant": "#5d4201",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#e6e2d7",
+                        "on-background": "#1a1c1a",
+                        "on-primary-fixed-variant": "#394c31",
+                        "on-surface-variant": "#444840",
+                        "secondary-container": "#e6e2d7",
+                        "secondary": "#605e56",
+                        "surface-bright": "#faf9f6",
+                        "inverse-surface": "#2f312f",
+                        "on-tertiary-container": "#453000",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed-variant": "#48473f",
+                        "on-surface": "#1a1c1a",
+                        "surface-container-high": "#e9e8e5",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f4f3f1",
+                        "tertiary-fixed": "#ffdea5",
+                        "inverse-primary": "#b6cdaa",
+                        "primary": "#506447",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#775a19",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#1c1c15",
+                        "surface-variant": "#e3e2e0",
+                        "on-secondary-container": "#66645c",
+                        "on-primary-container": "#263920",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed": "#d2eac5",
+                        "surface-dim": "#dbdad7",
+                        "surface-container-highest": "#e3e2e0",
+                        "primary-fixed-dim": "#b6cdaa",
+                        "tertiary-fixed-dim": "#e9c176",
+                        "surface": "#faf9f6",
+                        "surface-container": "#efeeeb",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#cac6bc",
+                        "outline": "#74786f",
+                        "outline-variant": "#c4c8bd",
+                        "on-tertiary-fixed": "#261900",
+                        "primary-container": "#8da382",
+                        "tertiary-container": "#bb9751",
+                        "on-primary-fixed": "#0e2009",
+                        "background": "#faf9f6",
+                        "surface-tint": "#506447",
+                        "on-secondary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body min-h-screen flex flex-col md:flex-row antialiased">
+<!-- TopNavBar (Mobile Only) -->
+<header class="md:hidden flex justify-between items-center w-full px-6 py-4 bg-[#faf9f6]/90 dark:bg-[#1a1c1a]/90 backdrop-blur-xl border-b border-surface-container-high sticky top-0 z-40">
+<div class="text-2xl font-bold text-[#506447] dark:text-[#d2eac5] font-headline tracking-tight">Gontor Alumni</div>
+<button class="text-on-surface-variant p-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</header>
+<!-- SideNavBar (Desktop Only) -->
+<nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 py-8 gap-2 bg-[#f4f3f1] dark:bg-[#1a1c1a] border-r border-surface-container-high z-50">
+<div class="px-6 mb-8">
+<h1 class="font-headline text-xl font-bold text-[#506447] tracking-tight">The Academic Sanctuary</h1>
+<p class="font-body text-xs text-on-surface-variant mt-1">Legacy of Gontor</p>
+</div>
+<div class="flex-1 overflow-y-auto px-2 space-y-1">
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-4 py-3 mx-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-body text-sm font-medium" href="#">
+<span class="material-symbols-outlined">home</span>
+                Home
+            </a>
+<a class="flex items-center gap-3 bg-[#8da382] text-white rounded-lg mx-2 px-4 py-3 shadow-sm transition-all duration-200 font-body text-sm font-medium translate-x-1" href="#">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">person_search</span>
+                Directory
+            </a>
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-4 py-3 mx-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-body text-sm font-medium" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+                Events
+            </a>
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-4 py-3 mx-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-body text-sm font-medium" href="#">
+<span class="material-symbols-outlined">payments</span>
+                Baitul Maal
+            </a>
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-4 py-3 mx-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-body text-sm font-medium" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</div>
+<div class="px-6 mt-auto mb-4">
+<button class="w-full bg-tertiary hover:bg-on-tertiary-fixed-variant text-on-tertiary font-body font-medium text-sm py-3 px-4 rounded-full transition-colors flex justify-center items-center gap-2">
+                Donate to Baitul Maal
+            </button>
+</div>
+<div class="mt-4 px-2 space-y-1">
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-4 py-3 mx-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-body text-sm font-medium" href="#">
+<span class="material-symbols-outlined">help</span>
+                Help Center
+            </a>
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-4 py-3 mx-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-body text-sm font-medium" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Logout
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 bg-background min-h-screen pb-24 md:pb-12">
+<!-- Search and Filter Header -->
+<div class="bg-surface-container-low py-8 px-6 lg:px-12">
+<div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+<div>
+<h2 class="font-headline text-3xl font-bold text-on-surface tracking-tight mb-2">Alumni Directory</h2>
+<p class="font-body text-on-surface-variant text-sm max-w-xl">Connect with fellow Gontor alumni across the globe. Search by name, profession, or marhalah.</p>
+</div>
+<div class="w-full md:w-auto flex-1 max-w-md relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-high border-b-2 border-transparent focus:border-primary focus:ring-0 rounded-t-lg pl-12 pr-4 py-3 font-body text-sm text-on-surface transition-colors" placeholder="Search alumni..." type="text"/>
+</div>
+</div>
+</div>
+<!-- Directory Grid Layout -->
+<div class="max-w-6xl mx-auto px-6 lg:px-12 py-8 flex flex-col lg:flex-row gap-8">
+<!-- Filters Sidebar -->
+<aside class="w-full lg:w-64 flex-shrink-0 space-y-8">
+<div>
+<h3 class="font-headline font-semibold text-on-surface mb-4">Location</h3>
+<div class="space-y-3">
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="w-5 h-5 rounded border border-outline-variant group-hover:border-primary flex items-center justify-center bg-surface-container-lowest transition-colors">
+<span class="material-symbols-outlined text-[16px] text-primary opacity-0 group-hover:opacity-100">check</span>
+</div>
+<span class="font-body text-sm text-on-surface-variant group-hover:text-on-surface">Jakarta (245)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="w-5 h-5 rounded border border-primary bg-primary flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[16px] text-on-primary">check</span>
+</div>
+<span class="font-body text-sm text-on-surface">Surabaya (182)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="w-5 h-5 rounded border border-outline-variant group-hover:border-primary flex items-center justify-center bg-surface-container-lowest transition-colors">
+<span class="material-symbols-outlined text-[16px] text-primary opacity-0 group-hover:opacity-100">check</span>
+</div>
+<span class="font-body text-sm text-on-surface-variant group-hover:text-on-surface">Yogyakarta (95)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="w-5 h-5 rounded border border-outline-variant group-hover:border-primary flex items-center justify-center bg-surface-container-lowest transition-colors">
+<span class="material-symbols-outlined text-[16px] text-primary opacity-0 group-hover:opacity-100">check</span>
+</div>
+<span class="font-body text-sm text-on-surface-variant group-hover:text-on-surface">International (54)</span>
+</label>
+<button class="text-primary font-body text-sm font-medium hover:underline mt-2 inline-block">Show more</button>
+</div>
+</div>
+<div>
+<h3 class="font-headline font-semibold text-on-surface mb-4">Profession</h3>
+<div class="space-y-3">
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="w-5 h-5 rounded border border-outline-variant group-hover:border-primary flex items-center justify-center bg-surface-container-lowest transition-colors">
+<span class="material-symbols-outlined text-[16px] text-primary opacity-0 group-hover:opacity-100">check</span>
+</div>
+<span class="font-body text-sm text-on-surface-variant group-hover:text-on-surface">Education (310)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="w-5 h-5 rounded border border-outline-variant group-hover:border-primary flex items-center justify-center bg-surface-container-lowest transition-colors">
+<span class="material-symbols-outlined text-[16px] text-primary opacity-0 group-hover:opacity-100">check</span>
+</div>
+<span class="font-body text-sm text-on-surface-variant group-hover:text-on-surface">Technology (145)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="w-5 h-5 rounded border border-outline-variant group-hover:border-primary flex items-center justify-center bg-surface-container-lowest transition-colors">
+<span class="material-symbols-outlined text-[16px] text-primary opacity-0 group-hover:opacity-100">check</span>
+</div>
+<span class="font-body text-sm text-on-surface-variant group-hover:text-on-surface">Finance (88)</span>
+</label>
+<button class="text-primary font-body text-sm font-medium hover:underline mt-2 inline-block">Show more</button>
+</div>
+</div>
+</aside>
+<!-- Cards Grid -->
+<div class="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-max">
+<!-- Alumni Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 flex flex-col items-center text-center group hover:bg-surface-container-low transition-colors duration-300 shadow-[0px_10px_40px_rgba(80,100,71,0.04)] hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)]">
+<img alt="Alumni portrait" class="w-24 h-24 rounded-full object-cover mb-4 border-4 border-surface" data-alt="professional portrait of young southeast asian man wearing modest smart casual attire, warm studio lighting, subtle grey background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEYgyDDGPheCRzuK7Q2gUo1KWSNAL7fHiGgqh0qa7xmu3mMvXCcd5EzFTkYQ-jpOorWb5XyIMbmx3EvfO6y-nxPWF4Q8f4Scvh75DwIJ6TsTHbc9aUDjdog9PkTesmbOq0498zah_2mZrrL0-r5CxxSQqQ0_kDaq5Ty6lmFVsbOdhkEUf3yt7kpmcTZDJNyJjyJlRgbKf52GcUCFI9fG8IH-BXcWNuJMKmQXE35lcZPqo2JqBUa1qMoEVirmaX-Y57vJro7wpduF1g"/>
+<h4 class="font-headline text-lg font-bold text-on-surface">Ahmad Faisal</h4>
+<p class="font-body text-sm text-on-surface-variant mt-1">Marhalah 2012 • "The Pioneers"</p>
+<div class="mt-4 mb-6">
+<span class="inline-block bg-secondary-container text-on-surface font-body text-xs px-3 py-1 rounded-full">Software Engineer</span>
+<span class="inline-block bg-secondary-container text-on-surface font-body text-xs px-3 py-1 rounded-full mt-2">Surabaya, ID</span>
+</div>
+<button class="w-full mt-auto py-2 px-4 rounded-full border border-primary/20 text-primary font-body text-sm font-medium hover:bg-primary-container/20 transition-colors">View Profile</button>
+</div>
+<!-- Alumni Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 flex flex-col items-center text-center group hover:bg-surface-container-low transition-colors duration-300 shadow-[0px_10px_40px_rgba(80,100,71,0.04)] hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)] relative overflow-hidden">
+<div class="absolute top-4 right-4 text-tertiary">
+<span class="material-symbols-outlined text-[20px]" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<img alt="Alumni portrait" class="w-24 h-24 rounded-full object-cover mb-4 border-4 border-surface" data-alt="professional portrait of indonesian woman in elegant hijab and business blazer, soft natural window light, modern office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCd2bIR2ntU4H1s5pxyswCOa3FXbZFzIsL4gJ8OkSloUKUSvEv1eFEl4rkaBtCTb8EXV3xkaYHmIgBTtzKCYTNmImD0CdCRi5366QzCHUEq8BjNydGIcVJr4ISlHHgId6QOHRmmOPOyfm2ZPt8T249TySRZn6F5-occdWtS3_sM-dNBukwUL06vUwWicHTCjeCyHNmlgVwdRx04joMKr8891f0KEUxdYl2lQSXbgy3xXlo6WUKf70wMPp7Zr8DMMqHfiWXsHsOkPHHl"/>
+<h4 class="font-headline text-lg font-bold text-on-surface">Siti Nurhaliza</h4>
+<p class="font-body text-sm text-on-surface-variant mt-1">Marhalah 2015 • "The Visionaries"</p>
+<div class="mt-4 mb-6">
+<span class="inline-block bg-secondary-container text-on-surface font-body text-xs px-3 py-1 rounded-full">Lecturer</span>
+<span class="inline-block bg-secondary-container text-on-surface font-body text-xs px-3 py-1 rounded-full mt-2">Yogyakarta, ID</span>
+</div>
+<button class="w-full mt-auto py-2 px-4 rounded-full border border-primary/20 text-primary font-body text-sm font-medium hover:bg-primary-container/20 transition-colors">View Profile</button>
+</div>
+<!-- Alumni Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 flex flex-col items-center text-center group hover:bg-surface-container-low transition-colors duration-300 shadow-[0px_10px_40px_rgba(80,100,71,0.04)] hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)]">
+<img alt="Alumni portrait" class="w-24 h-24 rounded-full object-cover mb-4 border-4 border-surface" data-alt="professional portrait of middle aged southeast asian man in formal suit, confident subtle smile, corporate backdrop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyf6GrigT9fKtsDqGFIIl2339ecVtMpZ8dI8FrVuqvMjiju-ePgOTxSr3qpzGlUyc7_tVho1xk3JyiSuh3tQtqrg-wHiJVFHCWc6IQ6OKoRvCLWIREOWSLCpu1EgRZmsXHeo8GdtOWw9ZqJTNShq34xqkj-u3fzcsBDra-fvRh8KIurSC4TUaso2T0wTbCfaUZQuSaMVnnfojythuMC6jN0zNgFSKJp_9y15LJ_aZFufp16gzPKaZM0gRSaxI8ACLp4J6awmKzP1tR"/>
+<h4 class="font-headline text-lg font-bold text-on-surface">Budi Santoso</h4>
+<p class="font-body text-sm text-on-surface-variant mt-1">Marhalah 2005 • "The Builders"</p>
+<div class="mt-4 mb-6">
+<span class="inline-block bg-secondary-container text-on-surface font-body text-xs px-3 py-1 rounded-full">Finance Director</span>
+<span class="inline-block bg-secondary-container text-on-surface font-body text-xs px-3 py-1 rounded-full mt-2">Jakarta, ID</span>
+</div>
+<button class="w-full mt-auto py-2 px-4 rounded-full border border-primary/20 text-primary font-body text-sm font-medium hover:bg-primary-container/20 transition-colors">View Profile</button>
+</div>
+<!-- Alumni Card 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 flex flex-col items-center text-center group hover:bg-surface-container-low transition-colors duration-300 shadow-[0px_10px_40px_rgba(80,100,71,0.04)] hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)]">
+<img alt="Alumni portrait" class="w-24 h-24 rounded-full object-cover mb-4 border-4 border-surface" data-alt="professional portrait of young man in traditional batik shirt, standing outdoors with soft blurred green foliage background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC56RwFVFL32MzopMusipXoyBYvpCrWNJiS-UKFmzQPLqlg6K6cnvvbWF28niLrEi4djNsOE-_ues79Sqy5wOIxZJsqLNSgGW2QFYidWcv94Ae6rhV2RASSUniuDmEX0ovtYGn5Q0ML1XnxSp7kc-Pz8akmXfolvmGFpPVJseXw-8g_Sx3j8vx777voBDS5K4Z9gIWGb50C2uuLUjRBQ2wLjpLl1EtyT8PNDOujCJJ_XRWBgWNOXOOfH2hJbaMtAP9cY3miJXelU5bC"/>
+<h4 class="font-headline text-lg font-bold text-on-surface">Rizky Ramadhan</h4>
+<p class="font-body text-sm text-on-surface-variant mt-1">Marhalah 2018 • "The Innovators"</p>
+<div class="mt-4 mb-6">
+<span class="inline-block bg-secondary-container text-on-surface font-body text-xs px-3 py-1 rounded-full">Entrepreneur</span>
+<span class="inline-block bg-secondary-container text-on-surface font-body text-xs px-3 py-1 rounded-full mt-2">Bandung, ID</span>
+</div>
+<button class="w-full mt-auto py-2 px-4 rounded-full border border-primary/20 text-primary font-body text-sm font-medium hover:bg-primary-container/20 transition-colors">View Profile</button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-[#faf9f6] dark:bg-[#1a1c1a] rounded-t-3xl border-t border-[#c4c8bd]/20 shadow-[0px_-10px_40px_rgba(80,100,71,0.1)]">
+<a class="flex flex-col items-center justify-center text-[#444840] dark:text-[#c4c8bd] px-5 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#2a2d2a] rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#8da382] text-white rounded-2xl px-5 py-2 scale-90 duration-150" href="#">
+<span class="material-symbols-outlined mb-1" data-weight="fill" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Directory</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#444840] dark:text-[#c4c8bd] px-5 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#2a2d2a] rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined mb-1">event</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Events</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#444840] dark:text-[#c4c8bd] px-5 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#2a2d2a] rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined mb-1">volunteer_activism</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Maal</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#444840] dark:text-[#c4c8bd] px-5 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#2a2d2a] rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined mb-1">account_circle</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Profile</span>
+</a>
+</nav>
+</body></html>

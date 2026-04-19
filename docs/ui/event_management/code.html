@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gontor Alumni - Event Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-on-surface": "#f2f1ee",
+                      "on-tertiary-fixed-variant": "#5d4201",
+                      "on-error": "#ffffff",
+                      "secondary-fixed": "#e6e2d7",
+                      "on-background": "#1a1c1a",
+                      "on-primary-fixed-variant": "#394c31",
+                      "on-surface-variant": "#444840",
+                      "secondary-container": "#e6e2d7",
+                      "secondary": "#605e56",
+                      "surface-bright": "#faf9f6",
+                      "inverse-surface": "#2f312f",
+                      "on-tertiary-container": "#453000",
+                      "error": "#ba1a1a",
+                      "on-secondary-fixed-variant": "#48473f",
+                      "on-surface": "#1a1c1a",
+                      "surface-container-high": "#e9e8e5",
+                      "error-container": "#ffdad6",
+                      "surface-container-low": "#f4f3f1",
+                      "tertiary-fixed": "#ffdea5",
+                      "inverse-primary": "#b6cdaa",
+                      "primary": "#506447",
+                      "on-error-container": "#93000a",
+                      "tertiary": "#775a19",
+                      "on-primary": "#ffffff",
+                      "on-secondary-fixed": "#1c1c15",
+                      "surface-variant": "#e3e2e0",
+                      "on-secondary-container": "#66645c",
+                      "on-primary-container": "#263920",
+                      "on-tertiary": "#ffffff",
+                      "primary-fixed": "#d2eac5",
+                      "surface-dim": "#dbdad7",
+                      "surface-container-highest": "#e3e2e0",
+                      "primary-fixed-dim": "#b6cdaa",
+                      "tertiary-fixed-dim": "#e9c176",
+                      "surface": "#faf9f6",
+                      "surface-container": "#efeeeb",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary-fixed-dim": "#cac6bc",
+                      "outline": "#74786f",
+                      "outline-variant": "#c4c8bd",
+                      "on-tertiary-fixed": "#261900",
+                      "primary-container": "#8da382",
+                      "tertiary-container": "#bb9751",
+                      "on-primary-fixed": "#0e2009",
+                      "background": "#faf9f6",
+                      "surface-tint": "#506447",
+                      "on-secondary": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {},
+              "fontFamily": {
+                      "headline": [
+                              "Manrope"
+                      ],
+                      "body": [
+                              "Inter"
+                      ],
+                      "label": [
+                              "Inter"
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #faf9f6; /* surface */
+            color: #1a1c1a; /* on-surface */
+        }
+        h1, h2, h3, h4, h5, h6, .font-headline {
+            font-family: 'Manrope', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface antialiased min-h-screen flex flex-col md:flex-row">
+<!-- SideNavBar (Hidden on Mobile, Visible on md+) -->
+<nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-[#f4f3f1] dark:bg-[#1a1c1a] border-r border-transparent z-40">
+<div class="flex flex-col h-full py-8 gap-2">
+<!-- Header -->
+<div class="px-6 mb-8">
+<h1 class="font-manrope text-lg font-bold text-[#506447] tracking-tight">The Academic Sanctuary</h1>
+<p class="font-inter text-sm text-[#444840]">Legacy of Gontor</p>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 flex flex-col gap-1 overflow-y-auto">
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-4 py-3 mx-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-inter text-sm font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+                    Home
+                </a>
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-4 py-3 mx-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-inter text-sm font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="person_search">person_search</span>
+                    Directory
+                </a>
+<!-- Active State -->
+<a class="flex items-center gap-3 bg-[#8da382] text-white rounded-lg mx-2 px-4 py-3 shadow-sm transition-all font-inter text-sm font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_month" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+                    Events
+                </a>
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-4 py-3 mx-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-inter text-sm font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+                    Baitul Maal
+                </a>
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-4 py-3 mx-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-inter text-sm font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                    Settings
+                </a>
+</div>
+<!-- CTA & Footer -->
+<div class="mt-auto px-4 flex flex-col gap-4 pt-6 border-t border-transparent bg-[#e9e8e5] dark:bg-[#2a2d2a]">
+<button class="w-full py-2 px-4 bg-tertiary text-on-tertiary rounded-full font-inter text-sm font-medium hover:opacity-90 transition-opacity shadow-sm">
+                    Donate to Baitul Maal
+                </button>
+<div class="flex flex-col gap-1 pb-4">
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-2 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-inter text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="help">help</span>
+                        Help Center
+                    </a>
+<a class="flex items-center gap-3 text-[#444840] dark:text-[#c4c8bd] px-2 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#323632] rounded-lg transition-all font-inter text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="logout">logout</span>
+                        Logout
+                    </a>
+</div>
+</div>
+</div>
+</nav>
+<!-- TopNavBar (Visible on Mobile, md:hidden handled within structure if needed, but per instructions WEB uses TopAppBar cluster, MOBILE uses BottomNavBar. Adjusting to a simplified mobile header) -->
+<header class="md:hidden flex justify-between items-center w-full px-6 py-4 bg-[#faf9f6]/90 backdrop-blur-xl sticky top-0 z-40 bg-[#f4f3f1]">
+<div class="text-2xl font-bold text-[#506447] font-headline tracking-tight">Gontor Alumni</div>
+<img alt="User profile" class="w-8 h-8 rounded-full object-cover border border-outline-variant/20" data-alt="close up professional portrait of a man smiling in natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMcequ4VOiUOPZXZ4xQ8tdibZ7Wvf0fH3hOh7RBl46QNzr0emHLvvoiVZY53MNqG_LaP5Z2wW1TN4PWXFXgTZULA_xQg4XtPbsQrUzfzjNBhjtcenq2DyiaK8BjiswhA7T1ideveqZSrbnb-6EiPA9sFyF0O5gjWnhXBrVnKfX6p810qoIJBcwXTqL5P2rgGCZyj9KdsyMWjEb5fV_VeG3r3cZm5koKFfpKPccOBDM3uvrMC8RDisWT2tXzmMdvnSultQz7tjDMzQ1"/>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-64 pb-24 md:pb-0 min-h-screen">
+<!-- Page Header -->
+<div class="px-6 md:px-12 py-8 max-w-7xl mx-auto">
+<h2 class="font-headline text-4xl md:text-5xl font-bold text-on-surface tracking-tight mb-2">Events &amp; Gatherings</h2>
+<p class="font-body text-lg text-on-surface-variant max-w-2xl">Discover upcoming alumni events, reconnect with your marhalah, and participate in global gatherings.</p>
+</div>
+<div class="px-6 md:px-12 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- Left Column: Event List (List View with Scope & Tags) -->
+<div class="lg:col-span-5 flex flex-col gap-6">
+<!-- Filters / Tabs -->
+<div class="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6 md:mx-0 md:px-0 hide-scrollbar">
+<button class="bg-primary-container text-on-primary-container px-4 py-2 rounded-full font-body text-sm font-medium whitespace-nowrap shadow-sm">All Events</button>
+<button class="bg-surface-container-high text-on-surface px-4 py-2 rounded-full font-body text-sm font-medium whitespace-nowrap hover:bg-secondary-container transition-colors">Global</button>
+<button class="bg-surface-container-high text-on-surface px-4 py-2 rounded-full font-body text-sm font-medium whitespace-nowrap hover:bg-secondary-container transition-colors">My Marhalah</button>
+</div>
+<!-- Event Card 1 (Active/Selected State) -->
+<article class="bg-surface-container-lowest rounded-xl p-5 shadow-[0px_10px_40px_rgba(80,100,71,0.08)] cursor-pointer ring-2 ring-primary-container transition-all relative overflow-hidden group">
+<!-- Subtle gradient overlay for active card -->
+<div class="absolute inset-0 bg-gradient-to-br from-primary-container/10 to-transparent pointer-events-none"></div>
+<div class="flex justify-between items-start mb-3 relative z-10">
+<span class="bg-tertiary/10 text-tertiary px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide uppercase">Global</span>
+<span class="bg-secondary-container text-on-surface-variant px-2.5 py-1 rounded-md text-xs font-medium">Infak</span>
+</div>
+<h3 class="font-headline text-xl font-bold text-on-surface mb-1 group-hover:text-primary transition-colors relative z-10">Reuni Akbar 100 Tahun Gontor</h3>
+<p class="font-body text-sm text-on-surface-variant mb-4 relative z-10">Pondok Modern Darussalam Gontor, Ponorogo</p>
+<div class="flex items-center gap-4 text-sm text-on-surface-variant relative z-10">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span class="font-medium">15 Aug 2026</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">group</span>
+<span class="font-medium">10k+ Registered</span>
+</div>
+</div>
+</article>
+<!-- Event Card 2 -->
+<article class="bg-surface-container-low rounded-xl p-5 hover:bg-surface-container-lowest hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)] cursor-pointer transition-all group">
+<div class="flex justify-between items-start mb-3">
+<span class="bg-surface-variant text-on-surface px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide uppercase">Marhalah '09</span>
+<span class="bg-primary/10 text-primary px-2.5 py-1 rounded-md text-xs font-medium">Berbayar</span>
+</div>
+<h3 class="font-headline text-xl font-bold text-on-surface mb-1 group-hover:text-primary transition-colors">Silaturahim Nasional 2009</h3>
+<p class="font-body text-sm text-on-surface-variant mb-4">Hotel Indonesia Kempinski, Jakarta</p>
+<div class="flex items-center gap-4 text-sm text-on-surface-variant">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span class="font-medium">12 Nov 2024</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">group</span>
+<span class="font-medium">150 Registered</span>
+</div>
+</div>
+</article>
+<!-- Event Card 3 -->
+<article class="bg-surface-container-low rounded-xl p-5 hover:bg-surface-container-lowest hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)] cursor-pointer transition-all group">
+<div class="flex justify-between items-start mb-3">
+<span class="bg-surface-variant text-on-surface px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide uppercase">Regional</span>
+<span class="bg-surface-container-high text-on-surface px-2.5 py-1 rounded-md text-xs font-medium">Gratis</span>
+</div>
+<h3 class="font-headline text-xl font-bold text-on-surface mb-1 group-hover:text-primary transition-colors">Kajian Bulanan IKPM Jogja</h3>
+<p class="font-body text-sm text-on-surface-variant mb-4">Masjid Kampus UGM, Yogyakarta</p>
+<div class="flex items-center gap-4 text-sm text-on-surface-variant">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span class="font-medium">05 Sep 2024</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">group</span>
+<span class="font-medium">85 Registered</span>
+</div>
+</div>
+</article>
+</div>
+<!-- Right Column: Detail View (Bento Grid Style) -->
+<div class="lg:col-span-7 bg-surface-container-lowest rounded-2xl shadow-[0px_10px_40px_rgba(80,100,71,0.08)] overflow-hidden flex flex-col">
+<!-- Banner Image -->
+<div class="h-64 w-full relative">
+<img alt="Event Banner" class="w-full h-full object-cover" data-alt="large crowd gathered in a grand hall with warm lighting and a stage in the distance, cinematic atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApn01R3DZhuSV8-LfKUj1AphDN06do2TXSgeF_Yju_wcrEkRuzvzwoJV1Bfo_n7tMIoT6kyh8XfOQe2egikhtoxDoJzk1XaN0N6B4AGdvSWlQ31hDDbY3eUPlygA0NHr_qvR2Y5cgUm7WOhzCPEQot0Oi2JH52s12faDtsThmxKz826x4yFKw2RA2D0Gx-vfcASvZR4fSm_AmGxQTUsZOlEHTpzD0cgTCjznFAD96PhbOkjaFYutZZ1lWO9TAhAiCvYEdfQJrRQvAM"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+<div class="absolute bottom-0 left-0 p-6">
+<span class="bg-tertiary text-on-tertiary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-3 inline-block">Global Event</span>
+<h2 class="font-headline text-3xl font-bold text-white leading-tight">Reuni Akbar 100 Tahun Gontor</h2>
+</div>
+</div>
+<div class="p-6 md:p-8 flex flex-col gap-8">
+<!-- Quick Info -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-xl flex items-start gap-3">
+<div class="bg-primary-container/20 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined">schedule</span>
+</div>
+<div>
+<p class="font-body text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-1">Date &amp; Time</p>
+<p class="font-body font-semibold text-on-surface">15-18 Aug 2026</p>
+<p class="font-body text-sm text-on-surface-variant">08:00 AM - 10:00 PM</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl flex items-start gap-3">
+<div class="bg-primary-container/20 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+<div>
+<p class="font-body text-xs text-on-surface-variant font-medium uppercase tracking-wider mb-1">Location</p>
+<p class="font-body font-semibold text-on-surface">Kampus Pusat</p>
+<p class="font-body text-sm text-on-surface-variant">Ponorogo, East Java</p>
+</div>
+</div>
+</div>
+<!-- Description -->
+<section>
+<h3 class="font-headline text-xl font-bold text-on-surface mb-3">About This Event</h3>
+<p class="font-body text-on-surface-variant leading-relaxed">
+                            Memperingati satu abad berdirinya Pondok Modern Darussalam Gontor. Acara ini merupakan momen bersejarah untuk mengumpulkan seluruh alumni dari berbagai generasi dan penjuru dunia. Rangkaian acara meliputi sujud syukur bersama, simposium pendidikan, dan pameran karya alumni.
+                        </p>
+</section>
+<!-- Bento Row: Map & Merchandise -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Map Location -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden flex flex-col">
+<div class="p-4 border-b border-outline-variant/20">
+<h4 class="font-headline font-bold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">map</span>
+                                    Venue Map
+                                </h4>
+</div>
+<div class="h-40 bg-surface-dim relative">
+<!-- Placeholder for map -->
+<img alt="Map Location" class="w-full h-full object-cover opacity-80" data-alt="minimalist street map view with soft green and beige tones, subtle location pin in center" data-location="Ponorogo, Indonesia" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnhlDyaJrkHpFMPW66DtjJ1Nbc0iD-zM60ZfoFeTsE_1zLUPpE2GZLPP_kI2Jx_OdRQZuOJBBQbwvwSQMXRjv090brrYsYJwPoahJD_eaPsxvOsO_MxBZVKdsn2T6lkJsSpVusozWzYQAyVVbPrRzLHogAMe697LjLsPG7kqR-apVe0784NXUPRWu84CGXal5AvJq3hfvxawKXof7ZBzCqHH_6mSvWm3kPQ75zo8x36qI5M-r2LJgqcyif0F9lztBE3xRTsgdgE7cT"/>
+</div>
+</div>
+<!-- Merchandise Catalog Snippet -->
+<div class="bg-surface-container-low rounded-xl p-4 flex flex-col">
+<h4 class="font-headline font-bold text-on-surface flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-primary text-[20px]">checkroom</span>
+                                Official Merchandise
+                            </h4>
+<div class="flex gap-3 mb-3">
+<img alt="Event T-Shirt" class="w-16 h-16 rounded-lg object-cover bg-white" data-alt="folded premium white t-shirt on soft beige background, studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVe_m8NPHp7MHgt5TFmNYl_TT4PfcnTVeRsR71d1UFoPyPkbVQRe_BCW4UiKCM4IZIQHYh-KQH--5PnMwKA6frp1Xfdnc5Bme3r83zgDIo2hixkSQGTGwNMDDjDZsj0V4dkBb9eTNuKZf7hmUWM0hwxcgOO-X39yD-W8FjeJc_838jU7U92w_uYXPykK1k3kgq-cwEekws1ZoKgj7pU2eC_ty3HQFwa5JxbD3JlR1cQs8i_wSctoauUiYvfHMPLoWq0e4aTwI3bhVG"/>
+<div>
+<p class="font-body font-semibold text-sm text-on-surface">100th Anniversary Tee</p>
+<p class="font-body text-xs text-on-surface-variant">Cotton Combed 30s</p>
+</div>
+</div>
+<!-- Size Selection -->
+<div class="mt-auto">
+<p class="font-body text-xs text-on-surface-variant mb-2">Select Size:</p>
+<div class="flex gap-2">
+<button class="w-8 h-8 rounded-full border border-outline-variant/50 text-xs font-medium text-on-surface hover:bg-secondary-container hover:border-transparent transition-all">S</button>
+<button class="w-8 h-8 rounded-full border border-outline-variant/50 text-xs font-medium text-on-surface hover:bg-secondary-container hover:border-transparent transition-all">M</button>
+<button class="w-8 h-8 rounded-full bg-primary text-white text-xs font-medium border border-transparent shadow-sm">L</button>
+<button class="w-8 h-8 rounded-full border border-outline-variant/50 text-xs font-medium text-on-surface hover:bg-secondary-container hover:border-transparent transition-all">XL</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Dynamic RSVP Section (Infak) -->
+<section class="bg-surface-container-low rounded-xl p-6 mt-2 border-l-4 border-tertiary">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div>
+<h3 class="font-headline text-xl font-bold text-on-surface mb-1">RSVP &amp; Kontribusi</h3>
+<p class="font-body text-sm text-on-surface-variant">Acara ini bersifat infak sukarela untuk mendukung kesuksesan Reuni Akbar.</p>
+</div>
+<div class="flex-shrink-0 w-full md:w-auto">
+<div class="bg-surface-container-highest rounded-lg p-1 flex mb-3">
+<button class="flex-1 py-2 px-4 rounded-md bg-surface text-on-surface font-medium text-sm shadow-sm">Rp 100k</button>
+<button class="flex-1 py-2 px-4 rounded-md text-on-surface-variant hover:text-on-surface font-medium text-sm">Rp 500k</button>
+<button class="flex-1 py-2 px-4 rounded-md text-on-surface-variant hover:text-on-surface font-medium text-sm">Custom</button>
+</div>
+<button class="w-full bg-tertiary hover:bg-tertiary/90 text-on-tertiary py-3 px-6 rounded-full font-headline font-bold tracking-wide transition-colors shadow-sm flex justify-center items-center gap-2">
+                                    Konfirmasi Kehadiran
+                                    <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Visible on Mobile, Hidden on md+) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-[#faf9f6] dark:bg-[#1a1c1a] rounded-t-3xl border-t border-[#c4c8bd]/20 shadow-[0px_-10px_40px_rgba(80,100,71,0.1)]">
+<a class="flex flex-col items-center justify-center text-[#444840] dark:text-[#c4c8bd] px-5 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#2a2d2a] rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#444840] dark:text-[#c4c8bd] px-5 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#2a2d2a] rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="group">group</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Directory</span>
+</a>
+<!-- Active State -->
+<a class="flex flex-col items-center justify-center bg-[#8da382] text-white rounded-2xl px-5 py-2 scale-90 duration-150" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="event" style="font-variation-settings: 'FILL' 1;">event</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Events</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#444840] dark:text-[#c4c8bd] px-5 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#2a2d2a] rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="volunteer_activism">volunteer_activism</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Maal</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#444840] dark:text-[#c4c8bd] px-5 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#2a2d2a] rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="account_circle">account_circle</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Profile</span>
+</a>
+</nav>
+</body></html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Baitul Maal - Gontor Alumni</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-on-surface": "#f2f1ee",
+                        "on-tertiary-fixed-variant": "#5d4201",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#e6e2d7",
+                        "on-background": "#1a1c1a",
+                        "on-primary-fixed-variant": "#394c31",
+                        "on-surface-variant": "#444840",
+                        "secondary-container": "#e6e2d7",
+                        "secondary": "#605e56",
+                        "surface-bright": "#faf9f6",
+                        "inverse-surface": "#2f312f",
+                        "on-tertiary-container": "#453000",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed-variant": "#48473f",
+                        "on-surface": "#1a1c1a",
+                        "surface-container-high": "#e9e8e5",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f4f3f1",
+                        "tertiary-fixed": "#ffdea5",
+                        "inverse-primary": "#b6cdaa",
+                        "primary": "#506447",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#775a19",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#1c1c15",
+                        "surface-variant": "#e3e2e0",
+                        "on-secondary-container": "#66645c",
+                        "on-primary-container": "#263920",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed": "#d2eac5",
+                        "surface-dim": "#dbdad7",
+                        "surface-container-highest": "#e3e2e0",
+                        "primary-fixed-dim": "#b6cdaa",
+                        "tertiary-fixed-dim": "#e9c176",
+                        "surface": "#faf9f6",
+                        "surface-container": "#efeeeb",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#cac6bc",
+                        "outline": "#74786f",
+                        "outline-variant": "#c4c8bd",
+                        "on-tertiary-fixed": "#261900",
+                        "primary-container": "#8da382",
+                        "tertiary-container": "#bb9751",
+                        "on-primary-fixed": "#0e2009",
+                        "background": "#faf9f6",
+                        "surface-tint": "#506447",
+                        "on-secondary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: theme('colors.background'); color: theme('colors.on-background'); }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="antialiased flex flex-col min-h-screen">
+<!-- TopNavBar (Web) -->
+<header class="hidden md:flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto bg-[#faf9f6]/90 dark:bg-[#1a1c1a]/90 backdrop-blur-xl docked full-width top-0 bg-[#f4f3f1] dark:bg-[#2a2d2a] shadow-[0px_10px_40px_rgba(80,100,71,0.08)] sticky z-50">
+<div class="text-2xl font-bold text-[#506447] dark:text-[#d2eac5] font-headline tracking-tight">Gontor Alumni</div>
+<nav class="flex gap-6 items-center">
+<a class="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300 font-label text-sm" href="#">Directory</a>
+<a class="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300 font-label text-sm" href="#">Events</a>
+<a class="text-[#506447] dark:text-[#d2eac5] font-bold border-b-2 border-[#775a19] pb-1 hover:text-[#775a19] transition-colors duration-300 font-label text-sm flex-col" href="#">Baitul Maal</a>
+</nav>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#444840] cursor-pointer">search</span>
+<button class="bg-tertiary text-on-tertiary px-6 py-2 rounded-full font-label text-sm font-semibold hover:opacity-90 transition-opacity">Login</button>
+</div>
+</header>
+<!-- SideNavBar (Hidden on Mobile, visible on large screens as an alternative to TopNav if needed, but per prompt TopNav is preferred. Including structurally as requested by anchors but hidden to avoid double nav on desktop unless specific layout requires. We will keep it hidden md:hidden to prioritize TopNav as requested in platform rules, wait, platform rules say: "On MOBILE, prohibit top-row text links... On WEB, hide BottomNavBar and use full nav cluster in TopAppBar." Thus, SideNav might be used in dashboard layouts. We will stick to TopNav for this public-facing screen.) -->
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<!-- Hero Section -->
+<section class="mb-16 relative rounded-xl overflow-hidden bg-surface-container-low p-8 md:p-16 flex flex-col md:flex-row items-center gap-8 shadow-[0px_10px_40px_rgba(80,100,71,0.08)]">
+<div class="absolute inset-0 bg-gradient-to-r from-primary to-primary-container opacity-10"></div>
+<div class="relative z-10 flex-1">
+<span class="text-tertiary font-label font-bold tracking-widest uppercase text-xs mb-4 block">Baitul Maal</span>
+<h1 class="text-4xl md:text-5xl font-headline font-extrabold text-on-surface mb-6 leading-tight tracking-tight">Empowering the Legacy Through Generosity</h1>
+<p class="text-on-surface-variant font-body text-lg mb-8 max-w-xl leading-relaxed">Join hands with thousands of alumni to support education, infrastructure, and community welfare. Your contributions build the future.</p>
+<div class="flex flex-wrap gap-4">
+<button class="bg-tertiary text-on-tertiary px-8 py-4 rounded-full font-label font-bold shadow-sm hover:shadow-md transition-all">Donate Now</button>
+<button class="bg-surface text-primary border border-outline-variant/20 px-8 py-4 rounded-full font-label font-bold shadow-sm hover:bg-surface-container-high transition-all">Calculate Zakat</button>
+</div>
+</div>
+<div class="relative z-10 flex-1 w-full max-w-md">
+<!-- Decorative elements instead of an image to match design system preference for clean UI -->
+<div class="bg-surface-container-highest rounded-2xl p-6 shadow-sm relative overflow-hidden">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-tertiary opacity-10 rounded-full blur-2xl"></div>
+<h3 class="font-headline font-bold text-xl text-on-surface mb-2">Total Collected This Month</h3>
+<p class="font-headline font-extrabold text-3xl text-primary mb-4">Rp 450.000.000</p>
+<div class="w-full bg-surface-container-high rounded-full h-2 mb-2">
+<div class="bg-primary h-2 rounded-full" style="width: 75%"></div>
+</div>
+<p class="font-label text-xs text-on-surface-variant flex justify-between"><span>75% of monthly goal</span> <span>Rp 600.000.000</span></p>
+</div>
+</div>
+</section>
+<!-- Active Campaigns Bento Grid -->
+<section class="mb-16">
+<div class="flex justify-between items-end mb-8">
+<div>
+<h2 class="text-3xl font-headline font-bold text-on-surface tracking-tight">Urgent Campaigns</h2>
+<p class="text-on-surface-variant font-body mt-2">Projects requiring immediate attention and support.</p>
+</div>
+<a class="text-primary font-label font-semibold hover:text-tertiary transition-colors flex items-center gap-1" href="#">View All <span class="material-symbols-outlined text-sm">arrow_forward</span></a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Card 1 (Large) -->
+<div class="md:col-span-2 bg-surface-container-lowest rounded-xl p-6 md:p-8 flex flex-col md:flex-row gap-6 hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)] transition-shadow duration-300">
+<img alt="Students studying in library" class="w-full md:w-1/3 object-cover rounded-lg" data-alt="University students studying in a bright, modern library with large windows, soft natural light, focused atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGSCX423w2XyurvY9N1L2jl6AS7E9azVlfzw_8n4ts09ln65syN1e1wh7cNnJqbBAtU_bm21Mok0mU98F8TKYeIfJ78CvUPURS88G2FRucP9Gc9nhrtlk9lTLLCvLhpTejuzKji00RRWw7c3Qxp2Mvkqf1OcPSbek7yo13Y1CCLZJLEd6jyxwLwiyvixTZLBumCwy6iBX_cYqfXG5n4oAwEw0QKSWmOGinA-5kyjdnIuHsUEtC2FuPm8wI323sWqg6AtQGO9wxL6Rf"/>
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<span class="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container text-xs font-label font-bold rounded-full mb-3">Education</span>
+<h3 class="text-2xl font-headline font-bold text-on-surface mb-2 leading-tight">Scholarships for Outstanding Santri</h3>
+<p class="text-on-surface-variant font-body text-sm mb-6 line-clamp-2">Providing full tuition support for top-performing students facing financial hardships to ensure uninterrupted education.</p>
+</div>
+<div>
+<div class="flex justify-between font-label text-sm mb-2">
+<span class="text-on-surface font-semibold">Rp 120M Collected</span>
+<span class="text-on-surface-variant">Goal: Rp 200M</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2 mb-4">
+<div class="bg-tertiary h-2 rounded-full" style="width: 60%"></div>
+</div>
+<div class="flex gap-3">
+<button class="flex-1 bg-primary text-on-primary py-2 rounded-full font-label text-sm font-semibold hover:bg-primary-container transition-colors">Donate</button>
+<button class="bg-surface-container-low text-primary px-4 py-2 rounded-full font-label text-sm font-semibold hover:bg-surface-container-high transition-colors flex items-center justify-center"><span class="material-symbols-outlined text-sm">share</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 flex flex-col hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)] transition-shadow duration-300">
+<span class="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container text-xs font-label font-bold rounded-full mb-3 w-max">Infrastructure</span>
+<h3 class="text-xl font-headline font-bold text-on-surface mb-2 leading-tight flex-1">New Dormitory Renovation</h3>
+<p class="text-on-surface-variant font-body text-sm mb-6 line-clamp-2">Upgrading living facilities to provide a safe and comfortable environment.</p>
+<div>
+<div class="flex justify-between font-label text-xs mb-2">
+<span class="text-on-surface font-semibold">Rp 50M</span>
+<span class="text-on-surface-variant">Rp 100M</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-1.5 mb-4">
+<div class="bg-primary h-1.5 rounded-full" style="width: 50%"></div>
+</div>
+<button class="w-full bg-surface-container-low text-primary py-2 rounded-full font-label text-sm font-semibold hover:bg-surface-container-high transition-colors">Donate</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-[#faf9f6] dark:bg-[#1a1c1a] docked full-width bottom-0 rounded-t-3xl border-t border-[#c4c8bd]/20 shadow-[0px_-10px_40px_rgba(80,100,71,0.1)] tonal-shift-surface">
+<a class="flex flex-col items-center justify-center text-[#444840] dark:text-[#c4c8bd] px-5 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#2a2d2a] rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined text-xl mb-1">home</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#444840] dark:text-[#c4c8bd] px-5 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#2a2d2a] rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined text-xl mb-1">group</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Directory</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#8da382] text-white rounded-2xl px-5 py-2 scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-xl mb-1" style="font-variation-settings: 'FILL' 1;">volunteer_activism</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Maal</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#444840] dark:text-[#c4c8bd] px-5 py-2 hover:bg-[#e6e2d7] dark:hover:bg-[#2a2d2a] rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined text-xl mb-1">account_circle</span>
+<span class="font-inter text-[10px] font-bold uppercase tracking-widest">Profile</span>
+</a>
+</nav>
+<!-- Footer -->
+<footer class="mt-auto bg-[#506447] dark:bg-[#131a12] full-width py-12 flex flex-col items-center text-center gap-6">
+<div class="font-manrope text-white font-bold text-xl">Gontor Alumni</div>
+<div class="flex gap-4">
+<a class="text-[#d2eac5] hover:text-white transition-colors font-inter text-xs" href="#">Privacy Policy</a>
+<a class="text-[#d2eac5] hover:text-white transition-colors font-inter text-xs" href="#">Terms of Service</a>
+<a class="text-[#d2eac5] hover:text-white transition-colors font-inter text-xs" href="#">Contact Us</a>
+</div>
+<p class="font-inter text-xs text-[#d2eac5]">© 2024 IKPM Gontor. Preserving Legacy, Empowering Future.</p>
+</footer>
+</body></html>
