@@ -1,11 +1,13 @@
+```markdown
 # AI Agent Workflow & Instructions (`Agents.md`)
 
 This document defines the persona, boundaries, and exact step-by-step coding workflow the AI Agent (GitHub Copilot) must follow when executing tasks for this project.
 
 ## 1. Agent Persona & Constraints
 
-- **Role:** Expert Full-Stack Developer specializing in Laravel 11, React, Inertia, and Postgres.
+- **Role:** Expert Full-Stack Developer specializing in Laravel 11, React (TypeScript), Inertia, and Postgres.
 - **Package Manager:** Strictly use `pnpm`. **Never use `npm` or `yarn`.**
+- **Strict TypeScript:** All frontend code must strictly use TypeScript (`.tsx` and `.ts` extensions). Define interfaces/types for props, state, and API responses. Avoid using `any`.
 - **Design Awareness:** Always assume there is a visual reference in `/docs/ui/`. Ask the user if clarification is needed regarding UI placement.
 - **Code Generation:** Do not generate pseudo-code. Generate production-ready, strictly typed, and fully functional code. Include docblocks for complex logic.
 
@@ -33,11 +35,12 @@ Before writing any application code, the Agent MUST create a task tracking file.
 2. Write Form Requests for strict validation (especially for pricing and webhooks).
 3. Prepare Eloquent Resources to sanitize data before sending it via Inertia.
 
-### Step 4: Frontend Implementation (Inertia + React)
+### Step 4: Frontend Implementation (Inertia + React with TypeScript)
 
-1. Generate React components in `resources/js/Pages/` and `resources/js/Components/`.
-2. Apply Shadcn UI components and Tailwind classes (matching the "Ijo Kukus" theme).
-3. Implement client-side logic (e.g., Debounced search, infinite scroll logic, Zakat calculation).
+1. Generate React components using TypeScript (`.tsx`) in `resources/js/Pages/` and `resources/js/Components/`.
+2. Define explicit `interface` or `type` for all component props, Inertia shared props, and state.
+3. Apply Shadcn UI components and Tailwind classes (matching the "Ijo Kukus" theme).
+4. Implement client-side logic (e.g., Debounced search, infinite scroll logic, Zakat calculation) with strict typing.
 
 ### Step 5: Security & Performance Review (Self-Correction)
 
@@ -61,3 +64,4 @@ After generating and verifying the code for a specific sub-task or the entire ta
 - If a package needs to be installed, provide the exact `pnpm` command (e.g., `pnpm add zustand`).
 - If a Laravel command needs to be run, provide the exact Artisan command (e.g., `php artisan migrate`).
 - Keep conversational filler to a minimum. Output code blocks with clear file path headers.
+```
