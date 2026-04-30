@@ -11,6 +11,7 @@ RUN apk add --no-cache \
     freetype-dev \
     oniguruma-dev \
     postgresql-dev \
+    libexif-dev \
     linux-headers \
     nodejs \
     npm
@@ -22,6 +23,7 @@ RUN install-php-extensions \
     zip \
     bcmath \
     gd \
+    exif \
     intl \
     pcntl \
     redis \
@@ -53,7 +55,7 @@ FROM base
 
 # Copy composer files and install dependencies
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-scripts
+RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs
 
 # Copy application files
 COPY . .
