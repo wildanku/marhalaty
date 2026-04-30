@@ -1,5 +1,6 @@
 import { useForm, Head } from "@inertiajs/react";
 import { FormEvent } from "react";
+import AsyncSelect from "@/Components/AsyncSelect";
 
 interface GoogleUser {
   google_id: string;
@@ -13,21 +14,37 @@ interface TargetMarhalah {
   name: string;
 }
 
+interface Option {
+  id: number;
+  name: string;
+}
+
 interface OnboardingProps {
   googleUser: GoogleUser | null;
   communityScope: "global" | "single";
   targetMarhalah: TargetMarhalah;
+  campuses: Option[];
+  professions: Option[];
 }
 
 export default function Onboarding({
   googleUser,
   communityScope,
   targetMarhalah,
+  campuses,
+  professions,
 }: OnboardingProps) {
   const { data, setData, post, processing, errors } = useForm({
     marhalah: communityScope === "single" ? String(targetMarhalah.year) : "",
-    kampus_asal: "",
+    domisili: "indonesia",
+    city_id: "",
+    foreign_city: "",
+    campus_id: "",
+    profession_id: "",
     whatsapp: "",
+    instagram: "",
+    tiktok: "",
+    linkedin: "",
   });
 
   const submit = (e: FormEvent) => {
@@ -39,7 +56,7 @@ export default function Onboarding({
     <div className="bg-surface text-on-surface font-body min-h-screen flex items-center justify-center p-4 sm:p-8">
       <Head title="Onboarding - Complete Profile" />
 
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl">
         <div className="mb-10 text-center sm:text-left">
           <h1 className="font-headline text-4xl sm:text-5xl font-extrabold tracking-tight text-primary mb-3">
             Welcome to the Sanctuary
@@ -152,7 +169,7 @@ export default function Onboarding({
 
               <div>
                 <label
-                  htmlFor="kampus_asal"
+                  htmlFor="campus_id"
                   className="block font-label text-sm font-medium text-on-surface mb-2"
                 >
                   Kampus Asal (Kelas 6 KMI)
@@ -162,29 +179,61 @@ export default function Onboarding({
                     <span className="material-symbols-outlined">account_balance</span>
                   </span>
                   <select
-                    id="kampus_asal"
-                    value={data.kampus_asal}
-                    onChange={(e) => setData("kampus_asal", e.target.value)}
+                    id="campus_id"
+                    value={data.campus_id}
+                    onChange={(e) => setData("campus_id", e.target.value)}
                     className="block w-full pl-12 pr-10 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest cursor-pointer appearance-none"
                   >
                     <option disabled value="">
                       Select Campus
                     </option>
-                    <option value="gontor_1">Gontor Pusat (Ponorogo)</option>
-                    <option value="gontor_2">Gontor 2 (Madusari)</option>
-                    <option value="gontor_3">Gontor 3 (Kediri)</option>
-                    <option value="gontor_putri_1">Gontor Putri 1 (Mantingan)</option>
+                    {campuses.map(campus => (
+                        <option key={campus.id} value={campus.id}>{campus.name}</option>
+                    ))}
                   </select>
                   <span className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-outline">
                     <span className="material-symbols-outlined">expand_more</span>
                   </span>
                 </div>
-                {errors.kampus_asal && (
-                  <p className="mt-2 text-xs text-error">{errors.kampus_asal}</p>
+                {errors.campus_id && (
+                  <p className="mt-2 text-xs text-error">{errors.campus_id}</p>
                 )}
               </div>
 
-              <div className="sm:col-span-2">
+              <div>
+                <label
+                  htmlFor="profession_id"
+                  className="block font-label text-sm font-medium text-on-surface mb-2"
+                >
+                  Profesi
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-primary">
+                    <span className="material-symbols-outlined">work</span>
+                  </span>
+                  <select
+                    id="profession_id"
+                    value={data.profession_id}
+                    onChange={(e) => setData("profession_id", e.target.value)}
+                    className="block w-full pl-12 pr-10 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest cursor-pointer appearance-none"
+                  >
+                    <option disabled value="">
+                      Select Profession
+                    </option>
+                    {professions.map(prof => (
+                        <option key={prof.id} value={prof.id}>{prof.name}</option>
+                    ))}
+                  </select>
+                  <span className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-outline">
+                    <span className="material-symbols-outlined">expand_more</span>
+                  </span>
+                </div>
+                {errors.profession_id && (
+                  <p className="mt-2 text-xs text-error">{errors.profession_id}</p>
+                )}
+              </div>
+
+              <div>
                 <label
                   htmlFor="whatsapp"
                   className="block font-label text-sm font-medium text-on-surface mb-2"
@@ -208,9 +257,124 @@ export default function Onboarding({
                   <p className="mt-2 text-xs text-error">{errors.whatsapp}</p>
                 ) : (
                   <p className="mt-2 text-xs text-on-surface-variant">
-                    Used for official alumni communications and networking.
+                    Used for official communications.
                   </p>
                 )}
+              </div>
+
+              <div className="sm:col-span-2 mt-4">
+                <label className="block font-label text-sm font-medium text-on-surface mb-2">
+                  Domisili
+                </label>
+                <div className="flex gap-6 mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="domisili"
+                      value="indonesia"
+                      checked={data.domisili === "indonesia"}
+                      onChange={(e) => {
+                        setData("domisili", e.target.value);
+                        setData("foreign_city", "");
+                      }}
+                      className="text-primary focus:ring-primary w-4 h-4"
+                    />
+                    <span className="text-on-surface text-sm">Indonesia</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="domisili"
+                      value="luar_negeri"
+                      checked={data.domisili === "luar_negeri"}
+                      onChange={(e) => {
+                        setData("domisili", e.target.value);
+                        setData("city_id", "");
+                      }}
+                      className="text-primary focus:ring-primary w-4 h-4"
+                    />
+                    <span className="text-on-surface text-sm">Luar Negeri</span>
+                  </label>
+                </div>
+              </div>
+
+              {data.domisili === "indonesia" ? (
+                <div className="sm:col-span-2">
+                  <label htmlFor="city_id" className="block font-label text-sm font-medium text-on-surface mb-2">
+                    Kota Domisili
+                  </label>
+                  <AsyncSelect
+                    endpoint="/api/locations/cities"
+                    value={data.city_id}
+                    onChange={(val) => setData("city_id", String(val))}
+                    placeholder="Ketik untuk mencari kota..."
+                  />
+                  {errors.city_id && <p className="mt-2 text-xs text-error">{errors.city_id}</p>}
+                </div>
+              ) : (
+                <div className="sm:col-span-2">
+                  <label htmlFor="foreign_city" className="block font-label text-sm font-medium text-on-surface mb-2">
+                    Nama Kota (Luar Negeri)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-primary">
+                      <span className="material-symbols-outlined">location_city</span>
+                    </span>
+                    <input
+                      type="text"
+                      id="foreign_city"
+                      value={data.foreign_city}
+                      onChange={(e) => setData("foreign_city", e.target.value)}
+                      className="block w-full pl-12 pr-4 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest"
+                      placeholder="e.g. Cairo, London, Sydney"
+                    />
+                  </div>
+                  {errors.foreign_city && <p className="mt-2 text-xs text-error">{errors.foreign_city}</p>}
+                </div>
+              )}
+
+              <div className="sm:col-span-2 mt-4">
+                <label className="block font-label text-sm font-medium text-on-surface mb-2">
+                  Social Media (Opsional)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary">
+                      <span className="material-symbols-outlined text-sm">photo_camera</span>
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Instagram"
+                      value={data.instagram}
+                      onChange={(e) => setData("instagram", e.target.value)}
+                      className="block w-full pl-10 pr-3 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body text-sm transition-colors hover:bg-surface-container-highest"
+                    />
+                  </div>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary">
+                      <span className="material-symbols-outlined text-sm">play_circle</span>
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="TikTok"
+                      value={data.tiktok}
+                      onChange={(e) => setData("tiktok", e.target.value)}
+                      className="block w-full pl-10 pr-3 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body text-sm transition-colors hover:bg-surface-container-highest"
+                    />
+                  </div>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary">
+                      <span className="material-symbols-outlined text-sm">work</span>
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="LinkedIn URL"
+                      value={data.linkedin}
+                      onChange={(e) => setData("linkedin", e.target.value)}
+                      className="block w-full pl-10 pr-3 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body text-sm transition-colors hover:bg-surface-container-highest"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

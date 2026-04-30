@@ -165,12 +165,12 @@ export default function Index({ auth, users, filters = {} }: IndexProps) {
                   <div className="mt-4 mb-6">
                     {alumnus.profession && (
                       <span className="inline-block bg-secondary-container text-on-surface font-body text-xs px-3 py-1 rounded-full">
-                        {alumnus.profession}
+                        {typeof alumnus.profession === 'object' ? alumnus.profession.name : alumnus.profession}
                       </span>
                     )}
                     {alumnus.city && (
                       <span className="inline-block bg-secondary-container text-on-surface font-body text-xs px-3 py-1 rounded-full mt-2 ml-2">
-                        {alumnus.city}
+                        {typeof alumnus.city === 'object' ? alumnus.city.name : alumnus.city}
                       </span>
                     )}
                   </div>

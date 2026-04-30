@@ -3,7 +3,7 @@ import { Head, Link, useForm } from "@inertiajs/react";
 import { PageProps, GontorEvent, Rsvp, CustomFormField } from "@/types";
 import { z } from "zod";
 import Header from "@/Components/Header";
-
+import CurrencyInput from "@/Components/CurrencyInput";
 interface SelectedAddon {
   id: number;
   quantity: number;
@@ -321,13 +321,10 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                         </div>
                         {data.base_amount !== "0" &&
                           !flexibleTiers.includes(Number(data.base_amount)) && (
-                            <input
-                              type="number"
+                            <CurrencyInput
                               value={data.base_amount}
-                              onChange={(e) => setData("base_amount", e.target.value)}
-                              min={minimumCustom}
-                              step={1000}
-                              className="w-full bg-surface text-on-surface border border-outline rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-primary focus:border-primary"
+                              onChange={(val) => setData("base_amount", val)}
+                              className=""
                               placeholder={`Min. ${formatRupiah(minimumCustom)}`}
                             />
                           )}

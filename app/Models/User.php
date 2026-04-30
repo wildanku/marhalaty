@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
 
-#[Fillable(['name', 'email', 'google_id', 'avatar_url', 'marhalah_year', 'phone_number', 'is_verified', 'slug', 'profession', 'city', 'privacy_setting', 'business_showcase_url'])]
+#[Fillable(['name', 'email', 'google_id', 'avatar_url', 'marhalah_year', 'phone_number', 'is_verified', 'slug', 'country', 'city_id', 'foreign_city', 'profession_id', 'campus_id', 'social_media', 'metadata', 'privacy_setting', 'business_showcase_url'])]
 #[Hidden(['remember_token'])]
 class User extends Authenticatable
 {
@@ -21,7 +21,7 @@ class User extends Authenticatable
     /**
      * Get the options for generating the slug.
      */
-    public function getSlugOptions() : SlugOptions
+    public function getSlugOptions(): SlugOptions
     {
         return SlugOptions::create()
             ->generateSlugsFrom('name')
@@ -31,6 +31,21 @@ class User extends Authenticatable
     public function donations()
     {
         return $this->hasMany(\App\Domains\Donation\Models\Donation::class);
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(\App\Domains\Shared\Models\IndonesiaCity::class, 'city_id');
+    }
+
+    public function profession()
+    {
+        return $this->belongsTo(Option::class, 'profession_id');
+    }
+
+    public function campus()
+    {
+        return $this->belongsTo(Option::class, 'campus_id');
     }
 
     /**
@@ -50,6 +65,8 @@ class User extends Authenticatable
     {
         return [
             'is_verified' => 'boolean',
+            'social_media' => 'array',
+            'metadata' => 'array',
         ];
     }
 }

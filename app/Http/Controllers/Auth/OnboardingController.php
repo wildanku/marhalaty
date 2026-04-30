@@ -18,10 +18,15 @@ class OnboardingController extends Controller
             return redirect('/');
         }
 
+        $campuses = \App\Models\Option::where('key', 'campus')->get();
+        $professions = \App\Models\Option::where('key', 'profession')->get();
+
         return Inertia::render('Auth/Onboarding', [
             'googleUser' => $googleUser,
             'communityScope' => config('community.scope'),
             'targetMarhalah' => config('community.target_marhalah'),
+            'campuses' => $campuses,
+            'professions' => $professions,
         ]);
     }
 
@@ -35,8 +40,15 @@ class OnboardingController extends Controller
 
         $validated = $request->validate([
             'marhalah' => 'required|integer',
-            'kampus_asal' => 'required|string',
+            'domisili' => 'required|in:indonesia,luar_negeri',
+            'city_id' => 'required_if:domisili,indonesia|nullable|string|exists:indonesia_cities,id',
+            'foreign_city' => 'required_if:domisili,luar_negeri|nullable|string',
+            'campus_id' => 'required|exists:options,id',
+            'profession_id' => 'required|exists:options,id',
             'whatsapp' => 'required|string',
+            'instagram' => 'nullable|string',
+            'tiktok' => 'nullable|string',
+            'linkedin' => 'nullable|string',
         ]);
 
         // Cast marhalah to integer for comparison
@@ -55,6 +67,16 @@ class OnboardingController extends Controller
             'marhalah_year' => $validated['marhalah'],
             'phone_number' => $validated['whatsapp'],
             'is_verified' => false,
+            'country' => $validated['domisili'] === 'indonesia' ? 'Indonesia' : 'Luar Negeri',
+            'city_id' => $validated['domisili'] === 'indonesia' ? $validated['city_id'] : null,
+            'foreign_city' => $validated['domisili'] === 'luar_negeri' ? $validated['foreign_city'] : null,
+            'campus_id' => $validated['campus_id'],
+            'profession_id' => $validated['profession_id'],
+            'social_media' => [
+                'instagram' => $validated['instagram'] ?? null,
+                'tiktok' => $validated['tiktok'] ?? null,
+                'linkedin' => $validated['linkedin'] ?? null,
+            ],
         ]);
 
         // Clear session and login

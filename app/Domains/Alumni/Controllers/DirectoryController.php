@@ -14,16 +14,18 @@ class DirectoryController extends Controller
 {
     public function index(Request $request)
     {
-        $users = QueryBuilder::for(User::class)
-            ->allowedFilters([
-                'city',
-                'profession',
+        $users = QueryBuilder::for(User::with(['city', 'profession']))
+            ->allowedFilters(
+                'city_id',
+                'profession_id',
                 'marhalah_year',
                 AllowedFilter::callback('search', function (Builder $query, $value) {
                     $query->where('name', 'ILIKE', "%{$value}%")
-                          ->orWhere('profession', 'ILIKE', "%{$value}%");
-                }),
-            ])
+                          ->orWhereHas('profession', function($q) use ($value) {
+                              $q->where('name', 'ILIKE', "%{$value}%");
+                          });
+                })
+            )
             ->where('privacy_setting', '!=', 'private')
             ->orderBy('created_at', 'desc')
             ->paginate(15)

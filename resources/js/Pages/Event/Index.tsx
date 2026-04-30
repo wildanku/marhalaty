@@ -82,12 +82,12 @@ export default function Index({
               >
                 Global
               </button>
-              <button
+              {/* <button
                 onClick={() => router.get("/events", { scope: "marhalah" })}
                 className={`${currentScope === "marhalah" ? "bg-primary-container text-on-primary-container" : "bg-surface-container-high text-on-surface hover:bg-secondary-container"} px-4 py-2 rounded-full font-body text-sm font-medium whitespace-nowrap shadow-sm transition-colors`}
               >
                 My Marhalah
-              </button>
+              </button> */}
             </div>
 
             {events.length === 0 ? (

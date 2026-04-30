@@ -17,6 +17,8 @@ Route::post('/logout', \App\Http\Controllers\Auth\LogoutController::class)->name
 Route::middleware('web')->group(function () {
     Route::get('/onboarding', [OnboardingController::class, 'show'])->name('onboarding.show');
     Route::post('/onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
+
+    Route::get('/api/locations/cities', [\App\Http\Controllers\Api\LocationController::class, 'cities'])->name('api.locations.cities');
 });
 
 // Placeholder for protected dashboard
