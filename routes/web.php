@@ -6,13 +6,16 @@ use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-})->name('welcome');
+Route::get('/', [\App\Http\Controllers\WelcomeController::class, 'index'])->name('welcome');
+
+Route::get('/login', function () {
+    return Inertia::render('Auth/Login');
+})->name('login');
 
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
 Route::post('/logout', \App\Http\Controllers\Auth\LogoutController::class)->name('logout');
+Route::post('/language', [\App\Http\Controllers\LanguageController::class, 'switch'])->name('language.switch');
 
 Route::middleware('web')->group(function () {
     Route::get('/onboarding', [OnboardingController::class, 'show'])->name('onboarding.show');

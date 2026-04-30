@@ -1,26 +1,30 @@
 import { Head, Link, usePage } from "@inertiajs/react";
 import { PageProps, Rsvp } from "@/types";
 import Header from "@/Components/Header";
-
-const statusConfig: Record<string, { label: string; bg: string; text: string; icon: string }> = {
-  pending: {
-    label: "Menunggu Konfirmasi",
-    bg: "bg-amber-50",
-    text: "text-amber-700",
-    icon: "schedule",
-  },
-  paid: {
-    label: "Terkonfirmasi",
-    bg: "bg-green-50",
-    text: "text-green-700",
-    icon: "check_circle",
-  },
-  expired: { label: "Kedaluwarsa", bg: "bg-red-50", text: "text-red-600", icon: "timer_off" },
-  failed: { label: "Gagal", bg: "bg-red-50", text: "text-red-600", icon: "cancel" },
-};
+import { useTranslate } from "@/hooks/useTranslate";
 
 export default function Dashboard() {
   const { auth, rsvps } = usePage<PageProps<{ rsvps: Rsvp[] }>>().props;
+  const { t, locale } = useTranslate();
+
+  const statusConfig: Record<string, { label: string; bg: string; text: string; icon: string }> = {
+    pending: {
+      label: t("Pending Confirmation"),
+      bg: "bg-amber-50",
+      text: "text-amber-700",
+      icon: "schedule",
+    },
+    paid: {
+      label: t("Confirmed"),
+      bg: "bg-green-50",
+      text: "text-green-700",
+      icon: "check_circle",
+    },
+    expired: { label: t("Expired"), bg: "bg-red-50", text: "text-red-600", icon: "timer_off" },
+    failed: { label: t("Failed"), bg: "bg-red-50", text: "text-red-600", icon: "cancel" },
+  };
+
+  const dateLocale = locale === "id" ? "id-ID" : "en-US";
 
   const formatRupiah = (val: string) =>
     new Intl.NumberFormat("id-ID", {
@@ -38,20 +42,20 @@ export default function Dashboard() {
         {/* Welcome */}
         <div className="mb-10">
           <h1 className="font-headline text-3xl font-bold text-on-surface tracking-tight">
-            Selamat datang, {auth?.user?.name?.split(" ")[0]}!
+            {t("Welcome, :name!", { name: auth?.user?.name?.split(" ")[0] ?? "" })}
           </h1>
           <p className="font-body text-on-surface-variant mt-1 text-sm">
-            Ini adalah ringkasan aktivitas kamu di Dynamic Everywhere.
+            {t("Here's a summary of your activity on Dynamic Everywhere.")}
           </p>
         </div>
 
         {/* Quick Nav */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
           {[
-            { href: "/directory", icon: "groups", label: "Direktori Alumni" },
-            { href: "/events", icon: "calendar_month", label: "Event & Reuni" },
-            { href: "/maal", icon: "volunteer_activism", label: "Baitul Maal" },
-            { href: `/p/${auth?.user?.slug}`, icon: "person", label: "Profil Saya" },
+            { href: "/directory", icon: "groups", label: t("Alumni Directory") },
+            { href: "/events", icon: "calendar_month", label: t("Events & Reunions") },
+            { href: "/maal", icon: "volunteer_activism", label: t("Baitul Maal") },
+            { href: `/p/${auth?.user?.slug}`, icon: "person", label: t("My Profile") },
           ].map((item) => (
             <Link
               key={item.href}
@@ -74,12 +78,14 @@ export default function Dashboard() {
         {/* RSVP List */}
         <section>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="font-headline text-xl font-bold text-on-surface">Event yang Diikuti</h2>
+            <h2 className="font-headline text-xl font-bold text-on-surface">
+              {t("Registered Events")}
+            </h2>
             <Link
               href="/events"
               className="font-body text-sm text-primary hover:underline flex items-center gap-1"
             >
-              Lihat semua event
+              {t("View all events")}
               <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </Link>
           </div>
@@ -90,17 +96,17 @@ export default function Dashboard() {
                 event_busy
               </span>
               <p className="font-headline font-semibold text-on-surface mb-1">
-                Belum ada event yang diikuti
+                {t("No registered events yet")}
               </p>
               <p className="font-body text-sm text-on-surface-variant mb-6">
-                Temukan event alumni dan daftar sekarang.
+                {t("Find alumni events and register now.")}
               </p>
               <Link
                 href="/events"
                 className="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-full font-body font-medium text-sm hover:opacity-90 transition-opacity"
               >
                 <span className="material-symbols-outlined text-[18px]">calendar_month</span>
-                Lihat Event
+                {t("Browse Events")}
               </Link>
             </div>
           ) : (
@@ -120,7 +126,7 @@ export default function Dashboard() {
                           href={event ? `/events/${event.slug}` : "#"}
                           className="font-headline font-bold text-on-surface hover:text-primary transition-colors block truncate"
                         >
-                          {event?.title ?? "Event tidak ditemukan"}
+                          {event?.title ?? t("Event not found")}
                         </Link>
                         {event && (
                           <div className="flex items-center gap-4 mt-1">
@@ -128,7 +134,7 @@ export default function Dashboard() {
                               <span className="material-symbols-outlined text-[14px]">
                                 calendar_today
                               </span>
-                              {new Date(event.event_date).toLocaleDateString("id-ID", {
+                              {new Date(event.event_date).toLocaleDateString(dateLocale, {
                                 day: "numeric",
                                 month: "long",
                                 year: "numeric",
@@ -156,7 +162,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-6">
                         <div>
                           <p className="font-body text-[10px] text-on-surface-variant uppercase tracking-wider">
-                            Total
+                            {t("Total")}
                           </p>
                           <p className="font-headline font-bold text-on-surface text-sm">
                             {formatRupiah(rsvp.total_amount)}
@@ -165,7 +171,7 @@ export default function Dashboard() {
                         {rsvp.add_ons_snapshot && rsvp.add_ons_snapshot.length > 0 && (
                           <div>
                             <p className="font-body text-[10px] text-on-surface-variant uppercase tracking-wider">
-                              Merchandise
+                              {t("Merchandise")}
                             </p>
                             <p className="font-body text-sm text-on-surface">
                               {rsvp.add_ons_snapshot.length} item
@@ -174,8 +180,8 @@ export default function Dashboard() {
                         )}
                       </div>
                       <p className="font-body text-[11px] text-on-surface-variant">
-                        Daftar:{" "}
-                        {new Date(rsvp.created_at).toLocaleDateString("id-ID", {
+                        {t("Registered:")}{" "}
+                        {new Date(rsvp.created_at).toLocaleDateString(dateLocale, {
                           day: "numeric",
                           month: "short",
                           year: "numeric",

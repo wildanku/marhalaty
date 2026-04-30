@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, router, usePage } from "@inertiajs/react";
 import { PageProps, User } from "@/types";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface HeaderProps {
   hideNavLinks?: boolean;
@@ -9,6 +10,7 @@ interface HeaderProps {
 export default function Header({ hideNavLinks = false }: HeaderProps) {
   const { auth } = usePage<PageProps>().props;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { t, locale } = useTranslate();
 
   const handleLogout = () => {
     router.post(
@@ -18,6 +20,10 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
         onSuccess: () => setIsDropdownOpen(false),
       }
     );
+  };
+
+  const handleLanguageSwitch = (newLocale: string) => {
+    router.post("/language", { locale: newLocale }, { preserveScroll: true });
   };
 
   return (
@@ -38,25 +44,51 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               href="/directory"
               className="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
             >
-              Directory
+              {t("Directory")}
             </Link>
             <Link
               href="/events"
               className="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
             >
-              Events
+              {t("Events")}
             </Link>
             <Link
-              href="/donation"
+              href="/maal"
               className="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
             >
-              Baitul Maal
+              {t("Baitul Maal")}
             </Link>
           </div>
         )}
 
-        {/* Auth Section */}
+        {/* Auth Section & Lang Switcher */}
         <div className="flex items-center gap-4 relative">
+          {/* Language Switcher */}
+          <div className="hidden sm:flex items-center gap-1 mr-2 bg-surface-container rounded-full p-0.5">
+            <button
+              onClick={() => locale !== "id" && handleLanguageSwitch("id")}
+              className={`text-xs font-bold py-1.5 px-3 rounded-full uppercase tracking-widest transition-all ${
+                locale === "id"
+                  ? "bg-primary text-on-primary shadow-sm"
+                  : "text-on-surface-variant hover:text-primary"
+              }`}
+              title="Bahasa Indonesia"
+            >
+              ID
+            </button>
+            <button
+              onClick={() => locale !== "en" && handleLanguageSwitch("en")}
+              className={`text-xs font-bold py-1.5 px-3 rounded-full uppercase tracking-widest transition-all ${
+                locale === "en"
+                  ? "bg-primary text-on-primary shadow-sm"
+                  : "text-on-surface-variant hover:text-primary"
+              }`}
+              title="English"
+            >
+              EN
+            </button>
+          </div>
+
           {auth?.user ? (
             /* User Logged In - Show Avatar & Dropdown */
             <div className="relative">
@@ -112,7 +144,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       <span className="material-symbols-outlined text-lg">dashboard</span>
-                      Dashboard
+                      {t("Dashboard")}
                     </Link>
 
                     <Link
@@ -121,7 +153,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       <span className="material-symbols-outlined text-lg">person</span>
-                      My Profile
+                      {t("My Profile")}
                     </Link>
 
                     <Link
@@ -130,7 +162,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       <span className="material-symbols-outlined text-lg">manage_accounts</span>
-                      Edit Profile
+                      {t("Edit Profile")}
                     </Link>
 
                     <Link
@@ -139,7 +171,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       <span className="material-symbols-outlined text-lg">groups</span>
-                      Directory
+                      {t("Directory")}
                     </Link>
 
                     <hr className="my-2 border-outline-variant/20" />
@@ -149,7 +181,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                       className="w-full flex items-center gap-3 px-4 py-2 text-error hover:bg-error/10 transition-colors duration-200 font-body text-sm text-left"
                     >
                       <span className="material-symbols-outlined text-lg">logout</span>
-                      Logout
+                      {t("Logout")}
                     </button>
                   </div>
                 </div>
@@ -161,13 +193,22 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               href="/auth/google/redirect"
               className="hidden md:flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-full font-label font-medium hover:bg-primary-container hover:text-on-primary-container transition-all"
             >
-              Login
+              {t("Login")}
             </a>
           )}
         </div>
 
         {/* Mobile Menu Icon - For future mobile menu implementation */}
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center gap-2">
+          {/* Mobile Language Switcher */}
+          <button
+            onClick={() => handleLanguageSwitch(locale === "id" ? "en" : "id")}
+            className="flex items-center justify-center h-9 px-3 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant font-bold text-xs uppercase tracking-widest"
+            title="Switch Language"
+          >
+            {locale === "id" ? "ID" : "EN"}
+          </button>
+
           {auth?.user ? (
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -196,7 +237,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               onClick={() => setIsDropdownOpen(false)}
             >
               <span className="material-symbols-outlined text-lg">dashboard</span>
-              Dashboard
+              {t("Dashboard")}
             </Link>
 
             <Link
@@ -205,7 +246,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               onClick={() => setIsDropdownOpen(false)}
             >
               <span className="material-symbols-outlined text-lg">person</span>
-              My Profile
+              {t("My Profile")}
             </Link>
 
             <Link
@@ -214,7 +255,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               onClick={() => setIsDropdownOpen(false)}
             >
               <span className="material-symbols-outlined text-lg">manage_accounts</span>
-              Edit Profile
+              {t("Edit Profile")}
             </Link>
 
             <Link
@@ -223,7 +264,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               onClick={() => setIsDropdownOpen(false)}
             >
               <span className="material-symbols-outlined text-lg">groups</span>
-              Directory
+              {t("Directory")}
             </Link>
 
             <hr className="my-2 border-outline-variant/20" />
@@ -233,7 +274,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               className="w-full flex items-center gap-3 px-4 py-2 text-error hover:bg-error/10 rounded-lg transition-colors duration-200 font-body text-sm text-left"
             >
               <span className="material-symbols-outlined text-lg">logout</span>
-              Logout
+              {t("Logout")}
             </button>
           </div>
         </div>
