@@ -45,3 +45,29 @@ Route::middleware('auth')->group(function () {
     Route::get('/maal/campaigns/{slug}', [\App\Domains\Donation\Controllers\CampaignController::class, 'show'])->name('maal.show');
     Route::post('/maal/donate', [\App\Domains\Donation\Controllers\DonationController::class, 'store'])->name('maal.donate');
 });
+
+// ─── God Mode ────────────────────────────────────────────────────────────────
+Route::prefix('god-mode')->name('god-mode.')->group(function () {
+    Route::get('/login', [\App\Domains\GodMode\Controllers\AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [\App\Domains\GodMode\Controllers\AuthController::class, 'login'])->name('login.post');
+    Route::post('/logout', [\App\Domains\GodMode\Controllers\AuthController::class, 'logout'])->name('logout');
+
+    Route::middleware('god-mode.auth')->group(function () {
+        Route::get('/', [\App\Domains\GodMode\Controllers\DashboardController::class, 'index'])->name('dashboard');
+
+        // Users
+        Route::get('/users', [\App\Domains\GodMode\Controllers\UserController::class, 'index'])->name('users.index');
+        Route::get('/users/{id}', [\App\Domains\GodMode\Controllers\UserController::class, 'show'])->name('users.show');
+        Route::patch('/users/{id}/verify', [\App\Domains\GodMode\Controllers\UserController::class, 'toggleVerify'])->name('users.verify');
+
+        // Events
+        Route::get('/events', [\App\Domains\GodMode\Controllers\EventController::class, 'index'])->name('events.index');
+        Route::get('/events/{id}', [\App\Domains\GodMode\Controllers\EventController::class, 'show'])->name('events.show');
+
+        // Consulates
+        Route::get('/consulates', [\App\Domains\GodMode\Controllers\ConsulateController::class, 'index'])->name('consulates.index');
+        Route::post('/consulates', [\App\Domains\GodMode\Controllers\ConsulateController::class, 'store'])->name('consulates.store');
+        Route::patch('/consulates/{id}', [\App\Domains\GodMode\Controllers\ConsulateController::class, 'update'])->name('consulates.update');
+        Route::delete('/consulates/{id}', [\App\Domains\GodMode\Controllers\ConsulateController::class, 'destroy'])->name('consulates.destroy');
+    });
+});

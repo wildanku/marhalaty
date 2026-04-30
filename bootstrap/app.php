@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SetLocale::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
+        $middleware->alias([
+            'god-mode.auth' => \App\Http\Middleware\GodModeAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

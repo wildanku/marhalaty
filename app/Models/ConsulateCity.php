@@ -20,4 +20,12 @@ class ConsulateCity extends Model
     {
         return $this->belongsTo(Consulate::class);
     }
+
+    /**
+     * Get the referenced IndonesiaCity.
+     */
+    public function city()
+    {
+        return $this->belongsTo(\App\Domains\Shared\Models\IndonesiaCity::class, 'city_id');
+    }
 }
