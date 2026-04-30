@@ -2,12 +2,13 @@ import Header from "@/Components/Header";
 import UpcomingEvents from "@/Components/UpcomingEvents";
 import { useTranslate } from "@/hooks/useTranslate";
 import { GontorEvent, PageProps } from "@/types";
+import { Link } from "@inertiajs/react";
 
 interface WelcomeProps extends PageProps {
   upcomingEvents: GontorEvent[];
 }
 
-export default function Welcome({ upcomingEvents }: WelcomeProps) {
+export default function Welcome({ upcomingEvents, auth }: WelcomeProps) {
   const { t } = useTranslate();
 
   return (
@@ -38,17 +39,27 @@ export default function Welcome({ upcomingEvents }: WelcomeProps) {
                 {t("Portal Alumni Gontor. A quiet lounge where legacy meets future opportunity. Reconnect with brothers, support the community, and grow your network.")}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <a
-                  href="/auth/google/redirect"
-                  className="flex items-center justify-center gap-3 bg-gray-800 text-gray-100 pr-8 pl-4 py-4 rounded-full font-label font-semibold text-lg hover:bg-gray-900 hover:text-on-tertiary transition-all shadow-[0px_10px_40px_rgba(119,90,25,0.2)]"
-                >
-                  <img
-                    alt="Google Logo"
-                    className="w-6 h-6 rounded-full p-0"
-                    src="/google.svg"
-                  />
-                  {t("Gabung dengan Google")}
-                </a>
+                {auth?.user ? (
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center justify-center gap-3 bg-primary text-on-primary px-8 py-4 rounded-full font-label font-semibold text-lg hover:opacity-90 transition-all shadow-[0px_10px_40px_rgba(80,100,71,0.2)]"
+                  >
+                    <span className="material-symbols-outlined">dashboard</span>
+                    {t("Buka Dashboard")}
+                  </Link>
+                ) : (
+                  <a
+                    href="/auth/google/redirect"
+                    className="flex items-center justify-center gap-3 bg-gray-800 text-gray-100 pr-8 pl-4 py-4 rounded-full font-label font-semibold text-lg hover:bg-gray-900 hover:text-on-tertiary transition-all shadow-[0px_10px_40px_rgba(119,90,25,0.2)]"
+                  >
+                    <img
+                      alt="Google Logo"
+                      className="w-6 h-6 rounded-full p-0"
+                      src="/google.svg"
+                    />
+                    {t("Gabung dengan Google")}
+                  </a>
+                )}
               </div>
             </div>
             <div className="w-full md:w-2/5 relative">
