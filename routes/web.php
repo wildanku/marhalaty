@@ -25,6 +25,10 @@ Route::middleware('web')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Profile updates
+    Route::get('/profile/edit', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+
     Route::get('/directory', [\App\Domains\Alumni\Controllers\DirectoryController::class, 'index'])->name('directory.index');
     Route::get('/p/{slug}', [\App\Domains\Alumni\Controllers\DirectoryController::class, 'show'])->name('directory.show');
 

@@ -8,8 +8,16 @@ export interface User {
   phone_number: string | null;
   is_verified: boolean;
   slug: string;
-  profession: string | null;
-  city: string | null;
+  profession_id: number | null;
+  profession: string | { id: number; name: string } | null;
+  country: string | null;
+  city_id: string | null;
+  city: string | { id: string; name: string; province?: { name: string } } | null;
+  foreign_city: string | null;
+  campus_id: number | null;
+  campus: { id: number; name: string } | null;
+  social_media: { instagram?: string; tiktok?: string; linkedin?: string } | null;
+  metadata: Record<string, unknown> | null;
   privacy_setting: "public" | "circle" | "private";
   business_showcase_url: string | null;
 }

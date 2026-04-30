@@ -182,7 +182,7 @@ export default function Welcome() {
             </a>
           </div>
           <p className="font-body text-xs text-[#d2eac5]/70">
-            © 2024 IKPM Gontor. Preserving Legacy, Empowering Future.
+            © {new Date().getFullYear()} Dyanamic Everywhere. Powered by Marhalaty an Open Source for Alumni Platform.
           </p>
         </div>
       </footer>

@@ -53,7 +53,9 @@ export default function Show({ auth, alumni }: ShowProps) {
               )}
             </h1>
             <p className="font-body text-on-surface-variant mt-2 text-sm">
-              {alumni.profession ? alumni.profession : "Dynamic Everywhere"}
+              {alumni.profession 
+                ? (typeof alumni.profession === "object" ? alumni.profession.name : alumni.profession) 
+                : "Dynamic Everywhere"}
             </p>
             <span className="inline-flex items-center mt-3 bg-secondary-container text-on-surface font-body text-xs font-semibold px-3 py-1 rounded-full">
               Marhalah {alumni.marhalah_year}
@@ -93,8 +95,76 @@ export default function Show({ auth, alumni }: ShowProps) {
                 <span className="material-symbols-outlined text-primary">location_on</span>
                 Location
               </h3>
-              <p className="font-body text-on-surface-variant">{alumni.city || "Not specified"}</p>
+              <p className="font-body text-on-surface-variant">
+                {alumni.country === "Luar Negeri"
+                  ? alumni.foreign_city
+                    ? `${alumni.foreign_city}, Luar Negeri`
+                    : "Luar Negeri"
+                  : alumni.city
+                  ? typeof alumni.city === "object"
+                    ? alumni.city.name
+                    : alumni.city
+                  : "Not specified"}
+              </p>
             </div>
+
+            <div>
+              <h3 className="font-headline text-lg font-bold text-on-surface mb-3 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">account_balance</span>
+                Kampus Asal
+              </h3>
+              <p className="font-body text-on-surface-variant">
+                {alumni.campus
+                  ? typeof alumni.campus === "object"
+                    ? alumni.campus.name
+                    : alumni.campus
+                  : "Not specified"}
+              </p>
+            </div>
+
+            {(alumni.social_media?.instagram || alumni.social_media?.tiktok || alumni.social_media?.linkedin) && (
+              <div>
+                <h3 className="font-headline text-lg font-bold text-on-surface mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">public</span>
+                  Social Media
+                </h3>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {alumni.social_media.instagram && (
+                    <a
+                      href={`https://instagram.com/${alumni.social_media.instagram.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 text-sm font-body bg-surface-container py-2 px-4 rounded-lg"
+                    >
+                      <span className="material-symbols-outlined text-lg">photo_camera</span>
+                      {alumni.social_media.instagram}
+                    </a>
+                  )}
+                  {alumni.social_media.tiktok && (
+                    <a
+                      href={`https://tiktok.com/@${alumni.social_media.tiktok.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 text-sm font-body bg-surface-container py-2 px-4 rounded-lg"
+                    >
+                      <span className="material-symbols-outlined text-lg">play_circle</span>
+                      {alumni.social_media.tiktok}
+                    </a>
+                  )}
+                  {alumni.social_media.linkedin && (
+                    <a
+                      href={alumni.social_media.linkedin.startsWith('http') ? alumni.social_media.linkedin : `https://${alumni.social_media.linkedin}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 text-sm font-body bg-surface-container py-2 px-4 rounded-lg"
+                    >
+                      <span className="material-symbols-outlined text-lg">work</span>
+                      LinkedIn
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div>
               <h3 className="font-headline text-lg font-bold text-on-surface mb-3 flex items-center gap-2">

@@ -38,7 +38,7 @@ class DirectoryController extends Controller
 
     public function show($slug, Request $request)
     {
-        $user = User::where('slug', $slug)->firstOrFail();
+        $user = User::with(['city', 'profession', 'campus'])->where('slug', $slug)->firstOrFail();
         $visitor = $request->user();
 
         // Enforcement of granular privacy

@@ -125,6 +125,15 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                     </Link>
 
                     <Link
+                      href="/profile/edit"
+                      className="flex items-center gap-3 px-4 py-2 text-on-surface hover:bg-surface-container-high transition-colors duration-200 font-body text-sm"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      <span className="material-symbols-outlined text-lg">manage_accounts</span>
+                      Edit Profile
+                    </Link>
+
+                    <Link
                       href="/directory"
                       className="flex items-center gap-3 px-4 py-2 text-on-surface hover:bg-surface-container-high transition-colors duration-200 font-body text-sm"
                       onClick={() => setIsDropdownOpen(false)}
@@ -197,6 +206,15 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
             >
               <span className="material-symbols-outlined text-lg">person</span>
               My Profile
+            </Link>
+
+            <Link
+              href="/profile/edit"
+              className="flex items-center gap-3 px-4 py-2 text-on-surface hover:bg-surface-container-high rounded-lg transition-colors duration-200 font-body text-sm"
+              onClick={() => setIsDropdownOpen(false)}
+            >
+              <span className="material-symbols-outlined text-lg">manage_accounts</span>
+              Edit Profile
             </Link>
 
             <Link
