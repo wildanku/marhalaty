@@ -61,14 +61,12 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platfo
 # Copy application files
 COPY . .
 
-# Copy environment file
-COPY .env.example .env
-
-# Run composer scripts safely
-RUN composer run post-autoload-dump
-
 # Copy built frontend assets
 COPY --from=frontend /app/public/build ./public/build
+
+# Copy and setup entrypoint script
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Ensure proper permissions
 RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
@@ -76,5 +74,5 @@ RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
 # Expose port 8000 for FrankenPHP/Octane
 EXPOSE 8000
 
-# Start Laravel Octane via FrankenPHP
-CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8000"]
+# Use entrypoint script
+ENTRYPOINT ["/app/entrypoint.sh"]
