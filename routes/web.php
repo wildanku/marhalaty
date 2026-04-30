@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\OnboardingController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -11,6 +12,7 @@ Route::get('/', function () {
 
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
+Route::post('/logout', \App\Http\Controllers\Auth\LogoutController::class)->name('logout');
 
 Route::middleware('web')->group(function () {
     Route::get('/onboarding', [OnboardingController::class, 'show'])->name('onboarding.show');
@@ -19,9 +21,7 @@ Route::middleware('web')->group(function () {
 
 // Placeholder for protected dashboard
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/directory', [\App\Domains\Alumni\Controllers\DirectoryController::class, 'index'])->name('directory.index');
     Route::get('/p/{slug}', [\App\Domains\Alumni\Controllers\DirectoryController::class, 'show'])->name('directory.show');

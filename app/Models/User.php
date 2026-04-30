@@ -16,7 +16,7 @@ use Spatie\Sluggable\SlugOptions;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasSlug;
+    use HasFactory, HasSlug;
 
     /**
      * Get the options for generating the slug.

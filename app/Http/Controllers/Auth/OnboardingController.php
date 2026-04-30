@@ -39,6 +39,9 @@ class OnboardingController extends Controller
             'whatsapp' => 'required|string',
         ]);
 
+        // Cast marhalah to integer for comparison
+        $validated['marhalah'] = (int) $validated['marhalah'];
+
         // Security check for single marhalah scope
         if (config('community.scope') === 'single' && $validated['marhalah'] !== config('community.target_marhalah.year')) {
             abort(403, 'Invalid Marhalah Year for the current community scope.');

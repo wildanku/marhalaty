@@ -4,14 +4,14 @@
     "module": "esnext",
     "jsx": "react-jsx",
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "isolatedModules": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
+    "ignoreDeprecations": "5.0",
     "paths": {
-      "@/*": ["resources/js/*"]
+      "@/*": ["./resources/js/*"]
     }
   },
   "include": [

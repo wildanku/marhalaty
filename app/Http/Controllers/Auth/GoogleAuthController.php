@@ -12,12 +12,12 @@ class GoogleAuthController extends Controller
 {
     public function redirect()
     {
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')->stateless()->redirect();
     }
 
     public function callback()
     {
-        $googleUser = Socialite::driver('google')->user();
+        $googleUser = Socialite::driver('google')->stateless()->user();
 
         // Find existing user by google id or email
         $user = User::where('google_id', $googleUser->id)->orWhere('email', $googleUser->email)->first();

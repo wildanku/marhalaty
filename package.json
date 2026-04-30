@@ -4,7 +4,9 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "format": "prettier --write resources/js/**/*.{ts,tsx,js,jsx}",
+        "format:check": "prettier --check resources/js/**/*.{ts,tsx,js,jsx}"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
@@ -13,6 +15,7 @@
         "@types/react-dom": "^19.2.3",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^3.0.0",
+        "prettier": "^3.8.3",
         "tailwindcss": "^4.0.0",
         "typescript": "^6.0.3",
         "vite": "^8.0.0"

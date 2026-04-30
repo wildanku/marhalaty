@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Campaign extends Model
+class Campaign extends Model implements HasMedia
 {
-    use HasFactory, HasSlug;
+    use HasFactory, HasSlug, InteractsWithMedia;
 
     protected $fillable = [
         'title',
@@ -43,5 +45,24 @@ class Campaign extends Model
     public function updates()
     {
         return $this->hasMany(CampaignUpdate::class);
+    }
+
+    /**
+     * Register media collections for campaign images and updates.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('campaign-featured-image')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useDisk('public');
+
+        $this->addMediaCollection('campaign-gallery')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useDisk('public');
+
+        $this->addMediaCollection('campaign-documents')
+            ->acceptsMimeTypes(['application/pdf'])
+            ->useDisk('public');
     }
 }

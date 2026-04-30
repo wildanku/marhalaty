@@ -17,11 +17,13 @@ class RsvpController extends Controller
         $event = Event::where('slug', $slug)->firstOrFail();
 
         $validated = $request->validate([
-            'base_amount' => 'required|numeric|min:0',
-            'addons' => 'array',
-            'addons.*.id' => 'required|exists:event_addons,id',
-            'addons.*.quantity' => 'required|integer|min:1',
-            'addons.*.variant' => 'nullable|string',
+            'base_amount'        => 'required|numeric|min:0',
+            'addons'             => 'array',
+            'addons.*.id'        => 'required|exists:event_addons,id',
+            'addons.*.quantity'  => 'required|integer|min:1',
+            'addons.*.variants'  => 'nullable|array',
+            'custom_form_data'   => 'nullable|array',
+            'custom_form_data.*' => 'nullable|string|max:1000',
         ]);
 
         // Dynamic Pricing Rules Validation
@@ -62,23 +64,24 @@ class RsvpController extends Controller
                     $totalAmount += $itemTotal;
 
                     $addonSnapshot[] = [
-                        'id' => $addon->id,
-                        'name' => $addon->name,
-                        'price' => $addon->price,
+                        'id'       => $addon->id,
+                        'name'     => $addon->name,
+                        'price'    => $addon->price,
                         'quantity' => $purchasedAddon['quantity'],
-                        'variant' => $purchasedAddon['variant'] ?? null,
-                        'total' => $itemTotal,
+                        'variants' => $purchasedAddon['variants'] ?? null,
+                        'total'    => $itemTotal,
                     ];
                 }
             }
 
-            $rsvp = Rsvp::create([
-                'user_id' => $request->user()->id,
-                'event_id' => $event->id,
-                'base_amount' => $validated['base_amount'],
-                'total_amount' => $totalAmount,
-                'status' => 'pending',
+            Rsvp::create([
+                'user_id'          => $request->user()->id,
+                'event_id'         => $event->id,
+                'base_amount'      => $validated['base_amount'],
+                'total_amount'     => $totalAmount,
+                'status'           => 'pending',
                 'add_ons_snapshot' => empty($addonSnapshot) ? null : $addonSnapshot,
+                'custom_form_data' => $validated['custom_form_data'] ?? null,
             ]);
 
             return redirect()->route('dashboard')->with('success', 'RSVP created successfully!');

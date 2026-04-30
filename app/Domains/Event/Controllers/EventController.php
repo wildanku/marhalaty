@@ -4,6 +4,7 @@ namespace App\Domains\Event\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Domains\Event\Models\Event;
+use App\Domains\Event\Models\Rsvp;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -46,8 +47,13 @@ class EventController extends Controller
             abort(403, 'This event is restricted to a specific Marhalah.');
         }
 
+        $existingRsvp = Rsvp::where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->first();
+
         return Inertia::render('Event/Show', [
-            'event' => $event,
+            'event'        => $event,
+            'existingRsvp' => $existingRsvp,
         ]);
     }
 }

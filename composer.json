@@ -11,6 +11,7 @@
         "laravel/framework": "^13.0",
         "laravel/socialite": "^5.26",
         "laravel/tinker": "^3.0",
+        "spatie/laravel-medialibrary": "^11.0",
         "spatie/laravel-query-builder": "^7.2",
         "spatie/laravel-sluggable": "^3.8"
     },

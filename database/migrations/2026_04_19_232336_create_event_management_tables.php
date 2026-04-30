@@ -18,6 +18,7 @@ return new class extends Migration
             $table->enum('payment_type', ['free', 'fixed', 'flexible']);
             $table->json('pricing_rules');
             $table->string('visibility_scope')->nullable();
+            $table->json('metadata')->nullable();
             $table->timestamps();
         });
 

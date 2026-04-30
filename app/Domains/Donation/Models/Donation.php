@@ -5,10 +5,12 @@ namespace App\Domains\Donation\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Donation extends Model
+class Donation extends Model implements HasMedia
 {
-    use HasFactory;
+    use HasFactory, InteractsWithMedia;
 
     protected $fillable = [
         'donatable_type',
@@ -32,5 +34,19 @@ class Donation extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Register media collections for donation receipts and proofs.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('donation-receipt')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'application/pdf'])
+            ->useDisk('public');
+
+        $this->addMediaCollection('donation-proof')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useDisk('public');
     }
 }

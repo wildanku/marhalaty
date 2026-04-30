@@ -39,6 +39,9 @@ importers:
       laravel-vite-plugin:
         specifier: ^3.0.0
         version: 3.0.1(vite@8.0.8(@types/node@25.6.0)(jiti@2.6.1))
+      prettier:
+        specifier: ^3.8.3
+        version: 3.8.3
       tailwindcss:
         specifier: ^4.0.0
         version: 4.2.2
@@ -484,6 +487,11 @@ packages:
   postcss@8.5.10:
     resolution: {integrity: sha512-pMMHxBOZKFU6HgAZ4eyGnwXF/EvPGGqUr0MnZ5+99485wwW41kW91A4LOGxSHhgugZmSChL5AlElNdwlNgcnLQ==}
     engines: {node: ^10 || ^12 || >=14}
+
+  prettier@3.8.3:
+    resolution: {integrity: sha512-7igPTM53cGHMW8xWuVTydi2KO233VFiTNyF5hLJqpilHfmn8C8gPf+PS7dUT64YcXFbiMGZxS9pCSxL/Dxm/Jw==}
+    engines: {node: '>=14'}
+    hasBin: true
 
   react-dom@19.2.5:
     resolution: {integrity: sha512-J5bAZz+DXMMwW/wV3xzKke59Af6CHY7G4uYLN1OvBcKEsWOs4pQExj86BBKamxl/Ik5bx9whOrvBlSDfWzgSag==}
@@ -963,6 +971,8 @@ snapshots:
       nanoid: 3.3.11
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  prettier@3.8.3: {}
 
   react-dom@19.2.5(react@19.2.5):
     dependencies:
