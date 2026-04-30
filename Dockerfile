@@ -14,7 +14,8 @@ RUN apk add --no-cache \
     libexif-dev \
     linux-headers \
     nodejs \
-    npm
+    npm \
+    netcat-openbsd
 
 # Install PHP extensions
 RUN install-php-extensions \
@@ -60,11 +61,14 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platfo
 # Copy application files
 COPY . .
 
-# Copy built frontend assets
-COPY --from=frontend /app/public/build ./public/build
+# Copy environment file
+COPY .env.example .env
 
 # Run composer scripts safely
 RUN composer run post-autoload-dump
+
+# Copy built frontend assets
+COPY --from=frontend /app/public/build ./public/build
 
 # Ensure proper permissions
 RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
