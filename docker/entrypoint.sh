@@ -58,4 +58,4 @@ fi
 
 # Start the application
 echo "🚀 Starting Laravel Octane..."
-exec php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000
+exec php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8001

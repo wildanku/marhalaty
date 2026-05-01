@@ -72,8 +72,8 @@ RUN chmod +x /app/entrypoint.sh
 RUN mkdir -p /app/storage /app/bootstrap/cache && \
     chown -R www-data:www-data /app/storage /app/bootstrap/cache /app
 
-# Expose port 8000 for FrankenPHP/Octane
-EXPOSE 8000
+# Expose port 8001 for FrankenPHP/Octane
+EXPOSE 8001
 
 # Use entrypoint script
 ENTRYPOINT ["/app/entrypoint.sh"]
