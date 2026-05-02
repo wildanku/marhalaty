@@ -1,7 +1,7 @@
 FROM dunglas/frankenphp:1-php8.3-alpine AS base
 
-# Install required system packages
-RUN apk add --no-cache \
+# Update package index and install required system packages
+RUN apk update && apk add --no-cache \
     curl \
     git \
     unzip \
@@ -10,12 +10,12 @@ RUN apk add --no-cache \
     libjpeg-turbo-dev \
     freetype-dev \
     oniguruma-dev \
+    postgresql-client \
     postgresql-dev \
     libexif-dev \
     linux-headers \
     nodejs \
-    npm \
-    netcat-openbsd
+    npm
 
 # Install PHP extensions
 RUN install-php-extensions \
