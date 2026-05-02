@@ -79,6 +79,10 @@ RUN mkdir -p /app/storage/app \
     chmod -R 755 /app && \
     chmod -R 775 /app/storage /app/bootstrap/cache
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD php /app/artisan tinker --execute="echo 'OK';" 2>&1 || exit 1
+
 # Expose port 8001 for FrankenPHP/Octane
 EXPOSE 8001
 

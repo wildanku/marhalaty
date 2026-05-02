@@ -1,5 +1,4 @@
 #!/bin/sh
-set -e
 
 # Generate .env file from environment variables
 echo "🔧 Generating .env from environment variables..."
@@ -34,47 +33,77 @@ MAIL_FROM_ADDRESS="${MAIL_FROM_ADDRESS}"
 MAIL_FROM_NAME="${MAIL_FROM_NAME}"
 
 VITE_API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:8000}"
-
-SERVER_NAME="${SERVER_NAME:-0.0.0.0:8001}"
 EOF
 
+if [ $? -ne 0 ]; then
+  echo "❌ Failed to generate .env"
+  exit 1
+fi
 echo "✅ .env generated successfully"
 
-# Wait for database to be ready
-echo "⏳ Waiting for database..."
-until nc -z -v -w30 ${DB_HOST:-127.0.0.1} ${DB_PORT:-5432}; do
-  echo "Database is unavailable - sleeping..."
-  sleep 1
-done
-echo "✅ Database is up"
+# Wait for database to be ready (with timeout)
+if [ ! -z "$DB_HOST" ]; then
+  echo "⏳ Waiting for database at $DB_HOST:${DB_PORT:-5432}..."
+  timeout=0
+  until nc -z -v -w30 ${DB_HOST} ${DB_PORT:-5432} 2>/dev/null; do
+    timeout=$((timeout + 1))
+    if [ $timeout -gt 30 ]; then
+      echo "⚠️  Database timeout, continuing anyway..."
+      break
+    fi
+    echo "Database is unavailable - sleeping... (attempt $timeout/30)"
+    sleep 1
+  done
+  echo "✅ Database check complete"
+fi
 
-# Clear old cache and logs
+# Discover packages
+echo "📦 Discovering packages..."
+php artisan package:discover --ansi 2>&1 || echo "⚠️  Package discovery completed with warnings"
+
+# Clear old cache
 echo "🧹 Clearing old caches..."
 rm -rf /app/bootstrap/cache/*.php 2>/dev/null || true
 rm -rf /app/storage/cache/* 2>/dev/null || true
 
-# Discover and cache packages
-echo "📦 Discovering packages..."
-php artisan package:discover --ansi || true
-
-# Run migrations if DB_HOST is set (production)
+# Run migrations only if DB_HOST is explicitly set
 if [ ! -z "$DB_HOST" ]; then
   echo "🔄 Running migrations..."
-  php artisan migrate --force || echo "⚠️  Migrations failed or already run"
+  if php artisan migrate --force --no-interaction 2>&1; then
+    echo "✅ Migrations completed successfully"
+  else
+    echo "⚠️  Migrations failed or already applied (continuing startup...)"
+  fi
 fi
 
 # Cache config and routes for production
 if [ "$APP_ENV" = "production" ]; then
   echo "🎯 Caching config and routes..."
-  php artisan config:cache
-  php artisan route:cache
-  php artisan view:cache
+  if ! php artisan config:cache; then
+    echo "❌ Config cache failed"
+    exit 1
+  fi
+  
+  if ! php artisan route:cache; then
+    echo "❌ Route cache failed"
+    exit 1
+  fi
+  
+  php artisan view:cache 2>&1 || echo "⚠️  View cache completed with warnings"
 fi
 
-# Set proper permissions
+# Set proper permissions (may fail if not root, that's okay)
 echo "🔐 Setting permissions..."
-chown -R www-data:www-data /app/storage /app/bootstrap/cache
+chown -R www-data:www-data /app/storage /app/bootstrap/cache 2>/dev/null || echo "⚠️  Could not change ownership (running as different user)"
+
+# Health check: verify the app can be accessed
+echo "🏥 Running health check..."
+if ! php artisan tinker --execute="echo 'OK';" > /dev/null 2>&1; then
+  echo "❌ Health check failed - app cannot run commands"
+  exit 1
+fi
+echo "✅ Health check passed"
 
 # Start the application with Laravel Octane
-echo "🚀 Starting Laravel Octane..."
+echo "🚀 Starting Laravel Octane on 0.0.0.0:8001..."
 exec php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8001
