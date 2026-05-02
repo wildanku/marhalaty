@@ -68,9 +68,16 @@ COPY --from=frontend /app/public/build ./public/build
 COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Create directories that need to be writable
-RUN mkdir -p /app/storage /app/bootstrap/cache && \
-    chown -R www-data:www-data /app/storage /app/bootstrap/cache /app
+# Create and configure necessary directories with proper permissions
+RUN mkdir -p /app/storage/app \
+    /app/storage/framework/cache \
+    /app/storage/framework/sessions \
+    /app/storage/framework/views \
+    /app/storage/logs \
+    /app/bootstrap/cache && \
+    chown -R www-data:www-data /app && \
+    chmod -R 755 /app && \
+    chmod -R 775 /app/storage /app/bootstrap/cache
 
 # Expose port 8001 for FrankenPHP/Octane
 EXPOSE 8001

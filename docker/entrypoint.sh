@@ -34,6 +34,8 @@ MAIL_FROM_ADDRESS="${MAIL_FROM_ADDRESS}"
 MAIL_FROM_NAME="${MAIL_FROM_NAME}"
 
 VITE_API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:8000}"
+
+SERVER_NAME="${SERVER_NAME:-0.0.0.0:8001}"
 EOF
 
 echo "✅ .env generated successfully"
@@ -46,6 +48,11 @@ until nc -z -v -w30 ${DB_HOST:-127.0.0.1} ${DB_PORT:-5432}; do
 done
 echo "✅ Database is up"
 
+# Clear old cache and logs
+echo "🧹 Clearing old caches..."
+rm -rf /app/bootstrap/cache/*.php 2>/dev/null || true
+rm -rf /app/storage/cache/* 2>/dev/null || true
+
 # Discover and cache packages
 echo "📦 Discovering packages..."
 php artisan package:discover --ansi || true
@@ -53,9 +60,21 @@ php artisan package:discover --ansi || true
 # Run migrations if DB_HOST is set (production)
 if [ ! -z "$DB_HOST" ]; then
   echo "🔄 Running migrations..."
-  php artisan migrate --force
+  php artisan migrate --force || echo "⚠️  Migrations failed or already run"
 fi
 
-# Start the application
+# Cache config and routes for production
+if [ "$APP_ENV" = "production" ]; then
+  echo "🎯 Caching config and routes..."
+  php artisan config:cache
+  php artisan route:cache
+  php artisan view:cache
+fi
+
+# Set proper permissions
+echo "🔐 Setting permissions..."
+chown -R www-data:www-data /app/storage /app/bootstrap/cache
+
+# Start the application with Laravel Octane
 echo "🚀 Starting Laravel Octane..."
 exec php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8001
