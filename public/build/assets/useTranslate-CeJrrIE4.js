@@ -1,0 +1,1 @@
+import{o as e}from"./jsx-runtime-DzLSnKKd.js";function t(){let{translations:t,locale:n}=e().props;return{t:(e,n)=>{let r=t?.[e]||e;return n&&Object.keys(n).forEach(e=>{r=r.replace(`:${e}`,n[e])}),r},locale:n}}export{t};

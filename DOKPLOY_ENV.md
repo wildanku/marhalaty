@@ -61,3 +61,65 @@ Copy output dan paste ke `APP_KEY` di Dokploy.
 - Pastikan `APP_ENV=production` untuk production deployment
 - Database harus sudah siap sebelum container start
 - Migrations akan otomatis berjalan saat container start
+
+---
+
+## 🚀 Deployment Workflow
+
+**Frontend di-build di local, publish ke server (NO BUILD DI SERVER)**
+
+### Step 1: Build Frontend Locally
+
+```bash
+pnpm install
+pnpm build
+```
+
+### Step 2: Commit & Push to Git
+
+```bash
+git add .
+git commit -m "chore: build frontend assets"
+git push origin main
+```
+
+**PENTING**: `/public/build/` harus ter-commit ke git karena server tidak akan build!
+
+### Step 3: Deploy ke Dokploy
+
+1. Di Dokploy, buat deployment dari git repository
+2. Set environment variables (lihat required vars di atas)
+3. Deploy akan otomatis:
+   - Pull code (termasuk `/public/build/`)
+   - Build Docker image
+   - Run migrations
+   - Start aplikasi
+
+### Verifikasi Deployment
+
+```bash
+# Check container logs
+docker logs <container-id>
+
+# Seharusnya terlihat:
+# ✅ Frontend assets verified
+# 🚀 Starting Laravel Octane...
+```
+
+### Troubleshooting
+
+**❌ Error: Frontend assets not found**
+
+- Frontend belum di-build di local
+- Jalankan: `pnpm build` dan push ulang
+
+**❌ Error: Database connection failed**
+
+- Pastikan DB_HOST, DB_PORT, credentials benar di Dokploy
+- Database service sudah running
+
+**❌ Error: 502 Bad Gateway**
+
+- Check container logs untuk error detail
+- Pastikan migrations berhasil
+- Verify environment variables lengkap

@@ -1,3 +1,4 @@
+# Using PHP 8.3 for compatibility with Ubuntu server
 FROM dunglas/frankenphp:1-php8.3-alpine AS base
 
 # Update package index and install required system packages
@@ -41,16 +42,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 
 # ---------------------------------------------------------
-# Build frontend assets
-# ---------------------------------------------------------
-FROM base AS frontend
-COPY package.json package-lock.json* pnpm-lock.yaml* ./
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
-COPY . .
-RUN pnpm run build
-
-# ---------------------------------------------------------
-# Final Image
+# Final Image (assumes frontend is already built locally)
 # ---------------------------------------------------------
 FROM base
 
@@ -58,11 +50,8 @@ FROM base
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs
 
-# Copy application files
+# Copy application files (including pre-built frontend assets)
 COPY . .
-
-# Copy built frontend assets
-COPY --from=frontend /app/public/build ./public/build
 
 # Copy and setup entrypoint script
 COPY docker/entrypoint.sh /app/entrypoint.sh

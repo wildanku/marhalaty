@@ -1,5 +1,13 @@
 #!/bin/sh
 
+# Verify built frontend assets exist
+if [ ! -d "/app/public/build" ]; then
+  echo "❌ ERROR: Frontend assets not found at /app/public/build"
+  echo "Please run 'pnpm build' locally before deploying!"
+  exit 1
+fi
+echo "✅ Frontend assets verified"
+
 # Generate .env file from environment variables
 echo "🔧 Generating .env from environment variables..."
 cat > /app/.env << EOF
