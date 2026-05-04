@@ -8,7 +8,7 @@ export default function DonationShow(_props: PageProps) {
   return (
     <div className="bg-surface text-on-surface antialiased min-h-screen flex flex-col">
       <Header />
-      <Head title="Baitul Maal - Dynamic Everywhere" />
+      <Head title="Baitul Maal - Dynamic Foundation" />
 
       <main className="flex-1 flex items-center justify-center">
         <div className="w-full max-w-lg mx-auto px-6 py-20 flex flex-col items-center text-center">
@@ -25,8 +25,8 @@ export default function DonationShow(_props: PageProps) {
           </h1>
 
           <p className="font-body text-on-surface-variant text-base md:text-lg mb-10 max-w-sm leading-relaxed">
-            Kami sedang mempersiapkan fitur donasi kampanye untuk mendukung program
-            alumni. Pantau terus perkembangannya!
+            Kami sedang mempersiapkan fitur donasi kampanye untuk mendukung program alumni. Pantau
+            terus perkembangannya!
           </p>
 
           <Link

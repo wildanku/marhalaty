@@ -26,7 +26,7 @@ export default function Index(_props: PageProps) {
   return (
     <div className="bg-surface text-on-surface antialiased min-h-screen flex flex-col">
       <Header />
-      <Head title="Baitul Maal - Dynamic Everywhere" />
+      <Head title="Baitul Maal - Dynamic Foundation" />
 
       <main className="flex-1 flex items-center justify-center pb-24 md:pb-0">
         <div className="w-full max-w-lg mx-auto px-6 py-20 flex flex-col items-center text-center">

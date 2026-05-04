@@ -1,412 +1,347 @@
 <!doctype html>
 
 <html lang="id">
-    <head>
-        <meta charset="utf-8" />
-        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-        <title>Portal Alumni Gontor</title>
-        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-        <link
-            href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap"
-            rel="stylesheet"
-        />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-            rel="stylesheet"
-        />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-            rel="stylesheet"
-        />
-        <script id="tailwind-config">
-            tailwind.config = {
-                darkMode: "class",
-                theme: {
-                    extend: {
-                        colors: {
-                            "inverse-on-surface": "#f2f1ee",
-                            "on-tertiary-fixed-variant": "#5d4201",
-                            "on-error": "#ffffff",
-                            "secondary-fixed": "#e6e2d7",
-                            "on-background": "#1a1c1a",
-                            "on-primary-fixed-variant": "#394c31",
-                            "on-surface-variant": "#444840",
-                            "secondary-container": "#e6e2d7",
-                            secondary: "#605e56",
-                            "surface-bright": "#faf9f6",
-                            "inverse-surface": "#2f312f",
-                            "on-tertiary-container": "#453000",
-                            error: "#ba1a1a",
-                            "on-secondary-fixed-variant": "#48473f",
-                            "on-surface": "#1a1c1a",
-                            "surface-container-high": "#e9e8e5",
-                            "error-container": "#ffdad6",
-                            "surface-container-low": "#f4f3f1",
-                            "tertiary-fixed": "#ffdea5",
-                            "inverse-primary": "#b6cdaa",
-                            primary: "#506447",
-                            "on-error-container": "#93000a",
-                            tertiary: "#775a19",
-                            "on-primary": "#ffffff",
-                            "on-secondary-fixed": "#1c1c15",
-                            "surface-variant": "#e3e2e0",
-                            "on-secondary-container": "#66645c",
-                            "on-primary-container": "#263920",
-                            "on-tertiary": "#ffffff",
-                            "primary-fixed": "#d2eac5",
-                            "surface-dim": "#dbdad7",
-                            "surface-container-highest": "#e3e2e0",
-                            "primary-fixed-dim": "#b6cdaa",
-                            "tertiary-fixed-dim": "#e9c176",
-                            surface: "#faf9f6",
-                            "surface-container": "#efeeeb",
-                            "surface-container-lowest": "#ffffff",
-                            "secondary-fixed-dim": "#cac6bc",
-                            outline: "#74786f",
-                            "outline-variant": "#c4c8bd",
-                            "on-tertiary-fixed": "#261900",
-                            "primary-container": "#8da382",
-                            "tertiary-container": "#bb9751",
-                            "on-primary-fixed": "#0e2009",
-                            background: "#faf9f6",
-                            "surface-tint": "#506447",
-                            "on-secondary": "#ffffff",
-                        },
-                        borderRadius: {
-                            DEFAULT: "0.25rem",
-                            lg: "0.5rem",
-                            xl: "0.75rem",
-                            full: "9999px",
-                        },
-                        spacing: {},
-                        fontFamily: {
-                            headline: ["Manrope"],
-                            body: ["Inter"],
-                            label: ["Inter"],
-                        },
-                    },
-                },
-            };
-        </script>
-        <style>
-            body {
-                font-family: "Inter", sans-serif;
-                background-color: theme("colors.background");
-                color: theme("colors.on-surface");
-            }
-            h1,
-            h2,
-            h3,
-            h4,
-            h5,
-            h6,
-            .font-headline {
-                font-family: "Manrope", sans-serif;
-            }
-        </style>
-    </head>
-    <body
-        class="antialiased selection:bg-primary-container selection:text-on-primary-container"
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Portal Alumni Gontor</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-on-surface": "#f2f1ee",
+              "on-tertiary-fixed-variant": "#5d4201",
+              "on-error": "#ffffff",
+              "secondary-fixed": "#e6e2d7",
+              "on-background": "#1a1c1a",
+              "on-primary-fixed-variant": "#394c31",
+              "on-surface-variant": "#444840",
+              "secondary-container": "#e6e2d7",
+              secondary: "#605e56",
+              "surface-bright": "#faf9f6",
+              "inverse-surface": "#2f312f",
+              "on-tertiary-container": "#453000",
+              error: "#ba1a1a",
+              "on-secondary-fixed-variant": "#48473f",
+              "on-surface": "#1a1c1a",
+              "surface-container-high": "#e9e8e5",
+              "error-container": "#ffdad6",
+              "surface-container-low": "#f4f3f1",
+              "tertiary-fixed": "#ffdea5",
+              "inverse-primary": "#b6cdaa",
+              primary: "#506447",
+              "on-error-container": "#93000a",
+              tertiary: "#775a19",
+              "on-primary": "#ffffff",
+              "on-secondary-fixed": "#1c1c15",
+              "surface-variant": "#e3e2e0",
+              "on-secondary-container": "#66645c",
+              "on-primary-container": "#263920",
+              "on-tertiary": "#ffffff",
+              "primary-fixed": "#d2eac5",
+              "surface-dim": "#dbdad7",
+              "surface-container-highest": "#e3e2e0",
+              "primary-fixed-dim": "#b6cdaa",
+              "tertiary-fixed-dim": "#e9c176",
+              surface: "#faf9f6",
+              "surface-container": "#efeeeb",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed-dim": "#cac6bc",
+              outline: "#74786f",
+              "outline-variant": "#c4c8bd",
+              "on-tertiary-fixed": "#261900",
+              "primary-container": "#8da382",
+              "tertiary-container": "#bb9751",
+              "on-primary-fixed": "#0e2009",
+              background: "#faf9f6",
+              "surface-tint": "#506447",
+              "on-secondary": "#ffffff",
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              full: "9999px",
+            },
+            spacing: {},
+            fontFamily: {
+              headline: ["Manrope"],
+              body: ["Inter"],
+              label: ["Inter"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: theme("colors.background");
+        color: theme("colors.on-surface");
+      }
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      .font-headline {
+        font-family: "Manrope", sans-serif;
+      }
+    </style>
+  </head>
+  <body class="antialiased selection:bg-primary-container selection:text-on-primary-container">
+    <!-- TopNavBar (JSON Config) -->
+    <nav
+      class="bg-[#faf9f6]/90 dark:bg-[#1a1c1a]/90 backdrop-blur-xl docked full-width top-0 z-50 sticky shadow-[0px_10px_40px_rgba(80,100,71,0.08)]"
     >
-        <!-- TopNavBar (JSON Config) -->
-        <nav
-            class="bg-[#faf9f6]/90 dark:bg-[#1a1c1a]/90 backdrop-blur-xl docked full-width top-0 z-50 sticky shadow-[0px_10px_40px_rgba(80,100,71,0.08)]"
+      <div class="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
+        <div
+          class="text-2xl font-bold text-[#506447] dark:text-[#d2eac5] font-headline tracking-tight"
         >
-            <div
-                class="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto"
+          Dynamic Foundation
+        </div>
+        <div class="hidden md:flex gap-8 items-center font-manrope tracking-tight font-semibold">
+          <a
+            class="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
+            href="#"
+            >Directory</a
+          >
+          <a
+            class="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
+            href="#"
+            >Events</a
+          >
+          <a
+            class="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
+            href="#"
+            >Baitul Maal</a
+          >
+        </div>
+        <div class="flex items-center gap-4">
+          <button
+            class="hidden md:flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-full font-label font-medium hover:bg-primary-container hover:text-on-primary-container transition-all"
+          >
+            Login
+          </button>
+        </div>
+      </div>
+    </nav>
+    <!-- Main Content -->
+    <main>
+      <!-- Hero Section -->
+      <section class="relative pt-32 pb-40 overflow-hidden bg-surface">
+        <!-- Decorative Background Element -->
+        <div class="absolute inset-0 z-0 opacity-10 pointer-events-none">
+          <img
+            alt="background illustration of a pondok gate (gapura)"
+            class="w-full h-full object-cover"
+            data-alt="subtle silhouette of a traditional Islamic school gate, mist, calm morning light, architectural drawing style, light cream background"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBf_onnKJ-eERSHHImdAU3WjTLjLekMUn_PjnJcBm9XVKyRzRX59U6h7YKdtO2rbbypm_GigUcvevI5zUi97eXi7PqwSH7goWtkSID9uZQNwHb3dBMepVMpKcYpxu5TEIBlWaoDFzkHsjXSozdCApNTqZMVJP8e4D0fDHlY9jVTFMXYPVIkoHvIPddROl9TRr69Luod0_37iQh-YMuOkhmOfs9lffWWbvOL7fZGJwTvO_eAcLaOOctNC49s4He-MXUslJPotideYRUi"
+          />
+        </div>
+        <div
+          class="absolute inset-0 bg-gradient-to-b from-surface/80 via-surface/95 to-surface z-0"
+        ></div>
+        <div
+          class="max-w-7xl mx-auto px-6 relative z-10 flex flex-col md:flex-row items-center gap-16"
+        >
+          <div class="w-full md:w-3/5 text-left md:pr-12">
+            <span
+              class="inline-block py-1.5 px-4 mb-6 rounded-full bg-secondary-container text-on-surface-variant font-label text-sm font-medium"
             >
-                <div
-                    class="text-2xl font-bold text-[#506447] dark:text-[#d2eac5] font-headline tracking-tight"
-                >
-                    Dynamic Everywhere
-                </div>
-                <div
-                    class="hidden md:flex gap-8 items-center font-manrope tracking-tight font-semibold"
-                >
-                    <a
-                        class="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
-                        href="#"
-                        >Directory</a
-                    >
-                    <a
-                        class="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
-                        href="#"
-                        >Events</a
-                    >
-                    <a
-                        class="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
-                        href="#"
-                        >Baitul Maal</a
-                    >
-                </div>
-                <div class="flex items-center gap-4">
-                    <button
-                        class="hidden md:flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-full font-label font-medium hover:bg-primary-container hover:text-on-primary-container transition-all"
-                    >
-                        Login
-                    </button>
-                </div>
+              The Academic Sanctuary
+            </span>
+            <h1
+              class="text-5xl md:text-7xl font-headline font-extrabold text-on-surface leading-[1.1] tracking-tight mb-8"
+            >
+              Sambung Rasa,<br />
+              <span class="text-primary">Bangun Karya</span>
+            </h1>
+            <p class="text-xl text-on-surface-variant font-body leading-relaxed mb-10 max-w-2xl">
+              Portal Alumni Gontor. A quiet lounge where legacy meets future opportunity. Reconnect
+              with brothers, support the community, and grow your network.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4">
+              <button
+                class="flex items-center justify-center gap-3 bg-tertiary text-on-tertiary px-8 py-4 rounded-full font-label font-semibold text-lg hover:bg-tertiary-container transition-all shadow-[0px_10px_40px_rgba(119,90,25,0.2)]"
+              >
+                <img
+                  alt="Google Logo"
+                  class="w-6 h-6 bg-white rounded-full p-1"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC778clsHZURkyI2GEselrJF_U6JUWPJV1EHLoo2Q3R23y8mtt4yiMCe8NNlGqETfiFghEgbouV8h1Flj1k4PgN9qRRoxik4yAQj1FUOPnNKPjh0-_iL3rpS53fl6y_HOVomryZ3eYocXteuti9QY__h12a78cyJOx-93pcRXRFoCcvsXrsG9Q0dKgFTKmm-Kr-qvckNq9IRa0m6cCIBOV7SYYCpLH3C8yOjsgicCsoD_47vHgj9QjRZuThXtS1w0a0M57cCU0FczJR"
+                />
+                Gabung dengan Google
+              </button>
             </div>
-        </nav>
-        <!-- Main Content -->
-        <main>
-            <!-- Hero Section -->
-            <section class="relative pt-32 pb-40 overflow-hidden bg-surface">
-                <!-- Decorative Background Element -->
-                <div
-                    class="absolute inset-0 z-0 opacity-10 pointer-events-none"
-                >
-                    <img
-                        alt="background illustration of a pondok gate (gapura)"
-                        class="w-full h-full object-cover"
-                        data-alt="subtle silhouette of a traditional Islamic school gate, mist, calm morning light, architectural drawing style, light cream background"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBf_onnKJ-eERSHHImdAU3WjTLjLekMUn_PjnJcBm9XVKyRzRX59U6h7YKdtO2rbbypm_GigUcvevI5zUi97eXi7PqwSH7goWtkSID9uZQNwHb3dBMepVMpKcYpxu5TEIBlWaoDFzkHsjXSozdCApNTqZMVJP8e4D0fDHlY9jVTFMXYPVIkoHvIPddROl9TRr69Luod0_37iQh-YMuOkhmOfs9lffWWbvOL7fZGJwTvO_eAcLaOOctNC49s4He-MXUslJPotideYRUi"
-                    />
-                </div>
-                <div
-                    class="absolute inset-0 bg-gradient-to-b from-surface/80 via-surface/95 to-surface z-0"
-                ></div>
-                <div
-                    class="max-w-7xl mx-auto px-6 relative z-10 flex flex-col md:flex-row items-center gap-16"
-                >
-                    <div class="w-full md:w-3/5 text-left md:pr-12">
-                        <span
-                            class="inline-block py-1.5 px-4 mb-6 rounded-full bg-secondary-container text-on-surface-variant font-label text-sm font-medium"
-                        >
-                            The Academic Sanctuary
-                        </span>
-                        <h1
-                            class="text-5xl md:text-7xl font-headline font-extrabold text-on-surface leading-[1.1] tracking-tight mb-8"
-                        >
-                            Sambung Rasa,<br />
-                            <span class="text-primary">Bangun Karya</span>
-                        </h1>
-                        <p
-                            class="text-xl text-on-surface-variant font-body leading-relaxed mb-10 max-w-2xl"
-                        >
-                            Portal Alumni Gontor. A quiet lounge where legacy
-                            meets future opportunity. Reconnect with brothers,
-                            support the community, and grow your network.
-                        </p>
-                        <div class="flex flex-col sm:flex-row gap-4">
-                            <button
-                                class="flex items-center justify-center gap-3 bg-tertiary text-on-tertiary px-8 py-4 rounded-full font-label font-semibold text-lg hover:bg-tertiary-container transition-all shadow-[0px_10px_40px_rgba(119,90,25,0.2)]"
-                            >
-                                <img
-                                    alt="Google Logo"
-                                    class="w-6 h-6 bg-white rounded-full p-1"
-                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuC778clsHZURkyI2GEselrJF_U6JUWPJV1EHLoo2Q3R23y8mtt4yiMCe8NNlGqETfiFghEgbouV8h1Flj1k4PgN9qRRoxik4yAQj1FUOPnNKPjh0-_iL3rpS53fl6y_HOVomryZ3eYocXteuti9QY__h12a78cyJOx-93pcRXRFoCcvsXrsG9Q0dKgFTKmm-Kr-qvckNq9IRa0m6cCIBOV7SYYCpLH3C8yOjsgicCsoD_47vHgj9QjRZuThXtS1w0a0M57cCU0FczJR"
-                                />
-                                Gabung dengan Google
-                            </button>
-                        </div>
-                    </div>
-                    <div class="w-full md:w-2/5 relative">
-                        <!-- Abstract representation of connections -->
-                        <div
-                            class="relative w-full aspect-[4/5] rounded-3xl overflow-hidden shadow-[0px_20px_60px_rgba(80,100,71,0.15)]"
-                        >
-                            <img
-                                alt="Students gathering"
-                                class="w-full h-full object-cover"
-                                data-alt="group of distinguished diverse alumni talking in a bright sunlit modern academic lounge, green accents, professional atmosphere, warm lighting"
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWRZHgH5vjwGheQFpqSzGm6R9F2bs7Xr9wWLL-Ol-mA1FgX9l4xh4tXn0dQ3Be8_aTLW-EwExmj4_MgZ_WDuzhW4nPA1ee55F_yuY8B15OvYJw3zSynkM3_vHszGgmFCFTe19l4vE0qpCw6QJxjmmYfBDaJblqLYVI2qUJrHQaOuprYXdrt6-CJ2zGfdSC62Q_MB20n3vnefB-iNa6lrAG9nRXyuy2pXjkxH6egWVngPm_9wrGvNajfR_k8p2ptiY41mbAJkzPtwcx"
-                            />
-                            <div
-                                class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent"
-                            ></div>
-                            <div class="absolute bottom-0 left-0 w-full p-8">
-                                <p
-                                    class="text-surface-bright font-headline font-bold text-2xl mb-2"
-                                >
-                                    Preserving Legacy
-                                </p>
-                                <p
-                                    class="text-surface-bright/80 font-body text-sm"
-                                >
-                                    Empowering the next generation of leaders.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <!-- Feature Snippets (Bento Grid Style) -->
-            <section class="py-24 bg-surface-container-low relative">
-                <div class="max-w-7xl mx-auto px-6">
-                    <div class="mb-16">
-                        <h2
-                            class="text-3xl font-headline font-bold text-on-surface mb-4"
-                        >
-                            Discover Your Network
-                        </h2>
-                        <p class="text-on-surface-variant font-body max-w-2xl">
-                            Explore opportunities, connect with peers, and
-                            contribute to the growth of our shared legacy.
-                        </p>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <!-- Directory Card -->
-                        <div
-                            class="bg-surface-container-lowest rounded-2xl p-8 flex flex-col justify-between group hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)] transition-all duration-300"
-                        >
-                            <div>
-                                <div
-                                    class="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center mb-6 text-primary"
-                                >
-                                    <span
-                                        class="material-symbols-outlined text-2xl"
-                                        data-icon="group"
-                                        >group</span
-                                    >
-                                </div>
-                                <h3
-                                    class="text-xl font-headline font-bold text-on-surface mb-3"
-                                >
-                                    Directory
-                                </h3>
-                                <p
-                                    class="text-on-surface-variant font-body text-sm mb-6"
-                                >
-                                    Find and connect with alumni across
-                                    different generations and professions
-                                    worldwide.
-                                </p>
-                            </div>
-                            <a
-                                class="inline-flex items-center text-primary font-label font-semibold group-hover:text-tertiary transition-colors"
-                                href="#"
-                            >
-                                Explore Network
-                                <span
-                                    class="material-symbols-outlined ml-2 text-sm"
-                                    data-icon="arrow_forward"
-                                    >arrow_forward</span
-                                >
-                            </a>
-                        </div>
-                        <!-- Events Card -->
-                        <div
-                            class="bg-surface-container-lowest rounded-2xl p-8 flex flex-col justify-between group hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)] transition-all duration-300"
-                        >
-                            <div>
-                                <div
-                                    class="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center mb-6 text-primary"
-                                >
-                                    <span
-                                        class="material-symbols-outlined text-2xl"
-                                        data-icon="event"
-                                        >event</span
-                                    >
-                                </div>
-                                <h3
-                                    class="text-xl font-headline font-bold text-on-surface mb-3"
-                                >
-                                    Latest Events
-                                </h3>
-                                <p
-                                    class="text-on-surface-variant font-body text-sm mb-6"
-                                >
-                                    Stay updated on upcoming gatherings,
-                                    seminars, and community events.
-                                </p>
-                            </div>
-                            <a
-                                class="inline-flex items-center text-primary font-label font-semibold group-hover:text-tertiary transition-colors"
-                                href="#"
-                            >
-                                View Calendar
-                                <span
-                                    class="material-symbols-outlined ml-2 text-sm"
-                                    data-icon="arrow_forward"
-                                    >arrow_forward</span
-                                >
-                            </a>
-                        </div>
-                        <!-- Baitul Maal Highlight (Special Styling) -->
-                        <div
-                            class="bg-primary-container rounded-2xl p-8 flex flex-col justify-between relative overflow-hidden group"
-                        >
-                            <div
-                                class="absolute -right-12 -top-12 w-48 h-48 bg-primary rounded-full opacity-20 blur-2xl"
-                            ></div>
-                            <div class="relative z-10">
-                                <div
-                                    class="w-12 h-12 rounded-full bg-surface-bright/30 flex items-center justify-center mb-6 text-on-primary-container"
-                                >
-                                    <span
-                                        class="material-symbols-outlined text-2xl"
-                                        data-icon="volunteer_activism"
-                                        >volunteer_activism</span
-                                    >
-                                </div>
-                                <h3
-                                    class="text-xl font-headline font-bold text-on-primary-container mb-2"
-                                >
-                                    Baitul Maal Funds
-                                </h3>
-                                <p
-                                    class="text-on-primary-container/80 font-body text-sm mb-6"
-                                >
-                                    Supporting scholarships and community
-                                    welfare initiatives.
-                                </p>
-                                <div class="mb-6">
-                                    <span
-                                        class="text-3xl font-headline font-extrabold text-on-primary-container"
-                                        >Rp 2.4B+</span
-                                    >
-                                    <span
-                                        class="block text-xs font-label text-on-primary-container/70 mt-1 uppercase tracking-wider"
-                                        >Total Raised This Year</span
-                                    >
-                                </div>
-                            </div>
-                            <a
-                                class="inline-flex items-center justify-center w-full py-3 bg-tertiary text-on-tertiary rounded-xl font-label font-semibold hover:bg-tertiary-container transition-colors relative z-10"
-                                href="#"
-                            >
-                                Contribute Now
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-        <!-- Footer (JSON Config) -->
-        <footer class="bg-[#506447] dark:bg-[#131a12] full-width py-12">
+          </div>
+          <div class="w-full md:w-2/5 relative">
+            <!-- Abstract representation of connections -->
             <div
-                class="max-w-7xl mx-auto px-6 flex flex-col items-center text-center gap-6"
+              class="relative w-full aspect-[4/5] rounded-3xl overflow-hidden shadow-[0px_20px_60px_rgba(80,100,71,0.15)]"
             >
-                <div class="font-manrope text-white font-bold text-2xl mb-4">
-                    Dynamic Everywhere
-                </div>
-                <div class="flex flex-wrap justify-center gap-6 mb-8">
-                    <a
-                        class="font-inter text-sm text-[#d2eac5] hover:text-white transition-colors"
-                        href="#"
-                        >Privacy Policy</a
-                    >
-                    <a
-                        class="font-inter text-sm text-[#d2eac5] hover:text-white transition-colors"
-                        href="#"
-                        >Terms of Service</a
-                    >
-                    <a
-                        class="font-inter text-sm text-[#d2eac5] hover:text-white transition-colors"
-                        href="#"
-                        >Contact Us</a
-                    >
-                    <a
-                        class="font-inter text-sm text-[#d2eac5] hover:text-white transition-colors"
-                        href="#"
-                        >Alumni Network</a
-                    >
-                </div>
-                <p class="font-inter text-xs text-[#d2eac5]/70">
-                    © 2024 IKPM Gontor. Preserving Legacy, Empowering Future.
+              <img
+                alt="Students gathering"
+                class="w-full h-full object-cover"
+                data-alt="group of distinguished diverse alumni talking in a bright sunlit modern academic lounge, green accents, professional atmosphere, warm lighting"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWRZHgH5vjwGheQFpqSzGm6R9F2bs7Xr9wWLL-Ol-mA1FgX9l4xh4tXn0dQ3Be8_aTLW-EwExmj4_MgZ_WDuzhW4nPA1ee55F_yuY8B15OvYJw3zSynkM3_vHszGgmFCFTe19l4vE0qpCw6QJxjmmYfBDaJblqLYVI2qUJrHQaOuprYXdrt6-CJ2zGfdSC62Q_MB20n3vnefB-iNa6lrAG9nRXyuy2pXjkxH6egWVngPm_9wrGvNajfR_k8p2ptiY41mbAJkzPtwcx"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent"></div>
+              <div class="absolute bottom-0 left-0 w-full p-8">
+                <p class="text-surface-bright font-headline font-bold text-2xl mb-2">
+                  Preserving Legacy
                 </p>
+                <p class="text-surface-bright/80 font-body text-sm">
+                  Empowering the next generation of leaders.
+                </p>
+              </div>
             </div>
-        </footer>
-    </body>
+          </div>
+        </div>
+      </section>
+      <!-- Feature Snippets (Bento Grid Style) -->
+      <section class="py-24 bg-surface-container-low relative">
+        <div class="max-w-7xl mx-auto px-6">
+          <div class="mb-16">
+            <h2 class="text-3xl font-headline font-bold text-on-surface mb-4">
+              Discover Your Network
+            </h2>
+            <p class="text-on-surface-variant font-body max-w-2xl">
+              Explore opportunities, connect with peers, and contribute to the growth of our shared
+              legacy.
+            </p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Directory Card -->
+            <div
+              class="bg-surface-container-lowest rounded-2xl p-8 flex flex-col justify-between group hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)] transition-all duration-300"
+            >
+              <div>
+                <div
+                  class="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center mb-6 text-primary"
+                >
+                  <span class="material-symbols-outlined text-2xl" data-icon="group">group</span>
+                </div>
+                <h3 class="text-xl font-headline font-bold text-on-surface mb-3">Directory</h3>
+                <p class="text-on-surface-variant font-body text-sm mb-6">
+                  Find and connect with alumni across different generations and professions
+                  worldwide.
+                </p>
+              </div>
+              <a
+                class="inline-flex items-center text-primary font-label font-semibold group-hover:text-tertiary transition-colors"
+                href="#"
+              >
+                Explore Network
+                <span class="material-symbols-outlined ml-2 text-sm" data-icon="arrow_forward"
+                  >arrow_forward</span
+                >
+              </a>
+            </div>
+            <!-- Events Card -->
+            <div
+              class="bg-surface-container-lowest rounded-2xl p-8 flex flex-col justify-between group hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)] transition-all duration-300"
+            >
+              <div>
+                <div
+                  class="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center mb-6 text-primary"
+                >
+                  <span class="material-symbols-outlined text-2xl" data-icon="event">event</span>
+                </div>
+                <h3 class="text-xl font-headline font-bold text-on-surface mb-3">Latest Events</h3>
+                <p class="text-on-surface-variant font-body text-sm mb-6">
+                  Stay updated on upcoming gatherings, seminars, and community events.
+                </p>
+              </div>
+              <a
+                class="inline-flex items-center text-primary font-label font-semibold group-hover:text-tertiary transition-colors"
+                href="#"
+              >
+                View Calendar
+                <span class="material-symbols-outlined ml-2 text-sm" data-icon="arrow_forward"
+                  >arrow_forward</span
+                >
+              </a>
+            </div>
+            <!-- Baitul Maal Highlight (Special Styling) -->
+            <div
+              class="bg-primary-container rounded-2xl p-8 flex flex-col justify-between relative overflow-hidden group"
+            >
+              <div
+                class="absolute -right-12 -top-12 w-48 h-48 bg-primary rounded-full opacity-20 blur-2xl"
+              ></div>
+              <div class="relative z-10">
+                <div
+                  class="w-12 h-12 rounded-full bg-surface-bright/30 flex items-center justify-center mb-6 text-on-primary-container"
+                >
+                  <span class="material-symbols-outlined text-2xl" data-icon="volunteer_activism"
+                    >volunteer_activism</span
+                  >
+                </div>
+                <h3 class="text-xl font-headline font-bold text-on-primary-container mb-2">
+                  Baitul Maal Funds
+                </h3>
+                <p class="text-on-primary-container/80 font-body text-sm mb-6">
+                  Supporting scholarships and community welfare initiatives.
+                </p>
+                <div class="mb-6">
+                  <span class="text-3xl font-headline font-extrabold text-on-primary-container"
+                    >Rp 2.4B+</span
+                  >
+                  <span
+                    class="block text-xs font-label text-on-primary-container/70 mt-1 uppercase tracking-wider"
+                    >Total Raised This Year</span
+                  >
+                </div>
+              </div>
+              <a
+                class="inline-flex items-center justify-center w-full py-3 bg-tertiary text-on-tertiary rounded-xl font-label font-semibold hover:bg-tertiary-container transition-colors relative z-10"
+                href="#"
+              >
+                Contribute Now
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <!-- Footer (JSON Config) -->
+    <footer class="bg-[#506447] dark:bg-[#131a12] full-width py-12">
+      <div class="max-w-7xl mx-auto px-6 flex flex-col items-center text-center gap-6">
+        <div class="font-manrope text-white font-bold text-2xl mb-4">Dynamic Foundation</div>
+        <div class="flex flex-wrap justify-center gap-6 mb-8">
+          <a class="font-inter text-sm text-[#d2eac5] hover:text-white transition-colors" href="#"
+            >Privacy Policy</a
+          >
+          <a class="font-inter text-sm text-[#d2eac5] hover:text-white transition-colors" href="#"
+            >Terms of Service</a
+          >
+          <a class="font-inter text-sm text-[#d2eac5] hover:text-white transition-colors" href="#"
+            >Contact Us</a
+          >
+          <a class="font-inter text-sm text-[#d2eac5] hover:text-white transition-colors" href="#"
+            >Alumni Network</a
+          >
+        </div>
+        <p class="font-inter text-xs text-[#d2eac5]/70">
+          © 2024 IKPM Gontor. Preserving Legacy, Empowering Future.
+        </p>
+      </div>
+    </footer>
+  </body>
 </html>

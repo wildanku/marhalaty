@@ -53,9 +53,11 @@ export default function Show({ auth, alumni }: ShowProps) {
               )}
             </h1>
             <p className="font-body text-on-surface-variant mt-2 text-sm">
-              {alumni.profession 
-                ? (typeof alumni.profession === "object" ? alumni.profession.name : alumni.profession) 
-                : "Dynamic Everywhere"}
+              {alumni.profession
+                ? typeof alumni.profession === "object"
+                  ? alumni.profession.name
+                  : alumni.profession
+                : "Dynamic Foundation"}
             </p>
             <span className="inline-flex items-center mt-3 bg-secondary-container text-on-surface font-body text-xs font-semibold px-3 py-1 rounded-full">
               Marhalah {alumni.marhalah_year}
@@ -101,10 +103,10 @@ export default function Show({ auth, alumni }: ShowProps) {
                     ? `${alumni.foreign_city}, Luar Negeri`
                     : "Luar Negeri"
                   : alumni.city
-                  ? typeof alumni.city === "object"
-                    ? alumni.city.name
-                    : alumni.city
-                  : "Not specified"}
+                    ? typeof alumni.city === "object"
+                      ? alumni.city.name
+                      : alumni.city
+                    : "Not specified"}
               </p>
             </div>
 
@@ -122,7 +124,9 @@ export default function Show({ auth, alumni }: ShowProps) {
               </p>
             </div>
 
-            {(alumni.social_media?.instagram || alumni.social_media?.tiktok || alumni.social_media?.linkedin) && (
+            {(alumni.social_media?.instagram ||
+              alumni.social_media?.tiktok ||
+              alumni.social_media?.linkedin) && (
               <div>
                 <h3 className="font-headline text-lg font-bold text-on-surface mb-3 flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary">public</span>
@@ -131,7 +135,7 @@ export default function Show({ auth, alumni }: ShowProps) {
                 <div className="flex flex-col sm:flex-row gap-4">
                   {alumni.social_media.instagram && (
                     <a
-                      href={`https://instagram.com/${alumni.social_media.instagram.replace('@', '')}`}
+                      href={`https://instagram.com/${alumni.social_media.instagram.replace("@", "")}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 text-sm font-body bg-surface-container py-2 px-4 rounded-lg"
@@ -142,7 +146,7 @@ export default function Show({ auth, alumni }: ShowProps) {
                   )}
                   {alumni.social_media.tiktok && (
                     <a
-                      href={`https://tiktok.com/@${alumni.social_media.tiktok.replace('@', '')}`}
+                      href={`https://tiktok.com/@${alumni.social_media.tiktok.replace("@", "")}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 text-sm font-body bg-surface-container py-2 px-4 rounded-lg"
@@ -153,7 +157,11 @@ export default function Show({ auth, alumni }: ShowProps) {
                   )}
                   {alumni.social_media.linkedin && (
                     <a
-                      href={alumni.social_media.linkedin.startsWith('http') ? alumni.social_media.linkedin : `https://${alumni.social_media.linkedin}`}
+                      href={
+                        alumni.social_media.linkedin.startsWith("http")
+                          ? alumni.social_media.linkedin
+                          : `https://${alumni.social_media.linkedin}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 text-sm font-body bg-surface-container py-2 px-4 rounded-lg"

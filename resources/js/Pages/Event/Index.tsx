@@ -14,7 +14,8 @@ function formatEventDate(dateStr: string) {
     day: d.toLocaleDateString("id-ID", { day: "2-digit" }),
     month: d.toLocaleDateString("id-ID", { month: "short" }).toUpperCase(),
     weekday: d.toLocaleDateString("id-ID", { weekday: "long" }),
-    time: d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }) + " WIB",
+    time:
+      d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }) + " WIB",
     full: d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
   };
 }
@@ -44,7 +45,7 @@ export default function Index({ events, currentScope }: EventIndexProps) {
 
   return (
     <div className="min-h-screen bg-surface text-on-surface antialiased font-body">
-      <Head title="Acara & Gathering — Dynamic Everywhere" />
+      <Head title="Acara & Gathering — Dynamic Foundation" />
       <Header />
 
       {/* Page Hero */}
@@ -112,7 +113,9 @@ export default function Index({ events, currentScope }: EventIndexProps) {
                   {/* Date Badge */}
                   <div
                     className={`flex sm:flex-col items-center justify-center gap-3 sm:gap-1 px-6 py-4 sm:py-8 sm:w-24 shrink-0 ${
-                      isFirst ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface"
+                      isFirst
+                        ? "bg-primary text-on-primary"
+                        : "bg-surface-container text-on-surface"
                     }`}
                   >
                     <span

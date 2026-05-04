@@ -62,7 +62,7 @@ export default function Onboarding({
             Welcome to the Sanctuary
           </h1>
           <p className="font-body text-on-surface-variant text-lg">
-            Complete your profile to connect with the global Dynamic Everywhere network.
+            Complete your profile to connect with the global Dynamic Foundation network.
           </p>
         </div>
 
@@ -187,17 +187,17 @@ export default function Onboarding({
                     <option disabled value="">
                       Select Campus
                     </option>
-                    {campuses.map(campus => (
-                        <option key={campus.id} value={campus.id}>{campus.name}</option>
+                    {campuses.map((campus) => (
+                      <option key={campus.id} value={campus.id}>
+                        {campus.name}
+                      </option>
                     ))}
                   </select>
                   <span className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-outline">
                     <span className="material-symbols-outlined">expand_more</span>
                   </span>
                 </div>
-                {errors.campus_id && (
-                  <p className="mt-2 text-xs text-error">{errors.campus_id}</p>
-                )}
+                {errors.campus_id && <p className="mt-2 text-xs text-error">{errors.campus_id}</p>}
               </div>
 
               <div>
@@ -220,8 +220,10 @@ export default function Onboarding({
                     <option disabled value="">
                       Select Profession
                     </option>
-                    {professions.map(prof => (
-                        <option key={prof.id} value={prof.id}>{prof.name}</option>
+                    {professions.map((prof) => (
+                      <option key={prof.id} value={prof.id}>
+                        {prof.name}
+                      </option>
                     ))}
                   </select>
                   <span className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-outline">
@@ -300,7 +302,10 @@ export default function Onboarding({
 
               {data.domisili === "indonesia" ? (
                 <div className="sm:col-span-2">
-                  <label htmlFor="city_id" className="block font-label text-sm font-medium text-on-surface mb-2">
+                  <label
+                    htmlFor="city_id"
+                    className="block font-label text-sm font-medium text-on-surface mb-2"
+                  >
                     Kota Domisili
                   </label>
                   <AsyncSelect
@@ -313,7 +318,10 @@ export default function Onboarding({
                 </div>
               ) : (
                 <div className="sm:col-span-2">
-                  <label htmlFor="foreign_city" className="block font-label text-sm font-medium text-on-surface mb-2">
+                  <label
+                    htmlFor="foreign_city"
+                    className="block font-label text-sm font-medium text-on-surface mb-2"
+                  >
                     Nama Kota (Luar Negeri)
                   </label>
                   <div className="relative">
@@ -329,7 +337,9 @@ export default function Onboarding({
                       placeholder="e.g. Cairo, London, Sydney"
                     />
                   </div>
-                  {errors.foreign_city && <p className="mt-2 text-xs text-error">{errors.foreign_city}</p>}
+                  {errors.foreign_city && (
+                    <p className="mt-2 text-xs text-error">{errors.foreign_city}</p>
+                  )}
                 </div>
               )}
 

@@ -71,7 +71,7 @@ git push origin main
 ### Environment Variables Required
 
 ```
-APP_NAME=Dynamic Everywhere
+APP_NAME=Dynamic Foundation
 APP_ENV=production
 APP_KEY=base64:xxxxx
 APP_DEBUG=false

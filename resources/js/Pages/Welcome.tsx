@@ -36,7 +36,9 @@ export default function Welcome({ upcomingEvents, auth }: WelcomeProps) {
                 <span className="text-primary">Bangun Karya</span>
               </h1>
               <p className="text-xl text-on-surface-variant font-body leading-relaxed mb-10 max-w-2xl">
-                {t("Portal Alumni Gontor. A quiet lounge where legacy meets future opportunity. Reconnect with brothers, support the community, and grow your network.")}
+                {t(
+                  "Portal Alumni Gontor. A quiet lounge where legacy meets future opportunity. Reconnect with brothers, support the community, and grow your network."
+                )}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 {auth?.user ? (
@@ -52,11 +54,7 @@ export default function Welcome({ upcomingEvents, auth }: WelcomeProps) {
                     href="/auth/google/redirect"
                     className="flex items-center justify-center gap-3 bg-gray-800 text-gray-100 pr-8 pl-4 py-4 rounded-full font-label font-semibold text-lg hover:bg-gray-900 hover:text-on-tertiary transition-all shadow-[0px_10px_40px_rgba(119,90,25,0.2)]"
                   >
-                    <img
-                      alt="Google Logo"
-                      className="w-6 h-6 rounded-full p-0"
-                      src="/google.svg"
-                    />
+                    <img alt="Google Logo" className="w-6 h-6 rounded-full p-0" src="/google.svg" />
                     {t("Gabung dengan Google")}
                   </a>
                 )}
@@ -90,7 +88,9 @@ export default function Welcome({ upcomingEvents, auth }: WelcomeProps) {
                 {t("Discover Your Network")}
               </h2>
               <p className="text-on-surface-variant font-body max-w-2xl">
-                {t("Explore opportunities, connect with peers, and contribute to the growth of our shared legacy.")}
+                {t(
+                  "Explore opportunities, connect with peers, and contribute to the growth of our shared legacy."
+                )}
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -103,7 +103,9 @@ export default function Welcome({ upcomingEvents, auth }: WelcomeProps) {
                     {t("Directory")}
                   </h3>
                   <p className="text-on-surface-variant font-body text-sm mb-6">
-                    {t("Find and connect with alumni across different generations and professions worldwide.")}
+                    {t(
+                      "Find and connect with alumni across different generations and professions worldwide."
+                    )}
                   </p>
                 </div>
                 <a
@@ -168,12 +170,12 @@ export default function Welcome({ upcomingEvents, auth }: WelcomeProps) {
           </div>
         </section>
       </main>
-      
+
       <UpcomingEvents events={upcomingEvents} />
 
       <footer className="bg-[#506447] dark:bg-[#131a12] full-width py-12">
         <div className="max-w-7xl mx-auto px-6 flex flex-col items-center text-center gap-6">
-          <div className="font-headline text-white font-bold text-2xl mb-4">Dynamic Everywhere</div>
+          <div className="font-headline text-white font-bold text-2xl mb-4">Dynamic Foundation</div>
           <div className="flex flex-wrap justify-center gap-6 mb-8">
             <a
               href="#"
@@ -201,7 +203,8 @@ export default function Welcome({ upcomingEvents, auth }: WelcomeProps) {
             </a>
           </div>
           <p className="font-body text-xs text-[#d2eac5]/70">
-            © {new Date().getFullYear()} Dyanamic Everywhere. {t("Powered by Marhalaty an Open Source for Alumni Platform.")}
+            © {new Date().getFullYear()} Dyanamic Everywhere.{" "}
+            {t("Powered by Marhalaty an Open Source for Alumni Platform.")}
           </p>
         </div>
       </footer>

@@ -45,7 +45,7 @@ export default function Dashboard() {
             {t("Welcome, :name!", { name: auth?.user?.name?.split(" ")[0] ?? "" })}
           </h1>
           <p className="font-body text-on-surface-variant mt-1 text-sm">
-            {t("Here's a summary of your activity on Dynamic Everywhere.")}
+            {t("Here's a summary of your activity on Dynamic Foundation.")}
           </p>
         </div>
 

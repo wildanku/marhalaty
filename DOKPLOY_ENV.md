@@ -5,7 +5,7 @@ Untuk menjalankan aplikasi di Dokploy, set environment variables berikut:
 ## Required (Wajib)
 
 ```
-APP_NAME=Dynamic Everywhere
+APP_NAME=Dynamic Foundation
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://yourdomain.com
@@ -39,7 +39,7 @@ MAIL_PORT=
 MAIL_USERNAME=
 MAIL_PASSWORD=
 MAIL_FROM_ADDRESS=noreply@example.com
-MAIL_FROM_NAME=Dynamic Everywhere
+MAIL_FROM_NAME=Dynamic Foundation
 
 # Frontend
 VITE_API_BASE_URL=https://yourdomain.com

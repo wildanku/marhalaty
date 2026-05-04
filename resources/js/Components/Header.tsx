@@ -34,7 +34,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
           href="/"
           className="text-2xl font-bold text-[#506447] dark:text-primary-fixed font-headline tracking-tight hover:opacity-80 transition-opacity"
         >
-          Dynamic Everywhere
+          Dynamic Foundation
         </Link>
 
         {/* Desktop Navigation Links */}
