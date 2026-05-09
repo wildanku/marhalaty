@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, router, usePage } from "@inertiajs/react";
 import { PageProps, User } from "@/types";
 import { useTranslate } from "@/hooks/useTranslate";
+import Logo from "@/Components/Logo";
 
 interface HeaderProps {
   hideNavLinks?: boolean;
@@ -30,11 +31,16 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
     <nav className="bg-[#faf9f6]/90 dark:bg-[#1a1c1a]/90 backdrop-blur-xl w-full top-0 z-50 sticky shadow-[0px_10px_40px_rgba(80,100,71,0.08)]">
       <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
         {/* Logo */}
-        <Link
-          href="/"
-          className="text-2xl font-bold text-[#506447] dark:text-primary-fixed font-headline tracking-tight hover:opacity-80 transition-opacity"
-        >
-          Dynamic Foundation
+        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <img src="/logo-muleh.png" alt="Logo" className="w-14 h-auto" />
+          <div className="flex flex-col">
+            <span className="text-2xl font-bold text-primary dark:text-primary-fixed font-headline tracking-tight leading-none">
+              Dynamic
+            </span>
+            <span className="text-sm font-semibold text-secondary dark:text-secondary-fixed font-headline tracking-tight leading-none mt-0.5">
+              Foundation
+            </span>
+          </div>
         </Link>
 
         {/* Desktop Navigation Links */}
