@@ -21,15 +21,19 @@ class RsvpController extends Controller
         $event = Event::where('slug', $slug)->firstOrFail();
 
         $validated = $request->validate([
-            'payment_provider'   => 'required|in:manual,ipaymu',
-            'event_package_id'   => 'nullable|exists:event_packages,id',
-            'infak_amount'       => 'nullable|numeric|min:0',
-            'addons'             => 'array',
-            'addons.*.id'        => 'required|exists:event_addons,id',
-            'addons.*.quantity'  => 'required|integer|min:1',
-            'addons.*.variants'  => 'nullable|array',
-            'custom_form_data'   => 'nullable|array',
-            'custom_form_data.*' => 'nullable|string|max:1000',
+            'payment_provider'                    => 'required|in:manual,ipaymu',
+            'event_package_id'                    => 'nullable|exists:event_packages,id',
+            'infak_amount'                        => 'nullable|numeric|min:0',
+            'addons'                              => 'array',
+            'addons.*.id'                         => 'required|exists:event_addons,id',
+            'addons.*.quantity'                   => 'required|integer|min:1',
+            'addons.*.variants'                   => 'nullable|array',
+            'custom_form_data'                    => 'nullable|array',
+            'custom_form_data.*'                  => 'nullable|string|max:1000',
+            'included_addon_variants'             => 'nullable|array',
+            'included_addon_variants.*'           => 'nullable|array',
+            'included_addon_variants.*.*'         => 'nullable|array',
+            'included_addon_variants.*.*.*'       => 'nullable|string|max:100',
         ]);
 
         $infakAmount = $validated['infak_amount'] ?? 0;
@@ -98,6 +102,28 @@ class RsvpController extends Controller
                         'quantity' => $purchasedAddon['quantity'],
                         'variants' => $purchasedAddon['variants'] ?? null,
                         'total'    => $itemTotal,
+                    ];
+                }
+            }
+
+            // Handle included addon variant selections (no charge, no stock decrement)
+            $includedAddonVariants = $validated['included_addon_variants'] ?? [];
+            if (!empty($includedAddonVariants) && !empty($validated['event_package_id'])) {
+                $package = \App\Domains\Event\Models\EventPackage::with('includedAddons')
+                    ->find($validated['event_package_id']);
+
+                foreach ($includedAddonVariants as $addonId => $variantSelections) {
+                    $includedAddon = $package?->includedAddons?->firstWhere('id', $addonId);
+                    if (!$includedAddon) continue;
+
+                    $addonSnapshot[] = [
+                        'id'          => (int) $addonId,
+                        'name'        => $includedAddon->name,
+                        'price'       => 0,
+                        'quantity'    => $includedAddon->pivot->included_quantity,
+                        'variants'    => $variantSelections,
+                        'total'       => 0,
+                        'is_included' => true,
                     ];
                 }
             }

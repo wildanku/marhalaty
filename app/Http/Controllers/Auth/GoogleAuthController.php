@@ -10,8 +10,12 @@ use Laravel\Socialite\Facades\Socialite;
 
 class GoogleAuthController extends Controller
 {
-    public function redirect()
+    public function redirect(Request $request)
     {
+        if ($intended = $request->query('intended')) {
+            session(['url.intended' => $intended]);
+        }
+
         return Socialite::driver('google')->stateless()->redirect();
     }
 
@@ -25,9 +29,8 @@ class GoogleAuthController extends Controller
         if ($user) {
             // Update details just in case
             $user->update([
-                'google_id' => $googleUser->id,
+                'google_id'  => $googleUser->id,
                 'avatar_url' => $googleUser->avatar,
-                'name' => $user->name, // retain existing name if already verified? Or update?
             ]);
 
             Auth::login($user);
@@ -35,13 +38,17 @@ class GoogleAuthController extends Controller
         }
 
         // New User -> Push to Temporary Session then Redirect to Onboarding
-        session(['onboarding_google_user' => [
-            'google_id' => $googleUser->id,
-            'name' => $googleUser->name,
-            'email' => $googleUser->email,
-            'avatar_url' => $googleUser->avatar,
-        ]]);
+        // Preserve the intended URL (e.g. an event page) through onboarding
+        session([
+            'onboarding_google_user' => [
+                'google_id'  => $googleUser->id,
+                'name'       => $googleUser->name,
+                'email'      => $googleUser->email,
+                'avatar_url' => $googleUser->avatar,
+            ],
+            'post_auth_redirect' => session('url.intended'),
+        ]);
 
-        return redirect()->intended('/onboarding');
+        return redirect()->route('onboarding.show');
     }
 }

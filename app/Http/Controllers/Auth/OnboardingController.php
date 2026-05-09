@@ -83,6 +83,8 @@ class OnboardingController extends Controller
         $request->session()->forget('onboarding_google_user');
         Auth::login($user);
 
-        return redirect()->intended('/dashboard');
+        $postAuthRedirect = $request->session()->pull('post_auth_redirect', '/dashboard');
+
+        return redirect($postAuthRedirect ?: '/dashboard');
     }
 }

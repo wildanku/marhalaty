@@ -1,9 +1,12 @@
 import { useState, useMemo } from "react";
+import type { ReactElement } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { PageProps, GontorEvent, Rsvp, CustomFormField } from "@/types";
-import { z } from "zod";
 import Header from "@/Components/Header";
 import CurrencyInput from "@/Components/CurrencyInput";
+
+// ─── Local Types ─────────────────────────────────────────────────────────────
+
 interface SelectedAddon {
   id: number;
   quantity: number;
@@ -11,114 +14,225 @@ interface SelectedAddon {
   price: number;
 }
 
+// addonId → variantKey → string[] (one value per included quantity slot)
+type IncludedAddonVariants = Record<number, Record<string, string[]>>;
+
+type StepKey = "form" | "package" | "addons" | "infak" | "konfirmasi";
+
 interface ShowProps extends PageProps {
   event: GontorEvent;
   existingRsvp: Rsvp | null;
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const formatRupiah = (num: number | string) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(typeof num === "string" ? parseFloat(num) : num);
+
+const formatDate = (dateStr: string) =>
+  new Date(dateStr).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+// ─── Step Config ─────────────────────────────────────────────────────────────
+
+const STEP_CONFIGS: { key: StepKey; label: string; icon: string }[] = [
+  { key: "form", label: "Formulir", icon: "assignment" },
+  { key: "package", label: "Pilih Paket", icon: "local_offer" },
+  { key: "addons", label: "Tambahan", icon: "add_shopping_cart" },
+  { key: "infak", label: "Infak", icon: "volunteer_activism" },
+  { key: "konfirmasi", label: "Konfirmasi", icon: "fact_check" },
+];
+
+// ─── Stepper Progress ─────────────────────────────────────────────────────────
+
+function StepperProgress({
+  steps,
+  currentIndex,
+}: {
+  steps: { key: StepKey; label: string; icon: string }[];
+  currentIndex: number;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-0 w-full max-w-xl mx-auto mb-8">
+      {steps.map((step, i) => {
+        const isCompleted = i < currentIndex;
+        const isCurrent = i === currentIndex;
+        return (
+          <div key={step.key} className="flex items-center">
+            <div className="flex flex-col items-center gap-1.5">
+              <div
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  isCompleted
+                    ? "bg-primary text-on-primary"
+                    : isCurrent
+                      ? "bg-primary text-on-primary ring-4 ring-primary/20"
+                      : "bg-surface-container text-on-surface-variant"
+                }`}
+              >
+                {isCompleted ? (
+                  <span
+                    className="material-symbols-outlined text-[18px]"
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    check
+                  </span>
+                ) : (
+                  <span className="font-headline text-sm font-bold">{i + 1}</span>
+                )}
+              </div>
+              <span
+                className={`text-[10px] font-body font-semibold hidden sm:block whitespace-nowrap ${
+                  isCurrent
+                    ? "text-primary"
+                    : isCompleted
+                      ? "text-on-surface-variant"
+                      : "text-on-surface-variant/50"
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+            {i < steps.length - 1 && (
+              <div
+                className={`h-0.5 w-8 sm:w-12 mx-1 mb-5 transition-all duration-300 ${
+                  i < currentIndex ? "bg-primary" : "bg-surface-container"
+                }`}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function Show({ auth, event, existingRsvp }: ShowProps) {
+  const user = auth.user;
   const customForms: CustomFormField[] = event.metadata?.custom_forms ?? [];
 
-  const { data, setData, post, processing, errors, setError, clearErrors } = useForm<{
+  // ── Form State ────────────────────────────────────────────────────────────
+  const { data, setData, post, processing, errors, clearErrors } = useForm<{
     event_package_id: number | null;
     infak_amount: string;
     addons: SelectedAddon[];
     custom_form_data: Record<string, string>;
-    payment_provider: "manual" | "ipaymu";
+    included_addon_variants: IncludedAddonVariants;
+    payment_provider: "manual";
   }>({
-    event_package_id: event.packages && event.packages.length === 1 ? event.packages[0].id : null,
+    event_package_id: null,
     infak_amount: "0",
     addons: [],
-    custom_form_data: customForms.reduce(
-      (acc, field) => ({ ...acc, [field.id]: "" }),
-      {} as Record<string, string>
-    ),
-    payment_provider: "ipaymu",
+    custom_form_data: {},
+    included_addon_variants: {},
+    payment_provider: "manual",
   });
 
-  // Track selected variants per addon: Record<addonId, Record<variantKey, selectedValue>>
-  const [selectedVariants, setSelectedVariants] = useState<Record<number, Record<string, string>>>(
-    {}
+  // ── View / Step State ─────────────────────────────────────────────────────
+  const [view, setView] = useState<"detail" | "stepper">("detail");
+  const [stepIndex, setStepIndex] = useState(0);
+
+  // ── Active Steps ──────────────────────────────────────────────────────────
+  const activeSteps = useMemo(
+    () =>
+      STEP_CONFIGS.filter((s) => {
+        if (s.key === "form") return customForms.length > 0;
+        if (s.key === "infak") return !!event.infak_rules?.enabled;
+        return true;
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [customForms.length, event.infak_rules?.enabled]
   );
 
-  const totalCalculation = useMemo(() => {
-    const pkg = event.packages?.find((p) => p.id === data.event_package_id);
-    const packageCost = pkg ? parseFloat(pkg.price) : 0;
+  const currentStep = activeSteps[stepIndex];
+  const isLastStep = stepIndex === activeSteps.length - 1;
+  const selectedPackage = event.packages?.find((p) => p.id === data.event_package_id) ?? null;
+
+  // ── Totals ────────────────────────────────────────────────────────────────
+  const totals = useMemo(() => {
+    const pkg = parseFloat(selectedPackage?.price ?? "0");
     const infak = parseFloat(data.infak_amount) || 0;
-    const addonsCost = data.addons.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
-    return packageCost + infak + addonsCost;
-  }, [data.event_package_id, data.infak_amount, data.addons, event.packages]);
+    const addons = data.addons.reduce((s, a) => s + a.price * a.quantity, 0);
+    return { pkg, infak, addons, total: pkg + infak + addons };
+  }, [selectedPackage, data.infak_amount, data.addons]);
 
-  const handleAddonQty = (addonId: number, priceStr: string, qty: number) => {
-    const price = parseFloat(priceStr);
-    const variants = selectedVariants[addonId] ?? {};
-    const filtered = data.addons.filter((a: SelectedAddon) => a.id !== addonId);
-    const updated: SelectedAddon[] =
-      qty > 0 ? [...filtered, { id: addonId, quantity: qty, variants, price }] : filtered;
-    setData("addons", updated);
-  };
+  // ── Min Price ─────────────────────────────────────────────────────────────
+  const minPrice = useMemo(() => {
+    if (!event.packages || event.packages.length === 0) return null;
+    return Math.min(...event.packages.map((p) => parseFloat(p.price)));
+  }, [event.packages]);
 
-  const handleVariantChange = (addonId: number, variantKey: string, value: string) => {
-    const updated = { ...(selectedVariants[addonId] ?? {}), [variantKey]: value };
-    setSelectedVariants((prev) => ({ ...prev, [addonId]: updated }));
-    const synced: SelectedAddon[] = data.addons.map((a: SelectedAddon) =>
-      a.id === addonId ? { ...a, variants: updated } : a
-    );
-    setData("addons", synced);
-  };
-
-  const getAddonQty = (addonId: number) => data.addons.find((a) => a.id === addonId)?.quantity ?? 0;
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    clearErrors();
-
-    const rsvpSchema = z.object({
-      event_package_id: z
-        .number()
-        .nullable()
-        .refine((val) => {
-          return !(event.packages && event.packages.length > 0 && val === null);
-        }, "Pilih salah satu tiket/paket terlebih dahulu"),
-      infak_amount: z.number().refine(
-        (val) => {
-          if (event.infak_rules?.enabled && val > 0) {
-            const rules = event.infak_rules;
-            if (!rules.allow_custom && !(rules.options || []).includes(val)) return false;
-            if (
-              rules.allow_custom &&
-              val < (rules.min_custom || 0) &&
-              !(rules.options || []).includes(val)
-            )
-              return false;
-          }
-          return true;
-        },
-        { message: "Nominal infak tidak valid atau kurang dari batas minimal" }
-      ),
-    });
-
-    const result = rsvpSchema.safeParse({
-      event_package_id: data.event_package_id,
-      infak_amount: parseFloat(data.infak_amount) || 0,
-    });
-
-    if (!result.success) {
-      result.error.issues.forEach((issue) => {
-        setError(issue.path[0] as any, issue.message);
-      });
+  // ── Navigation ────────────────────────────────────────────────────────────
+  const startRegistration = () => {
+    if (!user) {
+      window.location.href = `/auth/google/redirect?intended=/events/${event.slug}`;
       return;
     }
+    setView("stepper");
+    setStepIndex(0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
+  const goNext = () => {
+    if (stepIndex < activeSteps.length - 1) {
+      setStepIndex((s) => s + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const goBack = () => {
+    if (stepIndex > 0) {
+      setStepIndex((s) => s - 1);
+    } else {
+      setView("detail");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSubmit = () => {
+    clearErrors();
     post(`/events/${event.slug}/rsvp`);
   };
 
-  const formatRupiah = (num: number) =>
-    new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(num);
+  // ── Addon Handlers ────────────────────────────────────────────────────────
+  const getAddonQty = (addonId: number) => data.addons.find((a) => a.id === addonId)?.quantity ?? 0;
+
+  const handleAddonQty = (addonId: number, priceStr: string, qty: number) => {
+    const price = parseFloat(priceStr);
+    const filtered = data.addons.filter((a) => a.id !== addonId);
+    const updated =
+      qty > 0 ? [...filtered, { id: addonId, quantity: qty, variants: {}, price }] : filtered;
+    setData("addons", updated);
+  };
+
+  const handleIncludedVariant = (
+    addonId: number,
+    variantKey: string,
+    slotIndex: number,
+    value: string
+  ) => {
+    const prev = data.included_addon_variants[addonId] ?? {};
+    const prevArr = prev[variantKey] ?? [];
+    const newArr = [...prevArr];
+    newArr[slotIndex] = value;
+    setData("included_addon_variants", {
+      ...data.included_addon_variants,
+      [addonId]: { ...prev, [variantKey]: newArr },
+    });
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // DETAIL VIEW
+  // ─────────────────────────────────────────────────────────────────────────
 
   const statusBadge: Record<string, string> = {
     pending: "bg-amber-100 text-amber-700",
@@ -127,96 +241,119 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
     failed: "bg-red-100 text-red-700",
   };
 
-  return (
-    <div className="bg-background text-on-background font-body min-h-screen flex flex-col antialiased">
-      <Head title={`${event.title} – Event`} />
+  const detailView = (
+    <div className="max-w-5xl mx-auto px-4 md:px-8 pb-40 pt-6 w-full">
+      {/* Back link */}
+      <Link
+        href="/events"
+        className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary text-sm font-body mb-6 transition-colors"
+      >
+        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+        Kembali ke daftar event
+      </Link>
 
-      <Header />
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* ── Left: Event Content ── */}
+        <div className="flex-1 min-w-0">
+          {/* Hero Banner */}
+          <div className="w-full rounded-2xl bg-linear-to-br from-primary/20 via-tertiary/10 to-primary/5 h-52 md:h-64 mb-6 flex items-center justify-center overflow-hidden relative">
+            <span
+              className="material-symbols-outlined text-9xl text-primary/20"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              celebration
+            </span>
+            <div className="absolute bottom-4 left-4">
+              <span className="inline-block bg-primary/90 text-on-primary text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                {event.visibility_scope === "global" || !event.visibility_scope
+                  ? "Event Global"
+                  : `Marhalah ${event.visibility_scope}`}
+              </span>
+            </div>
+          </div>
 
-      <main className="px-4 md:px-12 pb-32 pt-8 max-w-5xl mx-auto w-full flex flex-col md:flex-row gap-8 items-start">
-        {/* ─── Left: Event Detail ─── */}
-        <div className="w-full md:w-3/5 flex flex-col gap-6">
-          {/* Back link */}
-          <Link
-            href="/events"
-            className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors font-body text-sm"
-          >
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            Kembali ke daftar event
-          </Link>
+          {/* Title */}
+          <h1 className="font-headline text-2xl md:text-3xl font-bold text-on-surface leading-tight mb-5">
+            {event.title}
+          </h1>
 
-          <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0px_10px_40px_rgba(80,100,71,0.06)] border border-surface-container-high">
-            <div className="p-6 md:p-8">
-              {/* <div className="flex items-center gap-2 mb-4">
-                <span className="bg-tertiary/15 text-tertiary px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-                  {event.visibility_scope === "global" || !event.visibility_scope
-                    ? "Event Global"
-                    : `Marhalah ${event.visibility_scope}`}
+          {/* Info Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+            <div className="flex items-start gap-3 bg-surface-container p-4 rounded-xl">
+              <span className="material-symbols-outlined text-primary mt-0.5 shrink-0">
+                calendar_month
+              </span>
+              <div>
+                <p className="text-xs text-on-surface-variant uppercase tracking-wider font-body mb-0.5">
+                  Tanggal
+                </p>
+                <p className="font-body font-semibold text-on-surface text-sm">
+                  {formatDate(event.event_date)}
+                </p>
+                <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                  {new Date(event.event_date).toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  WIB
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 bg-surface-container p-4 rounded-xl">
+              <span className="material-symbols-outlined text-primary mt-0.5 shrink-0">
+                location_on
+              </span>
+              <div>
+                <p className="text-xs text-on-surface-variant uppercase tracking-wider font-body mb-0.5">
+                  Lokasi
+                </p>
+                <p className="font-body font-semibold text-on-surface text-sm">{event.location}</p>
+              </div>
+            </div>
+            {minPrice !== null && (
+              <div className="flex items-start gap-3 bg-surface-container p-4 rounded-xl">
+                <span className="material-symbols-outlined text-primary mt-0.5 shrink-0">
+                  payments
                 </span>
-                <span className="bg-primary/10 text-primary px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-                  {event.payment_type === "free"
-                    ? "Gratis"
-                    : event.payment_type === "fixed"
-                      ? "Tiket"
-                      : "Infak"}
-                </span>
-              </div> */}
-
-              <h2 className="font-headline text-3xl font-bold text-on-surface leading-tight mb-6">
-                {event.title}
-              </h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                <div className="bg-surface-container px-4 py-3 rounded-xl flex items-start gap-3">
-                  <span className="material-symbols-outlined text-primary mt-0.5">schedule</span>
-                  <div>
-                    <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider mb-1">
-                      Tanggal & Waktu
-                    </p>
-                    <p className="font-body font-semibold text-on-surface text-sm">
-                      {new Date(event.event_date).toLocaleDateString("id-ID", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
-                    <p className="font-body text-xs text-on-surface-variant mt-0.5">
-                      {new Date(event.event_date).toLocaleTimeString("id-ID", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}{" "}
-                      WIB
-                    </p>
-                  </div>
-                </div>
-                <div className="bg-surface-container px-4 py-3 rounded-xl flex items-start gap-3">
-                  <span className="material-symbols-outlined text-primary mt-0.5">location_on</span>
-                  <div>
-                    <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider mb-1">
-                      Lokasi
-                    </p>
-                    <p className="font-body font-semibold text-on-surface text-sm">
-                      {event.location}
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-xs text-on-surface-variant uppercase tracking-wider font-body mb-0.5">
+                    Mulai dari
+                  </p>
+                  <p className="font-body font-semibold text-on-surface text-sm">
+                    {formatRupiah(minPrice)}
+                  </p>
                 </div>
               </div>
-
-              <div className="prose prose-sm max-w-none text-on-surface-variant font-body leading-relaxed">
-                <p>{event.description}</p>
+            )}
+            <div className="flex items-start gap-3 bg-surface-container p-4 rounded-xl">
+              <span className="material-symbols-outlined text-primary mt-0.5 shrink-0">
+                confirmation_number
+              </span>
+              <div>
+                <p className="text-xs text-on-surface-variant uppercase tracking-wider font-body mb-0.5">
+                  Pilihan Paket
+                </p>
+                <p className="font-body font-semibold text-on-surface text-sm">
+                  {event.packages?.length ?? 0} Paket Tersedia
+                </p>
               </div>
             </div>
           </div>
+
+          {/* HTML Description */}
+          <div
+            className="prose prose-sm max-w-none font-body leading-relaxed text-on-surface-variant event-description"
+            dangerouslySetInnerHTML={{ __html: event.description }}
+          />
         </div>
 
-        {/* ─── Right: RSVP Form or Already Registered ─── */}
-        <div className="w-full md:w-2/5 md:sticky md:top-24 space-y-6">
+        {/* ── Right: Registration Widget ── */}
+        <div className="w-full lg:w-80 shrink-0 lg:sticky lg:top-24">
           {existingRsvp ? (
-            /* Already Registered Banner */
+            /* Already Registered */
             <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0px_10px_40px_rgba(80,100,71,0.06)] border border-surface-container-high text-center">
               <span
-                className="material-symbols-outlined text-5xl text-primary mb-3"
+                className="material-symbols-outlined text-5xl text-primary mb-3 block"
                 style={{ fontVariationSettings: "'FILL' 1" }}
               >
                 check_circle
@@ -227,8 +364,7 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
               <p className="font-body text-sm text-on-surface-variant mb-4">
                 RSVP kamu untuk event ini sudah tercatat.
               </p>
-
-              <div className="bg-surface-container rounded-xl p-4 text-left space-y-2 mb-6">
+              <div className="bg-surface-container rounded-xl p-4 text-left space-y-2.5 mb-5">
                 <div className="flex justify-between items-center">
                   <span className="font-body text-xs text-on-surface-variant">Status</span>
                   <span
@@ -238,7 +374,7 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="font-body text-xs text-on-surface-variant">Total Infak</span>
+                  <span className="font-body text-xs text-on-surface-variant">Total</span>
                   <span className="font-body text-sm font-semibold text-on-surface">
                     {formatRupiah(parseFloat(existingRsvp.total_amount))}
                   </span>
@@ -250,481 +386,742 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                   </span>
                 </div>
               </div>
-
+              {existingRsvp.latest_transaction && (
+                <Link
+                  href={`/payments/${existingRsvp.latest_transaction.id}`}
+                  className="w-full inline-flex justify-center items-center gap-2 bg-primary text-on-primary py-3 px-6 rounded-full font-headline font-bold text-sm transition-all hover:opacity-90 mb-3"
+                >
+                  <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                  Lihat Pembayaran
+                </Link>
+              )}
               <Link
                 href="/dashboard"
-                className="w-full inline-flex justify-center items-center gap-2 bg-primary text-on-primary py-3 px-6 rounded-full font-headline font-bold text-sm transition-all hover:opacity-90"
+                className="w-full inline-flex justify-center items-center gap-2 bg-surface-container text-on-surface-variant py-3 px-6 rounded-full font-headline font-semibold text-sm transition-all hover:bg-surface-container-high"
               >
                 <span className="material-symbols-outlined text-[18px]">dashboard</span>
-                Lihat di Dashboard
+                Dashboard
               </Link>
             </div>
           ) : (
-            /* RSVP Form */
-            <form
-              onSubmit={submit}
-              className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0px_10px_40px_rgba(80,100,71,0.06)] border border-surface-container-high space-y-8"
-            >
-              {/* ── Package Selection ── */}
-              {event.packages && event.packages.length > 0 && (
-                <div>
-                  <h3 className="font-headline text-xl font-bold text-on-surface mb-1">
-                    Pilih Tiket / Paket
-                  </h3>
-                  <div className="space-y-3 mt-4">
-                    {event.packages.map((pkg) => {
-                      const isSoldOut = pkg.stock_quantity !== null && pkg.stock_quantity < 1;
-                      return (
-                        <label
-                          key={pkg.id}
-                          className={`flex items-start p-4 rounded-xl border-2 transition-all ${
-                            isSoldOut
-                              ? "opacity-50 cursor-not-allowed bg-surface-container"
-                              : "cursor-pointer hover:border-outline-variant"
-                          } ${
-                            data.event_package_id === pkg.id && !isSoldOut
-                              ? "border-primary bg-primary/5"
-                              : "border-surface-container"
-                          }`}
-                        >
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="font-body font-bold text-on-surface text-base">
-                                {pkg.name}
-                              </span>
-                              <span className="font-headline font-bold text-primary">
-                                {parseFloat(pkg.price) === 0
-                                  ? "Gratis"
-                                  : formatRupiah(parseFloat(pkg.price))}
-                              </span>
-                            </div>
-                            {pkg.description && (
-                              <p className="font-body text-xs text-on-surface-variant line-clamp-2 mb-2">
-                                {pkg.description}
-                              </p>
-                            )}
-                            {pkg.stock_quantity !== null && (
-                              <span className="inline-block bg-surface border border-outline-variant px-2 py-0.5 rounded text-[10px] font-bold text-on-surface-variant uppercase">
-                                {isSoldOut ? "Habis Terjual" : `Sisa ${pkg.stock_quantity} Kuota`}
-                              </span>
-                            )}
-                          </div>
-                          {!isSoldOut && (
-                            <input
-                              type="radio"
-                              name="event_package_id"
-                              value={pkg.id}
-                              checked={data.event_package_id === pkg.id}
-                              onChange={() => setData("event_package_id", pkg.id)}
-                              className="ml-4 mt-1 text-primary focus:ring-primary"
-                            />
-                          )}
-                        </label>
-                      );
-                    })}
-                  </div>
-                  {errors.event_package_id && (
-                    <p className="text-error text-xs font-medium mt-2 flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[16px]">error</span>
-                      {errors.event_package_id}
-                    </p>
-                  )}
-                </div>
+            /* Registration CTA Card */
+            <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0px_10px_40px_rgba(80,100,71,0.06)] border border-surface-container-high">
+              <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider mb-1">
+                Mulai dari
+              </p>
+              <p className="font-headline text-3xl font-bold text-primary mb-1">
+                {minPrice !== null ? formatRupiah(minPrice) : "Gratis"}
+              </p>
+              <p className="font-body text-xs text-on-surface-variant mb-5">
+                {event.packages?.length ?? 0} paket tersedia
+              </p>
+
+              <button
+                onClick={startRegistration}
+                className="w-full bg-primary text-on-primary py-4 px-6 rounded-full font-headline font-bold text-base transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
+                Daftar Sekarang
+              </button>
+
+              {!user && (
+                <p className="text-xs text-on-surface-variant text-center mt-3 font-body">
+                  Kamu akan diminta login dengan Google
+                </p>
               )}
 
-              {/* ── Infak Section ── */}
-              {event.infak_rules?.enabled && (
-                <div
-                  className={`${event.packages && event.packages.length > 0 ? "border-t border-surface-container pt-6" : ""}`}
-                >
-                  <h3 className="font-headline text-xl font-bold text-on-surface mb-1">
-                    Infak / Kontribusi
-                  </h3>
-                  <p className="font-body text-xs text-on-surface-variant mb-5">
-                    {event.infak_rules.description ?? "Berikan dukungan infak terbaik Anda."}
-                  </p>
-                  <div className="space-y-2">
-                    {event.infak_rules.options?.map((tier) => (
-                      <label
-                        key={tier}
-                        className={`flex items-center justify-between p-4 rounded-xl cursor-pointer border-2 transition-all ${
-                          data.infak_amount === String(tier)
-                            ? "border-primary bg-primary/5"
-                            : "border-surface-container hover:border-outline-variant"
-                        }`}
-                      >
-                        <span className="font-body font-medium text-on-surface text-sm">
-                          {formatRupiah(tier)}
-                        </span>
-                        <input
-                          type="radio"
-                          name="infak_amount"
-                          value={tier}
-                          checked={data.infak_amount === String(tier)}
-                          onChange={(e) => setData("infak_amount", e.target.value)}
-                          className="text-primary focus:ring-primary"
-                        />
-                      </label>
-                    ))}
+              <div className="mt-5 pt-5 border-t border-surface-container space-y-2">
+                <div className="flex items-center gap-2 text-xs text-on-surface-variant font-body">
+                  <span className="material-symbols-outlined text-[16px] text-primary">
+                    calendar_month
+                  </span>
+                  {formatDate(event.event_date)}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-on-surface-variant font-body">
+                  <span className="material-symbols-outlined text-[16px] text-primary">
+                    location_on
+                  </span>
+                  {event.location}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
-                    {event.infak_rules.allow_custom && (
-                      <label
-                        className={`flex flex-col p-4 rounded-xl cursor-pointer border-2 transition-all ${
-                          data.infak_amount !== "0" &&
-                          !(event.infak_rules.options || []).includes(Number(data.infak_amount))
-                            ? "border-primary bg-primary/5"
-                            : "border-surface-container hover:border-outline-variant"
-                        }`}
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-body font-medium text-on-surface text-sm">
-                            Nominal Lain
-                          </span>
-                          <input
-                            type="radio"
-                            name="infak_amount"
-                            checked={
-                              data.infak_amount !== "0" &&
-                              !(event.infak_rules.options || []).includes(Number(data.infak_amount))
-                            }
-                            onChange={() =>
-                              setData(
-                                "infak_amount",
-                                String(event.infak_rules?.min_custom ?? 10000)
-                              )
-                            }
-                            className="text-primary focus:ring-primary"
-                          />
-                        </div>
-                        {data.infak_amount !== "0" &&
-                          !(event.infak_rules.options || []).includes(
-                            Number(data.infak_amount)
-                          ) && (
-                            <CurrencyInput
-                              value={data.infak_amount}
-                              onChange={(val) => setData("infak_amount", val)}
-                              className=""
-                              placeholder={`Min. ${formatRupiah(event.infak_rules.min_custom ?? 10000)}`}
-                            />
-                          )}
-                      </label>
-                    )}
+      {/* ── Mobile Sticky CTA ── */}
+      {!existingRsvp && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface-container-lowest border-t border-surface-container-high p-4 z-50">
+          <button
+            onClick={startRegistration}
+            className="w-full bg-primary text-on-primary py-4 px-6 rounded-full font-headline font-bold text-base transition-all hover:opacity-90 flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
+            Daftar Sekarang
+            {minPrice !== null && ` · ${formatRupiah(minPrice)}`}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
-                    <label
-                      className={`flex items-center justify-between p-4 rounded-xl cursor-pointer border-2 transition-all ${
-                        data.infak_amount === "0" || data.infak_amount === ""
-                          ? "border-primary bg-primary/5"
-                          : "border-surface-container hover:border-outline-variant"
+  // ─────────────────────────────────────────────────────────────────────────
+  // STEPPER STEPS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── Step: Custom Forms ────────────────────────────────────────────────────
+  const stepForm = (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-headline text-2xl font-bold text-on-surface mb-1">
+          Formulir Pendaftaran
+        </h2>
+        <p className="font-body text-sm text-on-surface-variant">
+          Lengkapi informasi berikut untuk melanjutkan.
+        </p>
+      </div>
+      {customForms.map((field, i) => {
+        const fieldKey = field.id ?? `field_${i}`;
+        const value = data.custom_form_data[fieldKey] ?? "";
+        const setValue = (v: string) =>
+          setData("custom_form_data", { ...data.custom_form_data, [fieldKey]: v });
+
+        return (
+          <div key={fieldKey}>
+            <label className="block font-body font-semibold text-sm text-on-surface mb-2">
+              {field.label}
+              {field.required && <span className="text-error ml-1">*</span>}
+            </label>
+
+            {field.type === "radio" && field.options && (
+              <div className="space-y-2">
+                {field.options.map((opt) => (
+                  <label
+                    key={opt}
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      value === opt
+                        ? "border-primary bg-primary/5"
+                        : "border-surface-container hover:border-outline-variant"
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                        value === opt ? "border-primary" : "border-outline"
                       }`}
                     >
-                      <span className="font-body font-medium text-on-surface text-sm">
-                        Lewati Infak
-                      </span>
-                      <input
-                        type="radio"
-                        name="infak_amount"
-                        value="0"
-                        checked={data.infak_amount === "0" || data.infak_amount === ""}
-                        onChange={() => setData("infak_amount", "0")}
-                        className="text-primary focus:ring-primary"
-                      />
-                    </label>
-                  </div>
-                  {errors.infak_amount && (
-                    <p className="text-error text-xs font-medium mt-2 flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[16px]">error</span>
-                      {errors.infak_amount}
-                    </p>
-                  )}
+                      {value === opt && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                    </div>
+                    <span className="font-body text-sm text-on-surface capitalize">{opt}</span>
+                    <input
+                      type="radio"
+                      className="sr-only"
+                      value={opt}
+                      checked={value === opt}
+                      onChange={() => setValue(opt)}
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {field.type === "number" && (
+              <input
+                type="number"
+                value={value}
+                min={0}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={field.placeholder ?? "0"}
+                className="w-full px-4 py-3 rounded-xl border-2 border-surface-container focus:border-primary focus:outline-none bg-surface text-on-surface font-body text-sm transition-colors"
+              />
+            )}
+
+            {field.type === "text" && (
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={field.placeholder}
+                className="w-full px-4 py-3 rounded-xl border-2 border-surface-container focus:border-primary focus:outline-none bg-surface text-on-surface font-body text-sm transition-colors"
+              />
+            )}
+
+            {field.type === "textarea" && (
+              <textarea
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={field.placeholder}
+                rows={3}
+                className="w-full px-4 py-3 rounded-xl border-2 border-surface-container focus:border-primary focus:outline-none bg-surface text-on-surface font-body text-sm transition-colors resize-none"
+              />
+            )}
+
+            {field.type === "select" && field.options && (
+              <select
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border-2 border-surface-container focus:border-primary focus:outline-none bg-surface text-on-surface font-body text-sm transition-colors"
+              >
+                <option value="">-- Pilih --</option>
+                {field.options.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // ── Step: Package Selection ───────────────────────────────────────────────
+  const stepPackage = (
+    <div className="space-y-5">
+      <div>
+        <h2 className="font-headline text-2xl font-bold text-on-surface mb-1">Pilih Paket</h2>
+        <p className="font-body text-sm text-on-surface-variant">
+          Pilih paket yang sesuai dengan kebutuhanmu.
+        </p>
+      </div>
+      {errors.event_package_id && (
+        <p className="text-error text-xs font-medium flex items-center gap-1">
+          <span className="material-symbols-outlined text-[16px]">error</span>
+          {errors.event_package_id}
+        </p>
+      )}
+      <div className="space-y-3">
+        {event.packages?.map((pkg) => {
+          const isSoldOut = pkg.stock_quantity !== null && pkg.stock_quantity < 1;
+          const isSelected = data.event_package_id === pkg.id;
+          return (
+            <label
+              key={pkg.id}
+              className={`flex items-start gap-4 p-4 rounded-2xl border-2 transition-all ${
+                isSoldOut
+                  ? "opacity-50 cursor-not-allowed bg-surface-container"
+                  : "cursor-pointer hover:border-outline-variant"
+              } ${
+                isSelected && !isSoldOut
+                  ? "border-primary bg-primary/5"
+                  : "border-surface-container"
+              }`}
+            >
+              {/* Radio circle */}
+              <div
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                  isSelected && !isSoldOut ? "border-primary" : "border-outline"
+                }`}
+              >
+                {isSelected && !isSoldOut && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start gap-2 mb-1">
+                  <span className="font-headline font-bold text-on-surface text-base">
+                    {pkg.name}
+                  </span>
+                  <span className="font-headline font-bold text-primary shrink-0">
+                    {formatRupiah(parseFloat(pkg.price))}
+                  </span>
                 </div>
-              )}
-
-              {/* ── Add-Ons / Merchandise ── */}
-              {event.addons && event.addons.length > 0 && (
-                <div className="border-t border-surface-container pt-6">
-                  <h3 className="font-headline text-lg font-bold text-on-surface mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-[20px]">
-                      checkroom
-                    </span>
-                    Merchandise Resmi
-                  </h3>
-                  <div className="space-y-4">
-                    {event.addons.map((addon) => {
-                      const qty = getAddonQty(addon.id);
-                      const addonVariants = addon.variants ?? {};
-                      const variantKeys = Object.keys(addonVariants);
-
-                      return (
-                        <div
-                          key={addon.id}
-                          className="bg-surface-container-low rounded-xl p-4 flex flex-col gap-3"
+                {pkg.description && (
+                  <p className="font-body text-xs text-on-surface-variant leading-relaxed mb-2">
+                    {pkg.description}
+                  </p>
+                )}
+                {/* Included addons preview */}
+                {pkg.included_addons && pkg.included_addons.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {pkg.included_addons.map((ia) => (
+                      <span
+                        key={ia.id}
+                        className="inline-flex items-center gap-1 bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      >
+                        <span
+                          className="material-symbols-outlined text-[12px]"
+                          style={{ fontVariationSettings: "'FILL' 1" }}
                         >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-headline font-bold text-sm text-on-surface">
-                                {addon.name}
-                              </p>
-                              <p className="font-body text-xs text-primary font-medium mt-0.5">
-                                {formatRupiah(parseFloat(addon.price))} / pcs
-                              </p>
-                              <p className="font-body text-[10px] text-on-surface-variant mt-0.5">
-                                Stok: {addon.stock_quantity}
-                              </p>
-                            </div>
-                            {/* Qty Stepper */}
-                            <div className="flex items-center bg-surface rounded-lg overflow-hidden shadow-sm border border-surface-container">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleAddonQty(addon.id, addon.price, Math.max(0, qty - 1))
-                                }
-                                className="px-2.5 py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors"
-                              >
-                                –
-                              </button>
-                              <span className="px-3 text-xs font-bold text-on-surface w-8 text-center">
-                                {qty}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleAddonQty(
-                                    addon.id,
-                                    addon.price,
-                                    Math.min(addon.stock_quantity, qty + 1)
-                                  )
-                                }
-                                className="px-2.5 py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Variant Dropdowns - shown only when qty > 0 */}
-                          {qty > 0 && variantKeys.length > 0 && (
-                            <div className="flex flex-wrap gap-2 pt-1">
-                              {variantKeys.map((variantKey) => (
-                                <div
-                                  key={variantKey}
-                                  className="flex flex-col gap-1 flex-1 min-w-[100px]"
-                                >
-                                  <label className="font-body text-[10px] text-on-surface-variant uppercase tracking-wider">
-                                    {variantKey}
-                                  </label>
-                                  <select
-                                    value={selectedVariants[addon.id]?.[variantKey] ?? ""}
-                                    onChange={(e) =>
-                                      handleVariantChange(addon.id, variantKey, e.target.value)
-                                    }
-                                    className="text-xs bg-surface border border-outline-variant/50 rounded-lg py-1.5 px-2 text-on-surface focus:ring-1 focus:ring-primary focus:border-primary"
-                                  >
-                                    <option value="">Pilih {variantKey}</option>
-                                    {addonVariants[variantKey].map((opt) => (
-                                      <option key={opt} value={opt}>
-                                        {opt}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                          check_circle
+                        </span>
+                        {ia.name} ×{ia.pivot.included_quantity}
+                      </span>
+                    ))}
                   </div>
-                </div>
-              )}
+                )}
+                {isSoldOut && (
+                  <span className="inline-block bg-error/10 text-error text-[10px] font-bold px-2 py-0.5 rounded mt-1.5">
+                    Habis Terjual
+                  </span>
+                )}
+              </div>
 
-              {/* ── Custom Form Fields ── */}
-              {customForms.length > 0 && (
-                <div className="border-t border-surface-container pt-6">
-                  <h3 className="font-headline text-lg font-bold text-on-surface mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-[20px]">
-                      assignment
-                    </span>
-                    Data Peserta
-                  </h3>
-                  <div className="space-y-4">
-                    {customForms.map((field) => (
-                      <div key={field.id}>
-                        <label className="font-body text-sm font-medium text-on-surface block mb-1.5">
-                          {field.label}
-                          {field.required && <span className="text-error ml-1">*</span>}
-                        </label>
-                        {field.type === "textarea" ? (
-                          <textarea
-                            value={data.custom_form_data[field.id] ?? ""}
-                            onChange={(e) =>
-                              setData("custom_form_data", {
-                                ...data.custom_form_data,
-                                [field.id]: e.target.value,
-                              })
-                            }
-                            rows={3}
-                            required={field.required}
-                            placeholder={field.placeholder}
-                            className="w-full bg-surface text-on-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-primary focus:border-primary resize-none"
-                          />
-                        ) : field.type === "select" && field.options ? (
-                          <select
-                            value={data.custom_form_data[field.id] ?? ""}
-                            onChange={(e) =>
-                              setData("custom_form_data", {
-                                ...data.custom_form_data,
-                                [field.id]: e.target.value,
-                              })
-                            }
-                            required={field.required}
-                            className="w-full bg-surface text-on-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-primary focus:border-primary"
-                          >
-                            <option value="">Pilih {field.label}</option>
-                            {field.options.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type="text"
-                            value={data.custom_form_data[field.id] ?? ""}
-                            onChange={(e) =>
-                              setData("custom_form_data", {
-                                ...data.custom_form_data,
-                                [field.id]: e.target.value,
-                              })
-                            }
-                            required={field.required}
-                            placeholder={field.placeholder}
-                            className="w-full bg-surface text-on-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-primary focus:border-primary"
-                          />
-                        )}
+              <input
+                type="radio"
+                className="sr-only"
+                disabled={isSoldOut}
+                checked={isSelected}
+                onChange={() => !isSoldOut && setData("event_package_id", pkg.id)}
+              />
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // ── Step: Addons ──────────────────────────────────────────────────────────
+  const includedAddons = selectedPackage?.included_addons ?? [];
+  const purchasableAddons = (event.addons ?? []).filter(
+    (a) => !includedAddons.some((ia) => ia.id === a.id)
+  );
+
+  const stepAddons = (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-headline text-2xl font-bold text-on-surface mb-1">Tambahan & Varian</h2>
+        <p className="font-body text-sm text-on-surface-variant">
+          Lengkapi pilihan varian untuk item yang sudah termasuk dalam paketmu.
+        </p>
+      </div>
+
+      {/* Included addons with variant selection */}
+      {includedAddons.length > 0 ? (
+        <div className="space-y-5">
+          <h3 className="font-body font-bold text-xs text-on-surface uppercase tracking-wider flex items-center gap-2">
+            <span
+              className="material-symbols-outlined text-[16px] text-primary"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              check_circle
+            </span>
+            Sudah Termasuk dalam Paket
+          </h3>
+          {includedAddons.map((addon) => {
+            const qty = addon.pivot.included_quantity;
+            const variantKeys = addon.variants ? Object.keys(addon.variants) : [];
+            const addonVariants = data.included_addon_variants[addon.id] ?? {};
+
+            return (
+              <div key={addon.id} className="bg-surface-container rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-headline font-bold text-on-surface text-sm">{addon.name}</p>
+                    <p className="font-body text-xs text-on-surface-variant">
+                      {qty} item termasuk dalam paket
+                    </p>
+                  </div>
+                  <span className="bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-full">
+                    ×{qty}
+                  </span>
+                </div>
+
+                {variantKeys.length > 0 ? (
+                  <div className="space-y-3 pt-1">
+                    {Array.from({ length: qty }, (_, slotIdx) => (
+                      <div key={slotIdx} className="bg-surface rounded-xl p-3 space-y-2">
+                        <p className="font-body text-xs font-semibold text-on-surface-variant">
+                          Item #{slotIdx + 1}
+                        </p>
+                        {variantKeys.map((vKey) => {
+                          const options = (addon.variants as Record<string, string[]>)[vKey] ?? [];
+                          const selectedVal = addonVariants[vKey]?.[slotIdx] ?? "";
+                          return (
+                            <div key={vKey}>
+                              <label className="block font-body text-xs text-on-surface-variant mb-1.5 capitalize">
+                                {vKey}
+                              </label>
+                              <div className="flex flex-wrap gap-1.5">
+                                {options.map((opt) => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() =>
+                                      handleIncludedVariant(addon.id, vKey, slotIdx, opt)
+                                    }
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
+                                      selectedVal === opt
+                                        ? "border-primary bg-primary text-on-primary"
+                                        : "border-surface-container-high bg-surface text-on-surface hover:border-primary/50"
+                                    }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* ── Payment Method ── */}
-              <div className="border-t border-surface-container pt-6">
-                <h3 className="font-headline text-lg font-bold text-on-surface mb-1 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-[20px]">
-                    payments
-                  </span>
-                  Metode Pembayaran
-                </h3>
-                <p className="font-body text-xs text-on-surface-variant mb-4">
-                  Pilih cara pembayaran yang paling mudah untukmu.
-                </p>
-                <div className="space-y-3">
-                  {/* iPaymu */}
-                  <label
-                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      data.payment_provider === "ipaymu"
-                        ? "border-primary bg-primary/5"
-                        : "border-surface-container hover:border-outline-variant"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment_provider"
-                      value="ipaymu"
-                      checked={data.payment_provider === "ipaymu"}
-                      onChange={() => setData("payment_provider", "ipaymu")}
-                      className="text-primary focus:ring-primary"
-                    />
-                    <div className="flex-1">
-                      <p className="font-body font-semibold text-on-surface text-sm">iPaymu</p>
-                      <p className="font-body text-xs text-on-surface-variant mt-0.5">
-                        Transfer Bank, QRIS, atau e-Wallet via iPaymu
-                      </p>
-                    </div>
-                    <span
-                      className="material-symbols-outlined text-primary text-[22px]"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      account_balance
-                    </span>
-                  </label>
-
-                  {/* Manual Transfer */}
-                  <label
-                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      data.payment_provider === "manual"
-                        ? "border-primary bg-primary/5"
-                        : "border-surface-container hover:border-outline-variant"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment_provider"
-                      value="manual"
-                      checked={data.payment_provider === "manual"}
-                      onChange={() => setData("payment_provider", "manual")}
-                      className="text-primary focus:ring-primary"
-                    />
-                    <div className="flex-1">
-                      <p className="font-body font-semibold text-on-surface text-sm">
-                        Transfer Manual
-                      </p>
-                      <p className="font-body text-xs text-on-surface-variant mt-0.5">
-                        Transfer ke rekening panitia, upload bukti, tunggu konfirmasi admin
-                      </p>
-                    </div>
-                    <span className="material-symbols-outlined text-on-surface-variant text-[22px]">
-                      receipt_long
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              {/* ── Total & Submit ── */}
-              <div className="border-t-2 border-surface-container pt-6">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="font-body text-on-surface-variant font-medium text-sm">
-                    Total Estimasi
-                  </span>
-                  <span className="font-headline text-2xl font-bold text-on-surface">
-                    {formatRupiah(totalCalculation)}
-                  </span>
-                </div>
-
-                {auth?.user ? (
-                  <button
-                    type="submit"
-                    disabled={processing}
-                    className="w-full bg-primary hover:opacity-90 text-white py-4 px-6 rounded-full font-headline font-bold uppercase tracking-wider transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {processing ? (
-                      "Memproses..."
-                    ) : (
-                      <>
-                        {data.payment_provider === "ipaymu"
-                          ? "Bayar via iPaymu"
-                          : "Lanjut ke Pembayaran"}
-                        <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
-                      </>
-                    )}
-                  </button>
                 ) : (
-                  <a
-                    href="/auth/google/redirect"
-                    className="w-full bg-primary hover:opacity-90 text-white py-4 px-6 rounded-full font-headline font-bold uppercase tracking-wider transition-all shadow-md flex justify-center items-center gap-2 text-center"
-                  >
-                    Login untuk RSVP
-                    <span className="material-symbols-outlined text-[20px]">login</span>
-                  </a>
+                  <p className="font-body text-xs text-on-surface-variant italic">
+                    Tidak ada varian untuk item ini.
+                  </p>
                 )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-8 bg-surface-container rounded-2xl">
+          <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 block mb-2">
+            inventory_2
+          </span>
+          <p className="font-body text-sm text-on-surface-variant">
+            Pilih paket terlebih dahulu untuk melihat item yang termasuk.
+          </p>
+        </div>
+      )}
 
-                <p className="text-center font-body text-[10px] text-on-surface-variant mt-3">
-                  Pendaftaran bersifat final. Pembayaran akan dikonfirmasi oleh panitia.
+      {/* Optional purchasable addons */}
+      {purchasableAddons.length > 0 && (
+        <div className="space-y-4 pt-2 border-t border-surface-container">
+          <h3 className="font-body font-bold text-xs text-on-surface uppercase tracking-wider flex items-center gap-2 pt-2">
+            <span className="material-symbols-outlined text-[16px] text-secondary">
+              add_shopping_cart
+            </span>
+            Tambahan Opsional
+          </h3>
+          {purchasableAddons.map((addon) => {
+            const qty = getAddonQty(addon.id);
+            return (
+              <div key={addon.id} className="bg-surface-container rounded-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-headline font-bold text-on-surface text-sm">{addon.name}</p>
+                    <p className="font-body text-xs text-primary font-medium">
+                      {formatRupiah(parseFloat(addon.price))} / pcs
+                    </p>
+                  </div>
+                  {/* Qty Stepper */}
+                  <div className="flex items-center bg-surface rounded-lg overflow-hidden border border-surface-container-high">
+                    <button
+                      type="button"
+                      onClick={() => handleAddonQty(addon.id, addon.price, Math.max(0, qty - 1))}
+                      className="px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-colors font-bold"
+                    >
+                      −
+                    </button>
+                    <span className="px-3 text-sm font-bold text-on-surface w-8 text-center">
+                      {qty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleAddonQty(
+                          addon.id,
+                          addon.price,
+                          Math.min(addon.stock_quantity ?? 999, qty + 1)
+                        )
+                      }
+                      className="px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-colors font-bold"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Step: Infak ───────────────────────────────────────────────────────────
+  const infakRules = event.infak_rules;
+  const stepInfak = (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-headline text-2xl font-bold text-on-surface mb-1">Infak / Wakaf</h2>
+        <p className="font-body text-sm text-on-surface-variant">
+          {infakRules?.description ?? "Berikan infak terbaik Anda. Infak bersifat opsional."}
+        </p>
+      </div>
+
+      {errors.infak_amount && (
+        <p className="text-error text-xs font-medium flex items-center gap-1">
+          <span className="material-symbols-outlined text-[16px]">error</span>
+          {errors.infak_amount}
+        </p>
+      )}
+
+      {/* Predefined options grid */}
+      <div className="grid grid-cols-3 gap-2.5">
+        {infakRules?.options?.map((amount) => (
+          <button
+            key={amount}
+            type="button"
+            onClick={() => setData("infak_amount", String(amount))}
+            className={`py-3 px-2 rounded-xl text-sm font-bold font-body transition-all border-2 ${
+              data.infak_amount === String(amount)
+                ? "border-primary bg-primary text-on-primary"
+                : "border-surface-container bg-surface-container text-on-surface hover:border-primary/50"
+            }`}
+          >
+            {formatRupiah(amount)}
+          </button>
+        ))}
+      </div>
+
+      {/* Custom amount */}
+      {infakRules?.allow_custom && (
+        <div>
+          <label className="block font-body font-semibold text-sm text-on-surface mb-2">
+            Atau masukkan nominal lain
+          </label>
+          <CurrencyInput
+            value={
+              data.infak_amount !== "0" && !infakRules.options?.includes(Number(data.infak_amount))
+                ? data.infak_amount
+                : ""
+            }
+            onChange={(val) => setData("infak_amount", val || "0")}
+            className=""
+            placeholder={`Min. ${formatRupiah(infakRules.min_custom ?? 10000)}`}
+          />
+        </div>
+      )}
+
+      {/* Skip option */}
+      <button
+        type="button"
+        onClick={() => setData("infak_amount", "0")}
+        className={`w-full py-3 px-4 rounded-xl text-sm font-body font-medium border-2 transition-all ${
+          data.infak_amount === "0" || data.infak_amount === ""
+            ? "border-primary bg-primary/5 text-primary"
+            : "border-dashed border-surface-container-high text-on-surface-variant hover:border-outline-variant"
+        }`}
+      >
+        Lewati Infak
+      </button>
+    </div>
+  );
+
+  // ── Step: Konfirmasi ──────────────────────────────────────────────────────
+  const stepKonfirmasi = (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-headline text-2xl font-bold text-on-surface mb-1">
+          Konfirmasi Pesanan
+        </h2>
+        <p className="font-body text-sm text-on-surface-variant">
+          Periksa kembali detail pendaftaranmu sebelum melanjutkan ke pembayaran.
+        </p>
+      </div>
+
+      {/* Order Summary Card */}
+      <div className="bg-surface-container rounded-2xl overflow-hidden">
+        {/* Event info */}
+        <div className="p-4 border-b border-surface-container-high">
+          <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider mb-1">
+            Event
+          </p>
+          <p className="font-headline font-bold text-on-surface text-sm">{event.title}</p>
+          <p className="font-body text-xs text-on-surface-variant mt-0.5">
+            {formatDate(event.event_date)}
+          </p>
+        </div>
+
+        {/* Selected package */}
+        {selectedPackage && (
+          <div className="p-4 border-b border-surface-container-high">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider mb-0.5">
+                  Paket
+                </p>
+                <p className="font-headline font-bold text-on-surface text-sm">
+                  {selectedPackage.name}
                 </p>
               </div>
-            </form>
-          )}
+              <span className="font-body font-semibold text-on-surface text-sm">
+                {formatRupiah(totals.pkg)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Additional addons */}
+        {data.addons.length > 0 && (
+          <div className="p-4 border-b border-surface-container-high space-y-2">
+            <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider">
+              Tambahan
+            </p>
+            {data.addons.map((a) => {
+              const addonInfo = event.addons?.find((ea) => ea.id === a.id);
+              return (
+                <div key={a.id} className="flex justify-between items-center">
+                  <span className="font-body text-sm text-on-surface">
+                    {addonInfo?.name} ×{a.quantity}
+                  </span>
+                  <span className="font-body text-sm text-on-surface">
+                    {formatRupiah(a.price * a.quantity)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Infak */}
+        {totals.infak > 0 && (
+          <div className="p-4 border-b border-surface-container-high">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span
+                  className="material-symbols-outlined text-[16px] text-secondary"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  volunteer_activism
+                </span>
+                <span className="font-body text-sm text-on-surface">Infak</span>
+              </div>
+              <span className="font-body text-sm text-on-surface">
+                {formatRupiah(totals.infak)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Total */}
+        <div className="p-4 bg-primary/5">
+          <div className="flex justify-between items-center">
+            <span className="font-headline font-bold text-on-surface">Total</span>
+            <span className="font-headline font-bold text-primary text-xl">
+              {formatRupiah(totals.total)}
+            </span>
+          </div>
         </div>
+      </div>
+
+      {/* Payment info note */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+        <span className="material-symbols-outlined text-amber-600 shrink-0 mt-0.5">info</span>
+        <div>
+          <p className="font-body text-sm font-semibold text-amber-800 mb-0.5">
+            Pembayaran Transfer Manual
+          </p>
+          <p className="font-body text-xs text-amber-700 leading-relaxed">
+            Setelah konfirmasi, kamu akan mendapatkan informasi rekening tujuan. Unggah bukti
+            transfer untuk menyelesaikan pendaftaran.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const stepperContent: Partial<Record<StepKey, ReactElement>> = {
+    form: stepForm,
+    package: stepPackage,
+    addons: stepAddons,
+    infak: stepInfak,
+    konfirmasi: stepKonfirmasi,
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // STEPPER VIEW
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const stepperView = (
+    <div className="max-w-2xl mx-auto px-4 md:px-8 pb-32 pt-6 w-full">
+      {/* Back button */}
+      <button
+        onClick={goBack}
+        className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary text-sm font-body mb-6 transition-colors"
+      >
+        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+        {stepIndex === 0 ? "Kembali ke detail acara" : "Kembali"}
+      </button>
+
+      {/* Event mini header */}
+      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-surface-container">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <span
+            className="material-symbols-outlined text-primary text-[20px]"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            celebration
+          </span>
+        </div>
+        <div className="min-w-0">
+          <p className="font-headline font-bold text-on-surface text-sm leading-tight truncate">
+            {event.title}
+          </p>
+          <p className="font-body text-xs text-on-surface-variant">
+            {formatDate(event.event_date)}
+          </p>
+        </div>
+      </div>
+
+      {/* Stepper progress */}
+      <StepperProgress steps={activeSteps} currentIndex={stepIndex} />
+
+      {/* Step content */}
+      <div className="bg-surface-container-lowest rounded-2xl p-6 md:p-8 shadow-[0px_10px_40px_rgba(80,100,71,0.06)] border border-surface-container-high">
+        {currentStep && stepperContent[currentStep.key]}
+      </div>
+
+      {/* Navigation buttons */}
+      <div className="flex items-center justify-between mt-6 gap-3">
+        <button
+          type="button"
+          onClick={goBack}
+          className="flex items-center gap-2 px-5 py-3 rounded-full border-2 border-surface-container text-on-surface-variant font-body font-semibold text-sm hover:border-outline-variant transition-all"
+        >
+          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          Kembali
+        </button>
+
+        {isLastStep ? (
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={processing}
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-on-primary font-headline font-bold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {processing ? (
+              <>
+                <span className="material-symbols-outlined text-[18px] animate-spin">
+                  progress_activity
+                </span>
+                Memproses...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[18px]">payment</span>
+                Konfirmasi & Bayar
+              </>
+            )}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={goNext}
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-on-primary font-headline font-bold text-sm hover:opacity-90 transition-all"
+          >
+            Lanjut
+            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────
+
+  return (
+    <div className="bg-background text-on-background font-body min-h-screen flex flex-col antialiased">
+      <Head title={`${event.title} – Event`} />
+      <Header />
+      <main className="flex-1 flex flex-col items-center">
+        {view === "detail" ? detailView : stepperView}
       </main>
     </div>
   );

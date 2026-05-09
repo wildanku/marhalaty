@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             CampusSeeder::class,
             EventSeeder::class,
             ConsulateSeeder::class,
+            SettingSeeder::class,
             // IndonesiaCitySeeder::class,
             // IndonesiaDistrictSeeder::class,
             // IndonesiaProvinceSeeder::class,

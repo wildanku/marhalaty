@@ -5,6 +5,7 @@ namespace App\Domains\Event\Controllers;
 use App\Contracts\PaymentProviderInterface;
 use App\Domains\Event\Models\Transaction;
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -21,17 +22,13 @@ class PaymentController extends Controller
             ->where('user_id', $request->user()->id)
             ->findOrFail($id);
 
-        $bankInfo = [
-            'bank'    => config('services.manual_payment.bank_name', 'BCA'),
-            'account' => config('services.manual_payment.account_number', ''),
-            'holder'  => config('services.manual_payment.account_holder', ''),
-        ];
+        $bankAccounts = Setting::get('bank_account_manual_transfer', []);
 
         return Inertia::render('Payment/Show', [
-            'transaction' => $transaction,
-            'rsvp'        => $transaction->rsvp,
-            'event'       => $transaction->rsvp->event,
-            'bankInfo'    => $bankInfo,
+            'transaction'  => $transaction,
+            'rsvp'         => $transaction->rsvp,
+            'event'        => $transaction->rsvp->event,
+            'bankAccounts' => $bankAccounts,
         ]);
     }
 

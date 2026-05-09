@@ -3,17 +3,17 @@ import { Head, useForm, Link } from "@inertiajs/react";
 import Header from "@/Components/Header";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 
-interface BankInfo {
+interface BankAccount {
   bank: string;
-  account: string;
-  holder: string;
+  account_number: string;
+  account_holder: string;
 }
 
 interface PaymentShowProps extends PageProps {
   transaction: Transaction;
   rsvp: Rsvp;
   event: GontorEvent;
-  bankInfo: BankInfo;
+  bankAccounts: BankAccount[];
 }
 
 const formatRupiah = (val: number | string) =>
@@ -61,14 +61,14 @@ export default function PaymentShow({
   transaction,
   rsvp,
   event,
-  bankInfo,
+  bankAccounts,
 }: PaymentShowProps) {
-  const [copied, setCopied] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, idx: number) => {
     navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 2000);
     });
   };
 
@@ -229,42 +229,66 @@ export default function PaymentShow({
                   Informasi Rekening Tujuan
                 </h2>
                 <p className="font-body text-xs text-on-surface-variant mb-5">
-                  Transfer tepat sesuai nominal, kemudian upload bukti di bawah.
+                  Transfer tepat sesuai nominal ke salah satu rekening berikut, kemudian upload
+                  bukti di bawah.
                 </p>
 
-                <div className="bg-surface-container rounded-xl p-4 space-y-3 mb-4">
-                  <div>
-                    <p className="font-body text-[10px] text-on-surface-variant uppercase tracking-wider mb-0.5">
-                      Bank
-                    </p>
-                    <p className="font-headline font-bold text-on-surface">{bankInfo.bank}</p>
-                  </div>
-                  <div>
-                    <p className="font-body text-[10px] text-on-surface-variant uppercase tracking-wider mb-0.5">
-                      Nomor Rekening
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="font-headline font-bold text-on-surface text-xl tracking-widest">
-                        {bankInfo.account}
+                <div className="space-y-3 mb-4">
+                  {bankAccounts.length > 0 ? (
+                    bankAccounts.map((account, idx) => (
+                      <div key={idx} className="bg-surface-container rounded-xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-body text-[10px] text-on-surface-variant uppercase tracking-wider mb-0.5">
+                              Bank
+                            </p>
+                            <p className="font-headline font-bold text-on-surface text-lg">
+                              {account.bank}
+                            </p>
+                          </div>
+                          {bankAccounts.length > 1 && (
+                            <span className="text-[10px] font-bold bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full uppercase">
+                              Rekening {idx + 1}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-body text-[10px] text-on-surface-variant uppercase tracking-wider mb-0.5">
+                            Nomor Rekening
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-headline font-bold text-on-surface text-xl tracking-widest">
+                              {account.account_number}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(account.account_number, idx)}
+                              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">
+                                {copiedIdx === idx ? "check" : "content_copy"}
+                              </span>
+                              {copiedIdx === idx ? "Tersalin!" : "Salin"}
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-body text-[10px] text-on-surface-variant uppercase tracking-wider mb-0.5">
+                            Atas Nama
+                          </p>
+                          <p className="font-body font-semibold text-on-surface">
+                            {account.account_holder}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="bg-surface-container rounded-xl p-4 text-center">
+                      <p className="font-body text-sm text-on-surface-variant">
+                        Informasi rekening belum tersedia. Hubungi panitia.
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(bankInfo.account)}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-[14px]">
-                          {copied ? "check" : "content_copy"}
-                        </span>
-                        {copied ? "Tersalin!" : "Salin"}
-                      </button>
                     </div>
-                  </div>
-                  <div>
-                    <p className="font-body text-[10px] text-on-surface-variant uppercase tracking-wider mb-0.5">
-                      Atas Nama
-                    </p>
-                    <p className="font-body font-semibold text-on-surface">{bankInfo.holder}</p>
-                  </div>
+                  )}
                 </div>
 
                 {/* Amount highlight */}

@@ -1,0 +1,82 @@
+
+event.metadata = {
+    ...,
+    addon_description: <><> // kasih kosongan dulu
+    addon_images: [] // kasih empty array dulu
+}
+
+event.forms = [
+    {
+        label: "Keberangkatan"
+        type: "radio"
+        options: ['kendaraan pribadi', 'transportasi umum', 'rombongan wilayah']
+    },
+    {
+        label: "Berapa orang yang akan berangkan dengan antum (istri, anak, keluarga)?"
+        type: "number"
+    }
+]
+
+event.description (HTML) = "
+<header style="text-align: center;">
+        <h2 style="color: #d32f2f;">Panggilan Pulang untuk Alumni 2013 🚩</h2>
+        <p style="font-style: italic; color: #555;">"Setiap perjalanan selalu punya tempat untuk pulang."</p>
+    </header>
+
+    <hr>
+
+    <section>
+        <p>
+            Teman-teman, <strong>13 tahun perjalanan kita</strong> mungkin membawa kita ke arah yang berbeda-beda. Namun, akar kita tetap sama. Di ambang satu abad Gontor, mari kembali ke titik nol tempat kita ditempa.
+        </p>
+        <p style="font-weight: bold; text-align: center;">
+            Hadiri Reuni Alumni Angkatan 2013 & Silaturahim bersama Bapak Pimpinan Pondok.
+        </p>
+    </section>
+
+    <section style="background-color: #f9f9f9; padding: 15px; border-left: 5px solid #2e7d32; margin: 20px 0;">
+        <h3 style="margin-top: 0;">Waktu & Tempat:</h3>
+        <ul style="list-style: none; padding-left: 0;">
+            <li>📍 <strong>Pondok Modern Darussalam Gontor, Ponorogo</strong></li>
+            <li>📅 <strong>10-11 Juli 2026</strong></li>
+        </ul>
+    </section>
+
+    <section>
+        <h3>Investasi Ukhuwah (HTM):</h3>
+        <p style="font-size: 1.2em; font-weight: bold; color: #2e7d32;">Rp 113.687</p>
+        <p style="font-size: 0.9em; color: #666;">
+            (Include: Kaos, Topi, Lanyard, Gantungan Kunci, Goodie Bag, Makan & Penginapan)
+        </p>
+    </section>
+
+    <section>
+        <h3>Narahubung:</h3>
+        <ul style="list-style: none; padding-left: 0;">
+            <li>👉 <strong>Zidni Aulia:</strong> <a href="tel:081213266217">0812 1326 6217</a></li>
+            <li>📱 <strong>Instagram:</strong> <a href="https://instagram.com/dynamic_687">@dynamic_687</a></li>
+        </ul>
+    </section>
+
+    <div style="margin-top: 30px; text-align: center;">
+        <p><strong>Registrasi:</strong> click link di bio instagram (soon)</p>
+        <p style="margin-top: 20px; font-weight: bold; color: #1565c0;">
+            Mari kembali merajut ukhuwah lillah dalam kebersamaan 687.
+        </p>
+    </div>
+"
+
+Predifined infak: 10rb, 20rb, 50rb, 100rb, 500rb, 1jt
+
+Basic: price: 113.687; keterangan: Paket basic sudah dapat kaos, makan 3x dan nginep bareng bareng; addons: kaos @1, keychain @1, godie bag @1
+GBS: price: 503.687; keterangan: Paket dengan hotel (Tipe Kamar A Wisma IKPM) dan merchindise untuk istri; addons: kaos @2, godie bag @2, key chain @2
+GBK: price: 473.687; keterangan: Paket dengan hotel (Tipe Kamar B Wisma IKPM) dan merchindise untuk istri; addons: kaos @2, godie bag @2, key chain @2
+Wisma Hadi: price: 443.687; keterangan: Paket dengan hotel (Tipe Kamar A Wisma IKPM) dan merchindise untuk istri (kaos aja); addons: kaos @2, godie bag @1, key chain @1
+Darul Hijrah: price: 413.687; keterangan: Paket dengan hotel (Tipe Kamar B Wisma IKPM) dan merchandise untuk istri (kaos aja); addons: kaos @2, godie bag @1, key chain @1
+Solihin: price: 363.687; keterangan: Paket dengan hotel (Tipe Kamar A Wisma IKPM); addons: kaos @1, godie bag @1, key chain @1
+Yaman: price: 333.687; keterangan: Paket dengan hotel (Tipe Kamar B Wisma IKPM); addons: kaos @1, godie bag @1, key chain @1
+
+Addons:
+1. Kaos; price: 80.000; varian: S, M, L, XL, 2Xl, 3XL, 4XL, 5XL
+2. Gantungan Kunci: price: 5000
+3. Godie Bag: price: 5000

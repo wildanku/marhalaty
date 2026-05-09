@@ -57,9 +57,9 @@ export interface InfakRules {
 }
 
 export interface CustomFormField {
-  id: string;
+  id?: string;
   label: string;
-  type: "text" | "textarea" | "select";
+  type: "text" | "textarea" | "select" | "radio" | "number";
   required: boolean;
   placeholder?: string;
   options?: string[];
