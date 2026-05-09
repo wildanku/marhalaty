@@ -41,4 +41,16 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'ipaymu' => [
+        'va'      => env('IPAYMU_VA', ''),
+        'api_key' => env('IPAYMU_API_KEY', ''),
+        'sandbox' => env('IPAYMU_SANDBOX', true),
+    ],
+
+    'manual_payment' => [
+        'bank_name'      => env('MANUAL_PAYMENT_BANK_NAME', 'BCA'),
+        'account_number' => env('MANUAL_PAYMENT_ACCOUNT_NUMBER', ''),
+        'account_holder' => env('MANUAL_PAYMENT_ACCOUNT_HOLDER', ''),
+    ],
+
 ];

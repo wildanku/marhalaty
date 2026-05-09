@@ -40,7 +40,7 @@ class EventController extends Controller
 
     public function show($slug, Request $request)
     {
-        $event = Event::with(['addons', 'packages'])->where('slug', $slug)->firstOrFail();
+        $event = Event::with(['addons', 'packages.includedAddons'])->where('slug', $slug)->firstOrFail();
         $user = $request->user();
 
         // If event visibility is restricted, require authentication and match marhalah_year

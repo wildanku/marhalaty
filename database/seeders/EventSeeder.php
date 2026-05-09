@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Domains\Event\Models\Event;
 use App\Domains\Event\Models\EventAddon;
+use App\Domains\Event\Models\EventPackage;
 use Illuminate\Database\Seeder;
 
 class EventSeeder extends Seeder
@@ -43,51 +44,66 @@ class EventSeeder extends Seeder
         ]);
 
         // Create Event Packages
-        \App\Domains\Event\Models\EventPackage::create([
-            'event_id' => $event->id,
-            'name' => 'Tiket Masuk (Gratis)',
-            'description' => 'Akses masuk ke acara reuni akbar Muleh.',
-            'price' => 0,
+        $packageFree = EventPackage::create([
+            'event_id'       => $event->id,
+            'name'           => 'Paket A – Reguler',
+            'description'    => 'Akses masuk ke acara reuni akbar Muleh. Sudah termasuk semua item merchandise, masing-masing 2 pcs.',
+            'price'          => 0,
             'stock_quantity' => null,
         ]);
 
-        \App\Domains\Event\Models\EventPackage::create([
-            'event_id' => $event->id,
-            'name' => 'Tiket VIP',
-            'description' => 'Akses masuk jalur khusus dengan fasilitas prioritas.',
-            'price' => 150000,
+        $packageVip = EventPackage::create([
+            'event_id'       => $event->id,
+            'name'           => 'Paket B – VIP',
+            'description'    => 'Akses masuk jalur khusus dengan fasilitas prioritas. Sudah termasuk semua item merchandise, masing-masing 1 pcs.',
+            'price'          => 150000,
             'stock_quantity' => 50,
         ]);
 
         // Create event add-ons (merchandise)
-        EventAddon::create([
-            'event_id' => $event->id,
-            'name' => 'Kaos Muleh (T-Shirt)',
-            'price' => 75000,
+        $addonTshirt = EventAddon::create([
+            'event_id'       => $event->id,
+            'name'           => 'Kaos Muleh (T-Shirt)',
+            'price'          => 75000,
             'stock_quantity' => 500,
-            'variants' => [
-                'size' => ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+            'variants'       => [
+                'size'  => ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
                 'color' => ['Hitam', 'Putih', 'Hijau Tua'],
             ],
         ]);
 
-        EventAddon::create([
-            'event_id' => $event->id,
-            'name' => 'Tote Bag Premium',
-            'price' => 50000,
+        $addonToteBag = EventAddon::create([
+            'event_id'       => $event->id,
+            'name'           => 'Tote Bag Premium',
+            'price'          => 50000,
             'stock_quantity' => 300,
-            'variants' => [
-                'design' => ['Design A', 'Design B'],
+            'variants'       => [
+                'design'   => ['Design A', 'Design B'],
                 'material' => ['Cotton', 'Canvas'],
             ],
         ]);
 
-        EventAddon::create([
-            'event_id' => $event->id,
-            'name' => 'Merchandise Pack (Pin + Stiker + Bookmark)',
-            'price' => 35000,
+        $addonMerchPack = EventAddon::create([
+            'event_id'       => $event->id,
+            'name'           => 'Merchandise Pack (Pin + Stiker + Bookmark)',
+            'price'          => 35000,
             'stock_quantity' => 400,
-            'variants' => null,
+            'variants'       => null,
+        ]);
+
+        // --- Attach included addons to each package ---
+        // Paket A: all 3 addons, 2 pcs each
+        $packageFree->includedAddons()->attach([
+            $addonTshirt->id   => ['included_quantity' => 2],
+            $addonToteBag->id  => ['included_quantity' => 2],
+            $addonMerchPack->id => ['included_quantity' => 2],
+        ]);
+
+        // Paket B: all 3 addons, 1 pc each
+        $packageVip->includedAddons()->attach([
+            $addonTshirt->id   => ['included_quantity' => 1],
+            $addonToteBag->id  => ['included_quantity' => 1],
+            $addonMerchPack->id => ['included_quantity' => 1],
         ]);
     }
 }

@@ -2,12 +2,16 @@
 
 namespace App\Domains\Event\Controllers;
 
+use App\Contracts\PaymentProviderInterface;
 use App\Http\Controllers\Controller;
 use App\Domains\Event\Models\Event;
 use App\Domains\Event\Models\EventAddon;
 use App\Domains\Event\Models\Rsvp;
+use App\Domains\Event\Models\Transaction;
+use App\Domains\Shared\Services\IPaymuService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class RsvpController extends Controller
@@ -17,6 +21,7 @@ class RsvpController extends Controller
         $event = Event::where('slug', $slug)->firstOrFail();
 
         $validated = $request->validate([
+            'payment_provider'   => 'required|in:manual,ipaymu',
             'event_package_id'   => 'nullable|exists:event_packages,id',
             'infak_amount'       => 'nullable|numeric|min:0',
             'addons'             => 'array',
@@ -97,7 +102,7 @@ class RsvpController extends Controller
                 }
             }
 
-            Rsvp::create([
+            $rsvp = Rsvp::create([
                 'user_id'          => $request->user()->id,
                 'event_id'         => $event->id,
                 'event_package_id' => $validated['event_package_id'] ?? null,
@@ -109,7 +114,48 @@ class RsvpController extends Controller
                 'custom_form_data' => $validated['custom_form_data'] ?? null,
             ]);
 
-            return redirect()->route('dashboard')->with('success', 'RSVP created successfully!');
+            // ── Create Transaction ────────────────────────────────────────
+            $provider = $validated['payment_provider'];
+
+            $transaction = Transaction::create([
+                'rsvp_id'          => $rsvp->id,
+                'user_id'          => $request->user()->id,
+                'amount'           => $totalAmount,
+                'payment_provider' => $provider,
+                'status'           => 'pending',
+            ]);
+
+            // ── Initiate provider-specific payment ────────────────────────
+            if ($provider === 'ipaymu') {
+                try {
+                    $ipaymu = new IPaymuService();
+                    $result = $ipaymu->initiatePayment($transaction, $rsvp);
+
+                    $transaction->update([
+                        'external_reference' => $result['external_reference'],
+                        'payment_url'        => $result['payment_url'],
+                        'va_number'          => $result['va_number'],
+                    ]);
+
+                    // Redirect user to iPaymu payment page
+                    return redirect()->away($result['payment_url']);
+                } catch (\Exception $e) {
+                    Log::error('iPaymu initiation failed', [
+                        'transaction_id' => $transaction->id,
+                        'error'          => $e->getMessage(),
+                    ]);
+
+                    // Fallback: send to payment page where user can retry or switch to manual
+                    return redirect()
+                        ->route('payments.show', $transaction->id)
+                        ->with('error', 'Gagal menghubungi iPaymu. Silakan coba lagi atau gunakan transfer manual.');
+                }
+            }
+
+            // Manual payment: redirect to payment instructions page
+            return redirect()
+                ->route('payments.show', $transaction->id)
+                ->with('success', 'RSVP berhasil! Silakan selesaikan pembayaran transfer manual.');
         });
     }
 }

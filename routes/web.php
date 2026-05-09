@@ -39,6 +39,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/events', [\App\Domains\Event\Controllers\EventController::class, 'index'])->name('events.index');
     Route::post('/events/{slug}/rsvp', [\App\Domains\Event\Controllers\RsvpController::class, 'store'])->name('events.rsvp');
 
+    // Payment routes (authenticated user)
+    Route::get('/payments/{id}', [\App\Domains\Event\Controllers\PaymentController::class, 'show'])->name('payments.show');
+    Route::post('/payments/{id}/proof', [\App\Domains\Event\Controllers\PaymentProofController::class, 'store'])->name('payments.proof.store');
+
     // Baitul Maal routes
     Route::get('/maal', [\App\Domains\Donation\Controllers\CampaignController::class, 'index'])->name('maal.index');
     Route::get('/maal/campaigns/{slug}', [\App\Domains\Donation\Controllers\CampaignController::class, 'show'])->name('maal.show');
@@ -47,6 +51,11 @@ Route::middleware('auth')->group(function () {
 
 // Public Event Detail Route
 Route::get('/events/{slug}', [\App\Domains\Event\Controllers\EventController::class, 'show'])->name('events.show');
+
+// iPaymu webhook (exempt from CSRF – verified by provider signature)
+Route::post('/payments/ipaymu/webhook', [\App\Domains\Event\Controllers\PaymentController::class, 'ipaymuWebhook'])
+    ->name('payments.ipaymu.webhook')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 // ─── God Mode ────────────────────────────────────────────────────────────────
 Route::prefix('god-mode')->name('god-mode.')->group(function () {
@@ -65,6 +74,12 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         // Events
         Route::get('/events', [\App\Domains\GodMode\Controllers\EventController::class, 'index'])->name('events.index');
         Route::get('/events/{id}', [\App\Domains\GodMode\Controllers\EventController::class, 'show'])->name('events.show');
+
+        // Payments (manual transfer approval)
+        Route::get('/payments', [\App\Domains\GodMode\Controllers\PaymentController::class, 'index'])->name('payments.index');
+        Route::post('/payments/{id}/approve', [\App\Domains\GodMode\Controllers\PaymentController::class, 'approve'])->name('payments.approve');
+        Route::post('/payments/{id}/reject', [\App\Domains\GodMode\Controllers\PaymentController::class, 'reject'])->name('payments.reject');
+        Route::get('/payments/{id}/proof', [\App\Domains\GodMode\Controllers\PaymentController::class, 'downloadProof'])->name('payments.proof');
 
         // Consulates
         Route::get('/consulates', [\App\Domains\GodMode\Controllers\ConsulateController::class, 'index'])->name('consulates.index');

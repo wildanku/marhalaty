@@ -31,6 +31,12 @@ export interface EventAddon {
   variants: Record<string, string[]> | null;
 }
 
+export interface IncludedAddon extends EventAddon {
+  pivot: {
+    included_quantity: number;
+  };
+}
+
 export interface EventPackage {
   id: number;
   event_id: number;
@@ -38,6 +44,7 @@ export interface EventPackage {
   description: string | null;
   price: string;
   stock_quantity: number | null;
+  included_addons?: IncludedAddon[];
 }
 
 export interface InfakRules {
@@ -99,6 +106,39 @@ export interface Rsvp {
   created_at: string;
   updated_at: string;
   event?: GontorEvent;
+  latest_transaction?: Transaction | null;
+}
+
+export interface PaymentProof {
+  id: number;
+  transaction_id: number;
+  file_path: string;
+  original_name: string;
+  notes: string | null;
+  reviewed_at: string | null;
+  reviewed_by: number | null;
+  review_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Transaction {
+  id: number;
+  rsvp_id: number;
+  user_id: number;
+  amount: string;
+  payment_provider: "manual" | "ipaymu";
+  status: "pending" | "paid" | "failed" | "expired" | "cancelled";
+  external_reference: string | null;
+  payment_url: string | null;
+  va_number: string | null;
+  paid_at: string | null;
+  expired_at: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+  rsvp?: Rsvp;
+  proof?: PaymentProof | null;
 }
 
 export type PageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {

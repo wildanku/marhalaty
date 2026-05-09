@@ -1,0 +1,122 @@
+<?php
+
+namespace App\Domains\Event\Controllers;
+
+use App\Contracts\PaymentProviderInterface;
+use App\Domains\Event\Models\Transaction;
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
+
+class PaymentController extends Controller
+{
+    /**
+     * Show the payment status / instructions page for a transaction.
+     */
+    public function show(Request $request, int $id)
+    {
+        $transaction = Transaction::with(['rsvp.event', 'proof'])
+            ->where('user_id', $request->user()->id)
+            ->findOrFail($id);
+
+        $bankInfo = [
+            'bank'    => config('services.manual_payment.bank_name', 'BCA'),
+            'account' => config('services.manual_payment.account_number', ''),
+            'holder'  => config('services.manual_payment.account_holder', ''),
+        ];
+
+        return Inertia::render('Payment/Show', [
+            'transaction' => $transaction,
+            'rsvp'        => $transaction->rsvp,
+            'event'       => $transaction->rsvp->event,
+            'bankInfo'    => $bankInfo,
+        ]);
+    }
+
+    /**
+     * Handle iPaymu payment webhook (POST).
+     * Route is exempt from CSRF; called by iPaymu server.
+     */
+    public function ipaymuWebhook(Request $request)
+    {
+        $provider = app(PaymentProviderInterface::class);
+
+        if (!$provider->verifyWebhook($request)) {
+            Log::warning('iPaymu webhook verification failed', $request->all());
+            return response()->json(['message' => 'Invalid webhook'], 400);
+        }
+
+        $payload = $provider->parseWebhook($request);
+        $transactionId = (int) $payload['reference_id'];
+
+        if (!$transactionId) {
+            Log::warning('iPaymu webhook missing referenceId', $request->all());
+            return response()->json(['message' => 'Missing referenceId'], 400);
+        }
+
+        DB::transaction(function () use ($payload, $transactionId, $request) {
+            $transaction = Transaction::with('rsvp')
+                ->where('id', $transactionId)
+                ->where('payment_provider', 'ipaymu')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$transaction) {
+                Log::warning('iPaymu webhook: transaction not found', ['id' => $transactionId]);
+                return;
+            }
+
+            // Idempotency: skip if already processed
+            if ($transaction->status === 'paid') {
+                return;
+            }
+
+            $newStatus = $payload['status'];
+
+            $transaction->update([
+                'status'             => $newStatus,
+                'external_reference' => $payload['external_reference'] ?: $transaction->external_reference,
+                'paid_at'            => $newStatus === 'paid' ? now() : null,
+                'metadata'           => array_merge(
+                    $transaction->metadata ?? [],
+                    ['webhook_payload' => $request->all(), 'processed_at' => now()->toISOString()]
+                ),
+            ]);
+
+            // Mirror status to the parent RSVP
+            if ($transaction->rsvp) {
+                $rsvpStatus = match ($newStatus) {
+                    'paid'    => 'paid',
+                    'failed'  => 'failed',
+                    'expired' => 'expired',
+                    default   => 'pending',
+                };
+                $transaction->rsvp->update(['status' => $rsvpStatus]);
+            }
+
+            Log::info('iPaymu webhook processed', [
+                'transaction_id' => $transactionId,
+                'new_status'     => $newStatus,
+            ]);
+        });
+
+        return response()->json(['message' => 'OK'], 200);
+    }
+
+    /**
+     * Handle iPaymu return URL redirect (GET) after user completes payment.
+     * iPaymu returns the user here after payment is attempted.
+     */
+    public function ipaymuReturn(Request $request)
+    {
+        $transactionId = (int) $request->input('reference_id');
+
+        if ($transactionId) {
+            return redirect()->route('payments.show', $transactionId);
+        }
+
+        return redirect()->route('dashboard')->with('info', 'Pembayaran selesai. Silakan cek status transaksi di dashboard.');
+    }
+}

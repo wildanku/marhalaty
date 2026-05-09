@@ -24,6 +24,7 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
     infak_amount: string;
     addons: SelectedAddon[];
     custom_form_data: Record<string, string>;
+    payment_provider: "manual" | "ipaymu";
   }>({
     event_package_id: event.packages && event.packages.length === 1 ? event.packages[0].id : null,
     infak_amount: "0",
@@ -32,6 +33,7 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
       (acc, field) => ({ ...acc, [field.id]: "" }),
       {} as Record<string, string>
     ),
+    payment_provider: "ipaymu",
   });
 
   // Track selected variants per addon: Record<addonId, Record<variantKey, selectedValue>>
@@ -72,15 +74,23 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
     clearErrors();
 
     const rsvpSchema = z.object({
-      event_package_id: z.number().nullable().refine(val => {
-        return !(event.packages && event.packages.length > 0 && val === null);
-      }, "Pilih salah satu tiket/paket terlebih dahulu"),
+      event_package_id: z
+        .number()
+        .nullable()
+        .refine((val) => {
+          return !(event.packages && event.packages.length > 0 && val === null);
+        }, "Pilih salah satu tiket/paket terlebih dahulu"),
       infak_amount: z.number().refine(
         (val) => {
           if (event.infak_rules?.enabled && val > 0) {
             const rules = event.infak_rules;
             if (!rules.allow_custom && !(rules.options || []).includes(val)) return false;
-            if (rules.allow_custom && val < (rules.min_custom || 0) && !(rules.options || []).includes(val)) return false;
+            if (
+              rules.allow_custom &&
+              val < (rules.min_custom || 0) &&
+              !(rules.options || []).includes(val)
+            )
+              return false;
           }
           return true;
         },
@@ -88,13 +98,13 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
       ),
     });
 
-    const result = rsvpSchema.safeParse({ 
-      event_package_id: data.event_package_id, 
-      infak_amount: parseFloat(data.infak_amount) || 0 
+    const result = rsvpSchema.safeParse({
+      event_package_id: data.event_package_id,
+      infak_amount: parseFloat(data.infak_amount) || 0,
     });
 
     if (!result.success) {
-      result.error.issues.forEach(issue => {
+      result.error.issues.forEach((issue) => {
         setError(issue.path[0] as any, issue.message);
       });
       return;
@@ -263,50 +273,54 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                   </h3>
                   <div className="space-y-3 mt-4">
                     {event.packages.map((pkg) => {
-                       const isSoldOut = pkg.stock_quantity !== null && pkg.stock_quantity < 1;
-                       return (
-                         <label
-                           key={pkg.id}
-                           className={`flex items-start p-4 rounded-xl border-2 transition-all ${
-                             isSoldOut ? "opacity-50 cursor-not-allowed bg-surface-container" : "cursor-pointer hover:border-outline-variant"
-                           } ${
-                             data.event_package_id === pkg.id && !isSoldOut
-                               ? "border-primary bg-primary/5"
-                               : "border-surface-container"
-                           }`}
-                         >
-                           <div className="flex-1">
-                             <div className="flex justify-between items-center mb-1">
-                               <span className="font-body font-bold text-on-surface text-base">
-                                 {pkg.name}
-                               </span>
-                               <span className="font-headline font-bold text-primary">
-                                 {parseFloat(pkg.price) === 0 ? "Gratis" : formatRupiah(parseFloat(pkg.price))}
-                               </span>
-                             </div>
-                             {pkg.description && (
-                               <p className="font-body text-xs text-on-surface-variant line-clamp-2 mb-2">
-                                 {pkg.description}
-                               </p>
-                             )}
-                             {pkg.stock_quantity !== null && (
-                               <span className="inline-block bg-surface border border-outline-variant px-2 py-0.5 rounded text-[10px] font-bold text-on-surface-variant uppercase">
-                                 {isSoldOut ? "Habis Terjual" : `Sisa ${pkg.stock_quantity} Kuota`}
-                               </span>
-                             )}
-                           </div>
-                           {!isSoldOut && (
-                             <input
-                               type="radio"
-                               name="event_package_id"
-                               value={pkg.id}
-                               checked={data.event_package_id === pkg.id}
-                               onChange={() => setData("event_package_id", pkg.id)}
-                               className="ml-4 mt-1 text-primary focus:ring-primary"
-                             />
-                           )}
-                         </label>
-                       );
+                      const isSoldOut = pkg.stock_quantity !== null && pkg.stock_quantity < 1;
+                      return (
+                        <label
+                          key={pkg.id}
+                          className={`flex items-start p-4 rounded-xl border-2 transition-all ${
+                            isSoldOut
+                              ? "opacity-50 cursor-not-allowed bg-surface-container"
+                              : "cursor-pointer hover:border-outline-variant"
+                          } ${
+                            data.event_package_id === pkg.id && !isSoldOut
+                              ? "border-primary bg-primary/5"
+                              : "border-surface-container"
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-body font-bold text-on-surface text-base">
+                                {pkg.name}
+                              </span>
+                              <span className="font-headline font-bold text-primary">
+                                {parseFloat(pkg.price) === 0
+                                  ? "Gratis"
+                                  : formatRupiah(parseFloat(pkg.price))}
+                              </span>
+                            </div>
+                            {pkg.description && (
+                              <p className="font-body text-xs text-on-surface-variant line-clamp-2 mb-2">
+                                {pkg.description}
+                              </p>
+                            )}
+                            {pkg.stock_quantity !== null && (
+                              <span className="inline-block bg-surface border border-outline-variant px-2 py-0.5 rounded text-[10px] font-bold text-on-surface-variant uppercase">
+                                {isSoldOut ? "Habis Terjual" : `Sisa ${pkg.stock_quantity} Kuota`}
+                              </span>
+                            )}
+                          </div>
+                          {!isSoldOut && (
+                            <input
+                              type="radio"
+                              name="event_package_id"
+                              value={pkg.id}
+                              checked={data.event_package_id === pkg.id}
+                              onChange={() => setData("event_package_id", pkg.id)}
+                              className="ml-4 mt-1 text-primary focus:ring-primary"
+                            />
+                          )}
+                        </label>
+                      );
                     })}
                   </div>
                   {errors.event_package_id && (
@@ -320,7 +334,9 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
 
               {/* ── Infak Section ── */}
               {event.infak_rules?.enabled && (
-                <div className={`${event.packages && event.packages.length > 0 ? "border-t border-surface-container pt-6" : ""}`}>
+                <div
+                  className={`${event.packages && event.packages.length > 0 ? "border-t border-surface-container pt-6" : ""}`}
+                >
                   <h3 className="font-headline text-xl font-bold text-on-surface mb-1">
                     Infak / Kontribusi
                   </h3>
@@ -372,13 +388,18 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                               !(event.infak_rules.options || []).includes(Number(data.infak_amount))
                             }
                             onChange={() =>
-                              setData("infak_amount", String(event.infak_rules?.min_custom ?? 10000))
+                              setData(
+                                "infak_amount",
+                                String(event.infak_rules?.min_custom ?? 10000)
+                              )
                             }
                             className="text-primary focus:ring-primary"
                           />
                         </div>
                         {data.infak_amount !== "0" &&
-                          !(event.infak_rules.options || []).includes(Number(data.infak_amount)) && (
+                          !(event.infak_rules.options || []).includes(
+                            Number(data.infak_amount)
+                          ) && (
                             <CurrencyInput
                               value={data.infak_amount}
                               onChange={(val) => setData("infak_amount", val)}
@@ -388,7 +409,7 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                           )}
                       </label>
                     )}
-                    
+
                     <label
                       className={`flex items-center justify-between p-4 rounded-xl cursor-pointer border-2 transition-all ${
                         data.infak_amount === "0" || data.infak_amount === ""
@@ -408,7 +429,6 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                         className="text-primary focus:ring-primary"
                       />
                     </label>
-
                   </div>
                   {errors.infak_amount && (
                     <p className="text-error text-xs font-medium mt-2 flex items-center gap-1">
@@ -587,6 +607,79 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                 </div>
               )}
 
+              {/* ── Payment Method ── */}
+              <div className="border-t border-surface-container pt-6">
+                <h3 className="font-headline text-lg font-bold text-on-surface mb-1 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-[20px]">
+                    payments
+                  </span>
+                  Metode Pembayaran
+                </h3>
+                <p className="font-body text-xs text-on-surface-variant mb-4">
+                  Pilih cara pembayaran yang paling mudah untukmu.
+                </p>
+                <div className="space-y-3">
+                  {/* iPaymu */}
+                  <label
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      data.payment_provider === "ipaymu"
+                        ? "border-primary bg-primary/5"
+                        : "border-surface-container hover:border-outline-variant"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_provider"
+                      value="ipaymu"
+                      checked={data.payment_provider === "ipaymu"}
+                      onChange={() => setData("payment_provider", "ipaymu")}
+                      className="text-primary focus:ring-primary"
+                    />
+                    <div className="flex-1">
+                      <p className="font-body font-semibold text-on-surface text-sm">iPaymu</p>
+                      <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                        Transfer Bank, QRIS, atau e-Wallet via iPaymu
+                      </p>
+                    </div>
+                    <span
+                      className="material-symbols-outlined text-primary text-[22px]"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      account_balance
+                    </span>
+                  </label>
+
+                  {/* Manual Transfer */}
+                  <label
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      data.payment_provider === "manual"
+                        ? "border-primary bg-primary/5"
+                        : "border-surface-container hover:border-outline-variant"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_provider"
+                      value="manual"
+                      checked={data.payment_provider === "manual"}
+                      onChange={() => setData("payment_provider", "manual")}
+                      className="text-primary focus:ring-primary"
+                    />
+                    <div className="flex-1">
+                      <p className="font-body font-semibold text-on-surface text-sm">
+                        Transfer Manual
+                      </p>
+                      <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                        Transfer ke rekening panitia, upload bukti, tunggu konfirmasi admin
+                      </p>
+                    </div>
+                    <span className="material-symbols-outlined text-on-surface-variant text-[22px]">
+                      receipt_long
+                    </span>
+                  </label>
+                </div>
+              </div>
+
               {/* ── Total & Submit ── */}
               <div className="border-t-2 border-surface-container pt-6">
                 <div className="flex justify-between items-center mb-6">
@@ -605,10 +698,12 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                     className="w-full bg-primary hover:opacity-90 text-white py-4 px-6 rounded-full font-headline font-bold uppercase tracking-wider transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {processing ? (
-                      "Mendaftar..."
+                      "Memproses..."
                     ) : (
                       <>
-                        Konfirmasi RSVP
+                        {data.payment_provider === "ipaymu"
+                          ? "Bayar via iPaymu"
+                          : "Lanjut ke Pembayaran"}
                         <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
                       </>
                     )}
