@@ -6,10 +6,11 @@ interface Event {
   title: string;
   slug: string;
   event_date: string;
-  payment_type: string;
   visibility_scope: string | null;
   rsvps_count: number;
   total_revenue: string | null;
+  infak_rules?: { enabled: boolean; [key: string]: any } | null;
+  packages?: any[];
 }
 
 interface EventsIndexProps {
@@ -59,7 +60,7 @@ export default function EventsIndex({ admin, events }: EventsIndexProps) {
                     <td className="px-6 py-4">
                       <div className="font-semibold text-white">{event.title}</div>
                       <div className="text-xs text-white/40 mt-1 capitalize">
-                        {event.payment_type}
+                        {event.packages && event.packages.length > 0 ? "Berbayar" : (event.infak_rules?.enabled ? "Infak" : "Gratis")}
                       </div>
                     </td>
                     <td className="px-6 py-4">

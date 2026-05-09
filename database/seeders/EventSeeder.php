@@ -20,8 +20,8 @@ class EventSeeder extends Seeder
             'description' => 'Muleh adalah sebuah acara reuni akbar yang menghadirkan seluruh alumni Dynamic untuk berkumpul kembali dan mempererat silaturahmi. Acara ini diadakan untuk merayakan persatuan, berbagi pengalaman, dan memperkuat jaringan alumni di berbagai bidang kehidupan. Dengan berbagai kegiatan menarik, hiburan, dan kesempatan networking, Muleh menjadi momentum yang tepat untuk menyegarkan kenangan indah masa sekolah dan membangun kolaborasi yang berkelanjutan antar alumni.',
             'location' => 'Ponorogo, Jawa Timur',
             'event_date' => '2026-07-20 09:00:00',
-            'payment_type' => 'flexible',
-            'pricing_rules' => [
+            'infak_rules' => [
+                'enabled' => true,
                 'options' => [20000, 50000, 100000],
                 'allow_custom' => true,
                 'min_custom' => 10000,
@@ -38,15 +38,25 @@ class EventSeeder extends Seeder
                         'required' => true,
                         'placeholder' => 'Masukkan nama lengkap Anda',
                     ],
-                    [
-                        'id' => 'alamat',
-                        'label' => 'Alamat',
-                        'type' => 'textarea',
-                        'required' => true,
-                        'placeholder' => 'Masukkan alamat lengkap Anda (Jalan, Kelurahan, Kecamatan, Kota, Provinsi)',
-                    ],
                 ],
             ],
+        ]);
+
+        // Create Event Packages
+        \App\Domains\Event\Models\EventPackage::create([
+            'event_id' => $event->id,
+            'name' => 'Tiket Masuk (Gratis)',
+            'description' => 'Akses masuk ke acara reuni akbar Muleh.',
+            'price' => 0,
+            'stock_quantity' => null,
+        ]);
+
+        \App\Domains\Event\Models\EventPackage::create([
+            'event_id' => $event->id,
+            'name' => 'Tiket VIP',
+            'description' => 'Akses masuk jalur khusus dengan fasilitas prioritas.',
+            'price' => 150000,
+            'stock_quantity' => 50,
         ]);
 
         // Create event add-ons (merchandise)

@@ -37,7 +37,6 @@ Route::middleware('auth')->group(function () {
 
     // Events routes
     Route::get('/events', [\App\Domains\Event\Controllers\EventController::class, 'index'])->name('events.index');
-    Route::get('/events/{slug}', [\App\Domains\Event\Controllers\EventController::class, 'show'])->name('events.show');
     Route::post('/events/{slug}/rsvp', [\App\Domains\Event\Controllers\RsvpController::class, 'store'])->name('events.rsvp');
 
     // Baitul Maal routes
@@ -45,6 +44,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/maal/campaigns/{slug}', [\App\Domains\Donation\Controllers\CampaignController::class, 'show'])->name('maal.show');
     Route::post('/maal/donate', [\App\Domains\Donation\Controllers\DonationController::class, 'store'])->name('maal.donate');
 });
+
+// Public Event Detail Route
+Route::get('/events/{slug}', [\App\Domains\Event\Controllers\EventController::class, 'show'])->name('events.show');
 
 // ─── God Mode ────────────────────────────────────────────────────────────────
 Route::prefix('god-mode')->name('god-mode.')->group(function () {

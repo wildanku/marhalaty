@@ -31,12 +31,22 @@ export interface EventAddon {
   variants: Record<string, string[]> | null;
 }
 
-export interface PricingRules {
-  amount?: number;
+export interface EventPackage {
+  id: number;
+  event_id: number;
+  name: string;
+  description: string | null;
+  price: string;
+  stock_quantity: number | null;
+}
+
+export interface InfakRules {
+  enabled: boolean;
   options?: number[];
   allow_custom?: boolean;
   min_custom?: number;
   currency?: string;
+  description?: string;
 }
 
 export interface CustomFormField {
@@ -55,14 +65,14 @@ export interface GontorEvent {
   description: string;
   location: string;
   event_date: string;
-  payment_type: "free" | "fixed" | "flexible";
-  pricing_rules: PricingRules;
+  infak_rules: InfakRules | null;
   visibility_scope: string | null;
   metadata: {
     custom_forms?: CustomFormField[];
     [key: string]: unknown;
   } | null;
   addons?: EventAddon[];
+  packages?: EventPackage[];
 }
 
 export interface RsvpAddonSnapshot {
@@ -78,7 +88,9 @@ export interface Rsvp {
   id: number;
   event_id: number;
   user_id: number;
-  base_amount: string;
+  event_package_id: number | null;
+  package_amount: string;
+  infak_amount: string;
   total_amount: string;
   status: "pending" | "paid" | "expired" | "failed";
   add_ons_snapshot: RsvpAddonSnapshot[] | null;

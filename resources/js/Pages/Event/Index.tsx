@@ -20,17 +20,28 @@ function formatEventDate(dateStr: string) {
   };
 }
 
-function PaymentBadge({ type }: { type: GontorEvent["payment_type"] }) {
-  if (type === "free") {
+function PaymentBadge({ event }: { event: GontorEvent }) {
+  const hasPaidPackages = event.packages?.some((p) => parseFloat(p.price) > 0);
+  
+  if (hasPaidPackages) {
     return (
-      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold font-label bg-emerald-100 text-emerald-700">
-        Gratis
+      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold font-label bg-amber-100 text-amber-700">
+        Berbayar
       </span>
     );
   }
+
+  if (event.infak_rules?.enabled) {
+    return (
+      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold font-label bg-primary/10 text-primary">
+        Infak
+      </span>
+    );
+  }
+
   return (
-    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold font-label bg-amber-100 text-amber-700">
-      Berbayar
+    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold font-label bg-emerald-100 text-emerald-700">
+      Gratis
     </span>
   );
 }
@@ -139,7 +150,7 @@ export default function Index({ events, currentScope }: EventIndexProps) {
                     <div className="flex-1 min-w-0">
                       {/* Badges */}
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <PaymentBadge type={event.payment_type} />
+                        <PaymentBadge event={event} />
                         {event.visibility_scope && event.visibility_scope !== "global" ? (
                           <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold font-label bg-secondary-container text-on-surface-variant">
                             Marhalah {event.visibility_scope}

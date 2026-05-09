@@ -12,7 +12,8 @@ class EventController extends Controller
 {
     public function index(Request $request)
     {
-        $events = Event::withCount('rsvps')
+        $events = Event::with('packages')
+            ->withCount('rsvps')
             ->withSum(['rsvps as total_revenue' => function ($q) {
                 $q->where('status', 'paid');
             }], 'total_amount')

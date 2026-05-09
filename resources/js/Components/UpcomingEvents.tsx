@@ -16,10 +16,17 @@ function formatEventDate(dateStr: string): { day: string; month: string; time: s
 }
 
 function getPaymentLabel(event: GontorEvent): { label: string; color: string } {
-  if (event.payment_type === "free") {
-    return { label: "Gratis", color: "bg-emerald-100 text-emerald-700" };
+  const hasPaidPackages = event.packages?.some((p) => parseFloat(p.price) > 0);
+
+  if (hasPaidPackages) {
+    return { label: "Berbayar", color: "bg-amber-100 text-amber-700" };
   }
-  return { label: "Berbayar", color: "bg-amber-100 text-amber-700" };
+
+  if (event.infak_rules?.enabled) {
+    return { label: "Infak", color: "bg-emerald-100 text-emerald-700" };
+  }
+
+  return { label: "Gratis", color: "bg-emerald-100 text-emerald-700" };
 }
 
 export default function UpcomingEvents({ events }: UpcomingEventsProps) {

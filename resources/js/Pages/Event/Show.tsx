@@ -17,25 +17,16 @@ interface ShowProps extends PageProps {
 }
 
 export default function Show({ auth, event, existingRsvp }: ShowProps) {
-  const isFlexible = event.payment_type === "flexible";
-  const isFixed = event.payment_type === "fixed";
-  const rules = event.pricing_rules;
-
-  const minimumCustom = rules?.min_custom ?? 0;
-  const defaultFixedPrice = rules?.amount ?? 0;
-  const flexibleTiers = rules?.options ?? [];
   const customForms: CustomFormField[] = event.metadata?.custom_forms ?? [];
 
   const { data, setData, post, processing, errors, setError, clearErrors } = useForm<{
-    base_amount: string;
+    event_package_id: number | null;
+    infak_amount: string;
     addons: SelectedAddon[];
     custom_form_data: Record<string, string>;
   }>({
-    base_amount: isFixed
-      ? String(defaultFixedPrice)
-      : isFlexible && flexibleTiers[0]
-        ? String(flexibleTiers[0])
-        : "0",
+    event_package_id: event.packages && event.packages.length === 1 ? event.packages[0].id : null,
+    infak_amount: "0",
     addons: [],
     custom_form_data: customForms.reduce(
       (acc, field) => ({ ...acc, [field.id]: "" }),
@@ -49,10 +40,12 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
   );
 
   const totalCalculation = useMemo(() => {
-    const base = parseFloat(data.base_amount) || 0;
+    const pkg = event.packages?.find((p) => p.id === data.event_package_id);
+    const packageCost = pkg ? parseFloat(pkg.price) : 0;
+    const infak = parseFloat(data.infak_amount) || 0;
     const addonsCost = data.addons.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
-    return base + addonsCost;
-  }, [data.base_amount, data.addons]);
+    return packageCost + infak + addonsCost;
+  }, [data.event_package_id, data.infak_amount, data.addons, event.packages]);
 
   const handleAddonQty = (addonId: number, priceStr: string, qty: number) => {
     const price = parseFloat(priceStr);
@@ -79,24 +72,31 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
     clearErrors();
 
     const rsvpSchema = z.object({
-      base_amount: z.number().refine(
+      event_package_id: z.number().nullable().refine(val => {
+        return !(event.packages && event.packages.length > 0 && val === null);
+      }, "Pilih salah satu tiket/paket terlebih dahulu"),
+      infak_amount: z.number().refine(
         (val) => {
-          if (isFlexible) return val >= minimumCustom;
-          if (isFixed) return val === defaultFixedPrice;
-          return val === 0;
+          if (event.infak_rules?.enabled && val > 0) {
+            const rules = event.infak_rules;
+            if (!rules.allow_custom && !(rules.options || []).includes(val)) return false;
+            if (rules.allow_custom && val < (rules.min_custom || 0) && !(rules.options || []).includes(val)) return false;
+          }
+          return true;
         },
-        {
-          message: isFlexible
-            ? `Minimum infak adalah Rp ${minimumCustom.toLocaleString("id-ID")}`
-            : "Harga tiket tidak valid",
-        }
+        { message: "Nominal infak tidak valid atau kurang dari batas minimal" }
       ),
     });
 
-    const result = rsvpSchema.safeParse({ base_amount: parseFloat(data.base_amount) || 0 });
+    const result = rsvpSchema.safeParse({ 
+      event_package_id: data.event_package_id, 
+      infak_amount: parseFloat(data.infak_amount) || 0 
+    });
 
     if (!result.success) {
-      setError("base_amount", result.error.issues[0].message);
+      result.error.issues.forEach(issue => {
+        setError(issue.path[0] as any, issue.message);
+      });
       return;
     }
 
@@ -137,7 +137,7 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
 
           <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0px_10px_40px_rgba(80,100,71,0.06)] border border-surface-container-high">
             <div className="p-6 md:p-8">
-              <div className="flex items-center gap-2 mb-4">
+              {/* <div className="flex items-center gap-2 mb-4">
                 <span className="bg-tertiary/15 text-tertiary px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
                   {event.visibility_scope === "global" || !event.visibility_scope
                     ? "Event Global"
@@ -150,7 +150,7 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                       ? "Tiket"
                       : "Infak"}
                 </span>
-              </div>
+              </div> */}
 
               <h2 className="font-headline text-3xl font-bold text-on-surface leading-tight mb-6">
                 {event.title}
@@ -255,26 +255,84 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
               onSubmit={submit}
               className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0px_10px_40px_rgba(80,100,71,0.06)] border border-surface-container-high space-y-8"
             >
-              {/* ── Contribution Section ── */}
-              <div>
-                <h3 className="font-headline text-xl font-bold text-on-surface mb-1">
-                  {event.payment_type === "free" ? "RSVP Gratis" : "Infak / Kontribusi"}
-                </h3>
-                <p className="font-body text-xs text-on-surface-variant mb-5">
-                  {event.payment_type === "free" && "Acara ini sepenuhnya gratis."}
-                  {event.payment_type === "fixed" &&
-                    "Terdapat biaya tiket standar untuk acara ini."}
-                  {event.payment_type === "flexible" &&
-                    "Pilih nominal infak yang sesuai kemampuan untuk mendukung penyelenggaraan acara."}
-                </p>
+              {/* ── Package Selection ── */}
+              {event.packages && event.packages.length > 0 && (
+                <div>
+                  <h3 className="font-headline text-xl font-bold text-on-surface mb-1">
+                    Pilih Tiket / Paket
+                  </h3>
+                  <div className="space-y-3 mt-4">
+                    {event.packages.map((pkg) => {
+                       const isSoldOut = pkg.stock_quantity !== null && pkg.stock_quantity < 1;
+                       return (
+                         <label
+                           key={pkg.id}
+                           className={`flex items-start p-4 rounded-xl border-2 transition-all ${
+                             isSoldOut ? "opacity-50 cursor-not-allowed bg-surface-container" : "cursor-pointer hover:border-outline-variant"
+                           } ${
+                             data.event_package_id === pkg.id && !isSoldOut
+                               ? "border-primary bg-primary/5"
+                               : "border-surface-container"
+                           }`}
+                         >
+                           <div className="flex-1">
+                             <div className="flex justify-between items-center mb-1">
+                               <span className="font-body font-bold text-on-surface text-base">
+                                 {pkg.name}
+                               </span>
+                               <span className="font-headline font-bold text-primary">
+                                 {parseFloat(pkg.price) === 0 ? "Gratis" : formatRupiah(parseFloat(pkg.price))}
+                               </span>
+                             </div>
+                             {pkg.description && (
+                               <p className="font-body text-xs text-on-surface-variant line-clamp-2 mb-2">
+                                 {pkg.description}
+                               </p>
+                             )}
+                             {pkg.stock_quantity !== null && (
+                               <span className="inline-block bg-surface border border-outline-variant px-2 py-0.5 rounded text-[10px] font-bold text-on-surface-variant uppercase">
+                                 {isSoldOut ? "Habis Terjual" : `Sisa ${pkg.stock_quantity} Kuota`}
+                               </span>
+                             )}
+                           </div>
+                           {!isSoldOut && (
+                             <input
+                               type="radio"
+                               name="event_package_id"
+                               value={pkg.id}
+                               checked={data.event_package_id === pkg.id}
+                               onChange={() => setData("event_package_id", pkg.id)}
+                               className="ml-4 mt-1 text-primary focus:ring-primary"
+                             />
+                           )}
+                         </label>
+                       );
+                    })}
+                  </div>
+                  {errors.event_package_id && (
+                    <p className="text-error text-xs font-medium mt-2 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px]">error</span>
+                      {errors.event_package_id}
+                    </p>
+                  )}
+                </div>
+              )}
 
-                {isFlexible && (
+              {/* ── Infak Section ── */}
+              {event.infak_rules?.enabled && (
+                <div className={`${event.packages && event.packages.length > 0 ? "border-t border-surface-container pt-6" : ""}`}>
+                  <h3 className="font-headline text-xl font-bold text-on-surface mb-1">
+                    Infak / Kontribusi
+                  </h3>
+                  <p className="font-body text-xs text-on-surface-variant mb-5">
+                    {event.infak_rules.description ?? "Berikan dukungan infak terbaik Anda."}
+                  </p>
                   <div className="space-y-2">
-                    {flexibleTiers.map((tier) => (
+                    {event.infak_rules.options?.map((tier) => (
                       <label
                         key={tier}
                         className={`flex items-center justify-between p-4 rounded-xl cursor-pointer border-2 transition-all ${
-                          data.base_amount === String(tier)
+                          data.infak_amount === String(tier)
                             ? "border-primary bg-primary/5"
                             : "border-surface-container hover:border-outline-variant"
                         }`}
@@ -284,20 +342,20 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                         </span>
                         <input
                           type="radio"
-                          name="base_amount"
+                          name="infak_amount"
                           value={tier}
-                          checked={data.base_amount === String(tier)}
-                          onChange={(e) => setData("base_amount", e.target.value)}
+                          checked={data.infak_amount === String(tier)}
+                          onChange={(e) => setData("infak_amount", e.target.value)}
                           className="text-primary focus:ring-primary"
                         />
                       </label>
                     ))}
 
-                    {rules.allow_custom && (
+                    {event.infak_rules.allow_custom && (
                       <label
                         className={`flex flex-col p-4 rounded-xl cursor-pointer border-2 transition-all ${
-                          data.base_amount !== "0" &&
-                          !flexibleTiers.includes(Number(data.base_amount))
+                          data.infak_amount !== "0" &&
+                          !(event.infak_rules.options || []).includes(Number(data.infak_amount))
                             ? "border-primary bg-primary/5"
                             : "border-surface-container hover:border-outline-variant"
                         }`}
@@ -308,47 +366,58 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                           </span>
                           <input
                             type="radio"
-                            name="base_amount"
+                            name="infak_amount"
                             checked={
-                              data.base_amount !== "0" &&
-                              !flexibleTiers.includes(Number(data.base_amount))
+                              data.infak_amount !== "0" &&
+                              !(event.infak_rules.options || []).includes(Number(data.infak_amount))
                             }
                             onChange={() =>
-                              setData("base_amount", String(rules.min_custom ?? 10000))
+                              setData("infak_amount", String(event.infak_rules?.min_custom ?? 10000))
                             }
                             className="text-primary focus:ring-primary"
                           />
                         </div>
-                        {data.base_amount !== "0" &&
-                          !flexibleTiers.includes(Number(data.base_amount)) && (
+                        {data.infak_amount !== "0" &&
+                          !(event.infak_rules.options || []).includes(Number(data.infak_amount)) && (
                             <CurrencyInput
-                              value={data.base_amount}
-                              onChange={(val) => setData("base_amount", val)}
+                              value={data.infak_amount}
+                              onChange={(val) => setData("infak_amount", val)}
                               className=""
-                              placeholder={`Min. ${formatRupiah(minimumCustom)}`}
+                              placeholder={`Min. ${formatRupiah(event.infak_rules.min_custom ?? 10000)}`}
                             />
                           )}
                       </label>
                     )}
-                  </div>
-                )}
+                    
+                    <label
+                      className={`flex items-center justify-between p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                        data.infak_amount === "0" || data.infak_amount === ""
+                          ? "border-primary bg-primary/5"
+                          : "border-surface-container hover:border-outline-variant"
+                      }`}
+                    >
+                      <span className="font-body font-medium text-on-surface text-sm">
+                        Lewati Infak
+                      </span>
+                      <input
+                        type="radio"
+                        name="infak_amount"
+                        value="0"
+                        checked={data.infak_amount === "0" || data.infak_amount === ""}
+                        onChange={() => setData("infak_amount", "0")}
+                        className="text-primary focus:ring-primary"
+                      />
+                    </label>
 
-                {isFixed && (
-                  <div className="p-5 bg-surface-container rounded-xl flex justify-between items-center border border-outline-variant/30">
-                    <span className="font-headline font-bold text-on-surface">Tiket Standar</span>
-                    <span className="font-body font-bold text-primary text-lg">
-                      {formatRupiah(defaultFixedPrice)}
-                    </span>
                   </div>
-                )}
-
-                {errors.base_amount && (
-                  <p className="text-error text-xs font-medium mt-2 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">error</span>
-                    {errors.base_amount}
-                  </p>
-                )}
-              </div>
+                  {errors.infak_amount && (
+                    <p className="text-error text-xs font-medium mt-2 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px]">error</span>
+                      {errors.infak_amount}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* ── Add-Ons / Merchandise ── */}
               {event.addons && event.addons.length > 0 && (
@@ -529,20 +598,31 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                   </span>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={processing}
-                  className="w-full bg-[#506447] hover:bg-[#3d4e36] text-white py-4 px-6 rounded-full font-headline font-bold uppercase tracking-wider transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {processing ? (
-                    "Mendaftar..."
-                  ) : (
-                    <>
-                      Konfirmasi RSVP
-                      <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
-                    </>
-                  )}
-                </button>
+                {auth?.user ? (
+                  <button
+                    type="submit"
+                    disabled={processing}
+                    className="w-full bg-primary hover:opacity-90 text-white py-4 px-6 rounded-full font-headline font-bold uppercase tracking-wider transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {processing ? (
+                      "Mendaftar..."
+                    ) : (
+                      <>
+                        Konfirmasi RSVP
+                        <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <a
+                    href="/auth/google/redirect"
+                    className="w-full bg-primary hover:opacity-90 text-white py-4 px-6 rounded-full font-headline font-bold uppercase tracking-wider transition-all shadow-md flex justify-center items-center gap-2 text-center"
+                  >
+                    Login untuk RSVP
+                    <span className="material-symbols-outlined text-[20px]">login</span>
+                  </a>
+                )}
+
                 <p className="text-center font-body text-[10px] text-on-surface-variant mt-3">
                   Pendaftaran bersifat final. Pembayaran akan dikonfirmasi oleh panitia.
                 </p>

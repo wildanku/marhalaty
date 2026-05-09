@@ -19,15 +19,14 @@ class Event extends Model implements HasMedia
         'description',
         'location',
         'event_date',
-        'payment_type',
-        'pricing_rules',
+        'infak_rules',
         'visibility_scope',
         'metadata',
     ];
 
     protected $casts = [
         'event_date' => 'datetime',
-        'pricing_rules' => 'json',
+        'infak_rules' => 'json',
         'metadata' => 'json',
     ];
 
@@ -36,6 +35,11 @@ class Event extends Model implements HasMedia
         return SlugOptions::create()
             ->generateSlugsFrom('title')
             ->saveSlugsTo('slug');
+    }
+
+    public function packages()
+    {
+        return $this->hasMany(EventPackage::class);
     }
 
     public function addons()

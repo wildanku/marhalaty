@@ -40,16 +40,22 @@ class EventController extends Controller
 
     public function show($slug, Request $request)
     {
-        $event = Event::with('addons')->where('slug', $slug)->firstOrFail();
+        $event = Event::with(['addons', 'packages'])->where('slug', $slug)->firstOrFail();
         $user = $request->user();
 
-        if ($event->visibility_scope && $event->visibility_scope !== 'global' && $event->visibility_scope != $user->marhalah_year) {
-            abort(403, 'This event is restricted to a specific Marhalah.');
+        // If event visibility is restricted, require authentication and match marhalah_year
+        if ($event->visibility_scope && $event->visibility_scope !== 'global') {
+            if (!$user || $event->visibility_scope != $user->marhalah_year) {
+                abort(403, 'This event is restricted to a specific Marhalah.');
+            }
         }
 
-        $existingRsvp = Rsvp::where('event_id', $event->id)
-            ->where('user_id', $user->id)
-            ->first();
+        $existingRsvp = null;
+        if ($user) {
+            $existingRsvp = Rsvp::where('event_id', $event->id)
+                ->where('user_id', $user->id)
+                ->first();
+        }
 
         return Inertia::render('Event/Show', [
             'event'        => $event,
