@@ -183,18 +183,35 @@ class RsvpController extends Controller
                     $ipaymu = new IPaymuService();
                     $result = $ipaymu->initiateDirectPayment($transaction, $rsvp, $channel);
 
+                    Log::debug('iPaymu direct payment response', [
+                        'transaction_id' => $transaction->id,
+                        'channel' => $channel,
+                        'result' => $result,
+                    ]);
+
                     $transaction->update([
                         'external_reference' => $result['external_reference'],
                         'va_number'          => $result['va_number'],
                         'metadata'           => array_merge(
                             $transaction->metadata ?? [],
-                            ['qr_string' => $result['qr_string']]
+                            [
+                                'qr_string' => $result['qr_string'],
+                                'ipaymu_initiated_at' => now()->toISOString(),
+                            ]
                         ),
+                    ]);
+
+                    Log::info('iPaymu direct payment initiated successfully', [
+                        'transaction_id' => $transaction->id,
+                        'channel' => $channel,
+                        'external_reference' => $result['external_reference'],
                     ]);
                 } catch (\Exception $e) {
                     Log::error('iPaymu direct payment initiation failed', [
                         'transaction_id' => $transaction->id,
-                        'error'          => $e->getMessage(),
+                        'channel' => $channel,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
                     ]);
                     // Fallback to manual payment page so user is not stuck
                 }

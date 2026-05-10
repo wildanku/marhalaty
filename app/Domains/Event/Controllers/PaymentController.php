@@ -116,4 +116,48 @@ class PaymentController extends Controller
 
         return redirect()->route('dashboard')->with('info', 'Pembayaran selesai. Silakan cek status transaksi di dashboard.');
     }
+
+    /**
+     * Debug endpoint: Check iPaymu configuration and connectivity.
+     * Only available in debug mode. Route: GET /api/debug/ipaymu-config
+     */
+    public function debugIPaymuConfig()
+    {
+        if (!config('app.debug')) {
+            return response()->json(['error' => 'Not available in production'], 403);
+        }
+
+        $va = config('services.ipaymu.va');
+        $apiKey = config('services.ipaymu.api_key');
+        $sandbox = config('services.ipaymu.sandbox');
+
+        $configStatus = [
+            'va' => [
+                'set' => !empty($va),
+                'value' => $va ? substr($va, 0, 3) . '***' : 'NOT SET',
+            ],
+            'api_key' => [
+                'set' => !empty($apiKey),
+                'value' => $apiKey ? substr($apiKey, 0, 3) . '***' . substr($apiKey, -3) : 'NOT SET',
+            ],
+            'sandbox' => $sandbox,
+            'base_url' => $sandbox
+                ? 'https://sandbox.ipaymu.com/api/v2'
+                : 'https://my.ipaymu.com/api/v2',
+        ];
+
+        if (!$va || !$apiKey) {
+            return response()->json([
+                'status' => 'ERROR',
+                'message' => 'iPaymu credentials not configured. Please set IPAYMU_VA and IPAYMU_API_KEY in .env',
+                'config' => $configStatus,
+            ], 400);
+        }
+
+        return response()->json([
+            'status' => 'OK',
+            'message' => 'iPaymu configuration is set',
+            'config' => $configStatus,
+        ]);
+    }
 }
