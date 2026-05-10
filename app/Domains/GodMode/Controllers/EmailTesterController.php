@@ -64,11 +64,17 @@ class EmailTesterController extends Controller
 
                 'confirmed' => $this->sendDummyConfirmed($email),
             };
-        } catch (\Exception $e) {
-            return back()->with('error', 'Gagal mengirim email: ' . $e->getMessage());
-        }
 
-        return back()->with('success', "Email template [{$template}] berhasil dikirim ke {$email}.");
+            return response()->json([
+                'success' => true,
+                'message' => "Email template [{$template}] berhasil dikirim ke {$email}."
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim email: ' . $e->getMessage()
+            ], 400);
+        }
     }
 
     // ─── Private helpers ────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { Head, useForm, usePage } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 
 interface Template {
   key: string;
@@ -30,6 +30,8 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
   const flash = props.flash ?? {};
 
   const [selectedTemplate, setSelectedTemplate] = useState<string>(templates[0]?.key ?? "test");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   const { data, setData, post, processing, reset } = useForm({
     email: "",
@@ -44,8 +46,26 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setSuccessMessage("");
+    setErrorMessage("");
+
     post("/god-mode/email-tester/send", {
-      onSuccess: () => reset("email", "note"),
+      onSuccess: (page: any) => {
+        const response = page.props;
+        if (response?.message) {
+          setSuccessMessage(response.message);
+          reset("email", "note");
+          setTimeout(() => setSuccessMessage(""), 5000);
+        }
+      },
+      onError: (errors: any) => {
+        if (errors?.message) {
+          setErrorMessage(errors.message);
+        } else {
+          setErrorMessage("Terjadi kesalahan saat mengirim email.");
+        }
+        setTimeout(() => setErrorMessage(""), 5000);
+      },
     });
   };
 
@@ -71,18 +91,20 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
       </div>
 
       {/* ── Flash Messages ── */}
-      {flash.success && (
+      {(flash.success || successMessage) && (
         <div className="mb-6 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-start gap-3">
           <span className="material-symbols-outlined text-emerald-400 text-[20px] mt-0.5">
             check_circle
           </span>
-          <p className="text-emerald-400 text-sm leading-relaxed">{flash.success}</p>
+          <p className="text-emerald-400 text-sm leading-relaxed">
+            {successMessage || flash.success}
+          </p>
         </div>
       )}
-      {flash.error && (
+      {(flash.error || errorMessage) && (
         <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
           <span className="material-symbols-outlined text-red-400 text-[20px] mt-0.5">error</span>
-          <p className="text-red-400 text-sm leading-relaxed">{flash.error}</p>
+          <p className="text-red-400 text-sm leading-relaxed">{errorMessage || flash.error}</p>
         </div>
       )}
 
