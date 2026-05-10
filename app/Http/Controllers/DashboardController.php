@@ -12,7 +12,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        $rsvps = Rsvp::with('event')
+        $rsvps = Rsvp::with(['event', 'latestTransaction'])
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->get();

@@ -33,7 +33,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-B3KhsTlu.css",
+    "file": "assets/app-Bs9FBygB.css",
     "name": "app",
     "names": [
       "app.css"
@@ -82,7 +82,7 @@
     ]
   },
   "resources/js/Pages/Dashboard.tsx": {
-    "file": "assets/Dashboard-BmBAgeCc.js",
+    "file": "assets/Dashboard-Cs-XpGzj.js",
     "name": "Dashboard",
     "src": "resources/js/Pages/Dashboard.tsx",
     "isDynamicEntry": true,
@@ -306,7 +306,7 @@
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-D9vPg5ee.js",
+    "file": "assets/app-BAGXWKt5.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -342,7 +342,7 @@
       "resources/js/Pages/Welcome.tsx"
     ],
     "css": [
-      "assets/app-B3KhsTlu.css"
+      "assets/app-Bs9FBygB.css"
     ]
   }
 }
