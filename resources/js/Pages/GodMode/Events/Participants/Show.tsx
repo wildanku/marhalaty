@@ -31,10 +31,10 @@ const formatRp = (val: string | number) =>
   "Rp " + parseInt(String(val) || "0").toLocaleString("id-ID");
 
 const txStatusBadge: Record<string, string> = {
-  pending:   "bg-amber-900/30 text-amber-300 border border-amber-700/40",
-  paid:      "bg-emerald-900/30 text-emerald-300 border border-emerald-700/40",
-  failed:    "bg-red-900/30 text-red-300 border border-red-700/40",
-  expired:   "bg-zinc-800 text-zinc-400 border border-zinc-700",
+  pending: "bg-amber-900/30 text-amber-300 border border-amber-700/40",
+  paid: "bg-emerald-900/30 text-emerald-300 border border-emerald-700/40",
+  failed: "bg-red-900/30 text-red-300 border border-red-700/40",
+  expired: "bg-zinc-800 text-zinc-400 border border-zinc-700",
   cancelled: "bg-zinc-800 text-zinc-400 border border-zinc-700",
 };
 
@@ -90,8 +90,8 @@ function ReviewForm({ transactionId, action, onCancel }: ReviewFormProps) {
           {processing
             ? "Memproses..."
             : action === "approve"
-            ? "✅ Konfirmasi Setuju"
-            : "❌ Konfirmasi Tolak"}
+              ? "✅ Konfirmasi Setuju"
+              : "❌ Konfirmasi Tolak"}
         </button>
       </div>
     </form>
@@ -190,7 +190,9 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-white/40">Metode</span>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${tx.payment_provider === "ipaymu" ? "bg-purple-900/30 text-purple-300 border border-purple-700/40" : "bg-blue-900/30 text-blue-300 border border-blue-700/40"}`}>
+                  <span
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-md ${tx.payment_provider === "ipaymu" ? "bg-purple-900/30 text-purple-300 border border-purple-700/40" : "bg-blue-900/30 text-blue-300 border border-blue-700/40"}`}
+                  >
                     {tx.payment_provider === "ipaymu" ? "iPaymu" : "Transfer Manual"}
                   </span>
                 </div>
@@ -204,14 +206,18 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
 
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-white/40">Status Bayar</span>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${txStatusBadge[tx.status] ?? ""}`}>
+                  <span
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-md ${txStatusBadge[tx.status] ?? ""}`}
+                  >
                     {tx.status}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-white/40">Status RSVP</span>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${txStatusBadge[rsvp.status] ?? ""}`}>
+                  <span
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-md ${txStatusBadge[rsvp.status] ?? ""}`}
+                  >
                     {rsvp.status}
                   </span>
                 </div>
@@ -259,7 +265,9 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
                             Ditinjau: {new Date(tx.proof.reviewed_at).toLocaleDateString("id-ID")}
                           </p>
                           {tx.proof.review_note && (
-                            <p className="text-white/60 italic">&ldquo;{tx.proof.review_note}&rdquo;</p>
+                            <p className="text-white/60 italic">
+                              &ldquo;{tx.proof.review_note}&rdquo;
+                            </p>
                           )}
                         </div>
                       )}
@@ -314,7 +322,9 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
           {/* Registration Summary */}
           <div className="bg-[#161b22] border border-white/5 rounded-2xl p-5">
             <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-base text-amber-400">receipt_long</span>
+              <span className="material-symbols-outlined text-base text-amber-400">
+                receipt_long
+              </span>
               Rincian Pendaftaran
             </h2>
 
@@ -345,7 +355,9 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
                         )}
                         <span className="text-xs text-white/40">x{addon.quantity}</span>
                       </div>
-                      <span className="text-white/80 text-sm whitespace-nowrap">{formatRp(addon.total)}</span>
+                      <span className="text-white/80 text-sm whitespace-nowrap">
+                        {formatRp(addon.total)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -377,7 +389,9 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
           {customForms.length > 0 && (
             <div className="bg-[#161b22] border border-white/5 rounded-2xl p-5">
               <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-base text-teal-400">assignment</span>
+                <span className="material-symbols-outlined text-base text-teal-400">
+                  assignment
+                </span>
                 Jawaban Formulir
               </h2>
               <div className="space-y-3">
