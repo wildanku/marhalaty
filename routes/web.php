@@ -91,13 +91,13 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         // Event Packages
         Route::get('/events/{event}/packages', [\App\Domains\GodMode\Controllers\EventPackageController::class, 'index'])->name('events.packages.index');
         Route::post('/events/{event}/packages', [\App\Domains\GodMode\Controllers\EventPackageController::class, 'store'])->name('events.packages.store');
-        Route::post('/events/{event}/packages/{package}', [\App\Domains\GodMode\Controllers\EventPackageController::class, 'update'])->name('events.packages.update');
+        Route::put('/events/{event}/packages/{package}', [\App\Domains\GodMode\Controllers\EventPackageController::class, 'update'])->name('events.packages.update');
         Route::delete('/events/{event}/packages/{package}', [\App\Domains\GodMode\Controllers\EventPackageController::class, 'destroy'])->name('events.packages.destroy');
 
         // Event Addons
         Route::get('/events/{event}/addons', [\App\Domains\GodMode\Controllers\EventAddonController::class, 'index'])->name('events.addons.index');
         Route::post('/events/{event}/addons', [\App\Domains\GodMode\Controllers\EventAddonController::class, 'store'])->name('events.addons.store');
-        Route::post('/events/{event}/addons/{addon}', [\App\Domains\GodMode\Controllers\EventAddonController::class, 'update'])->name('events.addons.update');
+        Route::put('/events/{event}/addons/{addon}', [\App\Domains\GodMode\Controllers\EventAddonController::class, 'update'])->name('events.addons.update');
         Route::delete('/events/{event}/addons/{addon}', [\App\Domains\GodMode\Controllers\EventAddonController::class, 'destroy'])->name('events.addons.destroy');
 
         // Payments (manual transfer approval)
