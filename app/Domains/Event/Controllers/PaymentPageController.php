@@ -85,7 +85,7 @@ class PaymentPageController extends Controller
             }
 
             $file = $request->file('proof');
-            $path = $file->store('payment-proofs', 'private');
+            $path = $file->store('payment-proofs', 'local');
 
             \App\Domains\Event\Models\PaymentProof::create([
                 'transaction_id' => $transaction->id,

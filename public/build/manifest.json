@@ -33,7 +33,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BUg1v3gJ.css",
+    "file": "assets/app-B3KhsTlu.css",
     "name": "app",
     "names": [
       "app.css"
@@ -125,7 +125,7 @@
     ]
   },
   "resources/js/Pages/Event/Show.tsx": {
-    "file": "assets/Show-CYevPji-.js",
+    "file": "assets/Show-Dw53Nu8R.js",
     "name": "Show",
     "src": "resources/js/Pages/Event/Show.tsx",
     "isDynamicEntry": true,
@@ -306,7 +306,7 @@
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-BW8YVO2z.js",
+    "file": "assets/app-D9vPg5ee.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -342,7 +342,7 @@
       "resources/js/Pages/Welcome.tsx"
     ],
     "css": [
-      "assets/app-BUg1v3gJ.css"
+      "assets/app-B3KhsTlu.css"
     ]
   }
 }

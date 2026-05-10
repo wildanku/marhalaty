@@ -61,10 +61,11 @@ export interface InfakRules {
 export interface CustomFormField {
   id?: string;
   label: string;
-  type: "text" | "textarea" | "select" | "radio" | "number";
+  type: "text" | "textarea" | "select" | "radio" | "number" | "radio-grid-6";
   required: boolean;
   placeholder?: string;
   options?: string[];
+  default?: string;
 }
 
 export interface GontorEvent {
@@ -78,6 +79,8 @@ export interface GontorEvent {
   visibility_scope: string | null;
   metadata: {
     custom_forms?: CustomFormField[];
+    package_description?: string;
+    addon_description?: string;
     [key: string]: unknown;
   } | null;
   addons?: EventAddon[];

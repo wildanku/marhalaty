@@ -136,6 +136,12 @@ function StepperProgress({
 export default function Show({ auth, event, existingRsvp, image_url }: ShowProps) {
   const user = auth.user;
   const customForms: CustomFormField[] = event.metadata?.custom_forms ?? [];
+  const packageDescription =
+    typeof event.metadata?.package_description === "string"
+      ? event.metadata.package_description
+      : null;
+  const addonDescription =
+    typeof event.metadata?.addon_description === "string" ? event.metadata.addon_description : null;
 
   // ── Form State ────────────────────────────────────────────────────────────
   const { data, setData, post, processing, errors, clearErrors } = useForm<{
@@ -162,6 +168,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
   const [view, setView] = useState<"detail" | "stepper">("detail");
   const [stepIndex, setStepIndex] = useState(0);
   const [paymentChannels, setPaymentChannels] = useState<PaymentChannel[]>([]);
+  const [previewImage, setPreviewImage] = useState<{ src: string; title: string } | null>(null);
 
   // ── Fetch Payment Channels ─────────────────────────────────────────────────
   useEffect(() => {
@@ -264,6 +271,10 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
       setView("detail");
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const openImagePreview = (src: string, title: string) => {
+    setPreviewImage({ src, title });
   };
 
   const handleSubmit = () => {
@@ -572,9 +583,11 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
       </div>
       {customForms.map((field, i) => {
         const fieldKey = field.id ?? `field_${i}`;
-        const value = data.custom_form_data[fieldKey] ?? "";
+        const value = data.custom_form_data[fieldKey] ?? field.default ?? "";
         const setValue = (v: string) =>
           setData("custom_form_data", { ...data.custom_form_data, [fieldKey]: v });
+        const isRadioGrid = field.type.startsWith("radio-grid-");
+        const gridCols = isRadioGrid ? parseInt(field.type.split("-")[2]) : 0;
 
         return (
           <div key={fieldKey}>
@@ -582,6 +595,24 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
               {field.label}
               {field.required && <span className="text-error ml-1">*</span>}
             </label>
+
+            {isRadioGrid && field.options && (
+              <div
+                className={`grid gap-2 w-full`}
+                style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}
+              >
+                {field.options.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setValue(opt)}
+                    className={`flex items-center justify-center p-3 rounded-xl border-2 font-headline font-bold text-sm transition-all ${value === opt ? "border-primary bg-primary text-on-primary" : "border-surface-container bg-surface text-on-surface hover:border-primary/50"}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {field.type === "radio" && field.options && (
               <div className="space-y-2">
@@ -674,6 +705,19 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           Pilih paket yang sesuai dengan kebutuhanmu.
         </p>
       </div>
+      {packageDescription && (
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-start gap-2.5">
+            <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">info</span>
+            <div>
+              <p className="font-headline text-sm font-bold text-on-surface">Informasi Paket</p>
+              <p className="font-body text-xs text-on-surface-variant leading-relaxed whitespace-pre-line mt-1">
+                {packageDescription}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {errors.event_package_id && (
         <p className="text-error text-xs font-medium flex items-center gap-1">
           <span className="material-symbols-outlined text-[16px]">error</span>
@@ -712,11 +756,25 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                 <div className="flex justify-between items-start gap-2 mb-1">
                   <div className="flex items-center gap-3">
                     {pkg.image_url && (
-                      <img
-                        src={pkg.image_url}
-                        alt={pkg.name}
-                        className="w-10 h-10 object-cover rounded-lg border border-surface-container-high shrink-0"
-                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openImagePreview(pkg.image_url as string, pkg.name);
+                        }}
+                        className="relative shrink-0 group"
+                        aria-label={`Perbesar gambar ${pkg.name}`}
+                      >
+                        <img
+                          src={pkg.image_url}
+                          alt={pkg.name}
+                          className="w-14 h-14 object-cover rounded-xl border border-surface-container-high shadow-sm"
+                        />
+                        <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-on-surface text-surface-container-lowest flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity">
+                          <span className="material-symbols-outlined text-[14px]">zoom_in</span>
+                        </span>
+                      </button>
                     )}
                     <span className="font-headline font-bold text-on-surface text-base">
                       {pkg.name}
@@ -783,6 +841,21 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           Lengkapi pilihan varian untuk item yang sudah termasuk dalam paketmu.
         </p>
       </div>
+      {addonDescription && (
+        <div className="rounded-2xl border border-secondary/20 bg-secondary/5 p-4">
+          <div className="flex items-start gap-2.5">
+            <span className="material-symbols-outlined text-secondary text-[18px] mt-0.5">
+              tips_and_updates
+            </span>
+            <div>
+              <p className="font-headline text-sm font-bold text-on-surface">Informasi Addon</p>
+              <p className="font-body text-xs text-on-surface-variant leading-relaxed whitespace-pre-line mt-1">
+                {addonDescription}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Included addons with variant selection */}
       {includedAddons.length > 0 ? (
@@ -804,8 +877,29 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
             return (
               <div key={addon.id} className="bg-surface-container rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-headline font-bold text-on-surface text-sm">{addon.name}</p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    {addon.image_url && (
+                      <button
+                        type="button"
+                        onClick={() => openImagePreview(addon.image_url as string, addon.name)}
+                        className="relative shrink-0 group"
+                        aria-label={`Perbesar gambar ${addon.name}`}
+                      >
+                        <img
+                          src={addon.image_url}
+                          alt={addon.name}
+                          className="w-12 h-12 object-cover rounded-xl border border-surface-container-high shadow-sm"
+                        />
+                        <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-on-surface text-surface-container-lowest flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity">
+                          <span className="material-symbols-outlined text-[12px]">zoom_in</span>
+                        </span>
+                      </button>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-headline font-bold text-on-surface text-sm truncate">
+                        {addon.name}
+                      </p>
+                    </div>
                     <p className="font-body text-xs text-on-surface-variant">
                       {qty} item termasuk dalam paket
                     </p>
@@ -893,11 +987,21 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex items-center gap-3">
                     {addon.image_url && (
-                      <img
-                        src={addon.image_url}
-                        alt={addon.name}
-                        className="w-12 h-12 object-cover rounded-xl border border-surface-container-high shrink-0"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => openImagePreview(addon.image_url as string, addon.name)}
+                        className="relative shrink-0 group"
+                        aria-label={`Perbesar gambar ${addon.name}`}
+                      >
+                        <img
+                          src={addon.image_url}
+                          alt={addon.name}
+                          className="w-14 h-14 object-cover rounded-xl border border-surface-container-high shadow-sm"
+                        />
+                        <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-on-surface text-surface-container-lowest flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity">
+                          <span className="material-symbols-outlined text-[14px]">zoom_in</span>
+                        </span>
+                      </button>
                     )}
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1518,6 +1622,34 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
       <main className="flex-1 flex flex-col items-center">
         {view === "detail" ? detailView : stepperView}
       </main>
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[1px] flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-12 right-0 text-white/90 hover:text-white inline-flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+              <span className="font-body text-sm">Tutup</span>
+            </button>
+            <div className="rounded-2xl overflow-hidden border border-white/20 bg-white shadow-2xl">
+              <img
+                src={previewImage.src}
+                alt={previewImage.title}
+                className="w-full max-h-[80vh] object-contain bg-white"
+              />
+            </div>
+            <p className="text-white/90 text-center font-body text-sm mt-3">{previewImage.title}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
