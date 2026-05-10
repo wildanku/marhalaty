@@ -34,7 +34,8 @@ class Event extends Model implements HasMedia
     {
         return SlugOptions::create()
             ->generateSlugsFrom('title')
-            ->saveSlugsTo('slug');
+            ->saveSlugsTo('slug')
+            ->onlyOnCreate();  // Hanya generate saat creation, biarkan custom slug saat update
     }
 
     public function packages()

@@ -223,6 +223,18 @@ class EventController extends Controller
             'image' => 'nullable|image|max:5120',
         ]);
 
+        // Normalize slug: lowercase, replace spaces with hyphens, remove special chars
+        $validated['slug'] = Str::slug($validated['slug']);
+
+        // Re-validate slug uniqueness after normalization
+        $slugExists = Event::where('slug', $validated['slug'])
+            ->where('id', '!=', $event->id)
+            ->exists();
+
+        if ($slugExists) {
+            return back()->withErrors(['slug' => 'Slug sudah digunakan oleh event lain.']);
+        }
+
         // Decode JSON fields if provided as strings
         $infakRules = $validated['infak_rules'] ? json_decode($validated['infak_rules'], true) : null;
         $metadata = $validated['metadata'] ? json_decode($validated['metadata'], true) : null;

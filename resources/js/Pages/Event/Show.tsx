@@ -1355,49 +1355,51 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           />
         </label>
 
-        {/* iPaymu automatic */}
-        <label
-          className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-            data.payment_provider === "ipaymu"
-              ? "border-primary bg-primary/5"
-              : "border-surface-container hover:border-outline-variant"
-          }`}
-        >
-          <div
-            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
-              data.payment_provider === "ipaymu" ? "border-primary" : "border-outline"
+        {/* iPaymu automatic — DISABLED FOR NOW */}
+        {false && (
+          <label
+            className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+              data.payment_provider === "ipaymu"
+                ? "border-primary bg-primary/5"
+                : "border-surface-container hover:border-outline-variant"
             }`}
           >
-            {data.payment_provider === "ipaymu" && (
-              <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-headline font-bold text-on-surface text-sm">
-                Pembayaran Otomatis
-              </span>
-              <span className="inline-block bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full">
-                via iPaymu
-              </span>
+            <div
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                data.payment_provider === "ipaymu" ? "border-primary" : "border-outline"
+              }`}
+            >
+              {data.payment_provider === "ipaymu" && (
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              )}
             </div>
-            <p className="font-body text-xs text-on-surface-variant mt-0.5">
-              QRIS, Virtual Account BCA/BNI/BRI/Mandiri/BSI dan lainnya. Terverifikasi otomatis.
-            </p>
-          </div>
-          <input
-            type="radio"
-            className="sr-only"
-            checked={data.payment_provider === "ipaymu"}
-            onChange={() => {
-              setData("payment_provider", "ipaymu");
-              setData("payment_channel", "qris");
-            }}
-          />
-        </label>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-headline font-bold text-on-surface text-sm">
+                  Pembayaran Otomatis
+                </span>
+                <span className="inline-block bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full">
+                  via iPaymu
+                </span>
+              </div>
+              <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                QRIS, Virtual Account BCA/BNI/BRI/Mandiri/BSI dan lainnya. Terverifikasi otomatis.
+              </p>
+            </div>
+            <input
+              type="radio"
+              className="sr-only"
+              checked={data.payment_provider === "ipaymu"}
+              onChange={() => {
+                setData("payment_provider", "ipaymu");
+                setData("payment_channel", "qris");
+              }}
+            />
+          </label>
+        )}
 
-        {/* iPaymu channel picker */}
-        {data.payment_provider === "ipaymu" && (
+        {/* iPaymu channel picker — DISABLED FOR NOW */}
+        {false && data.payment_provider === "ipaymu" && (
           <div className="pl-2 space-y-3">
             <p className="font-body text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
               Pilih Metode Pembayaran
