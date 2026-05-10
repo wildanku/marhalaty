@@ -153,15 +153,3 @@ export type PageProps<T extends Record<string, unknown> = Record<string, unknown
     user: User | null;
   };
 };
-
-// ── Ziggy global route() helper ───────────────────────────────────────────────
-// route() is injected globally by Ziggy (tightenco/ziggy) via app.tsx.
-// This declaration tells TypeScript it exists as a global without needing
-// an explicit import in every file.
-declare global {
-  function route(
-    name: string,
-    params?: Record<string, unknown> | number | string,
-    absolute?: boolean
-  ): string;
-}

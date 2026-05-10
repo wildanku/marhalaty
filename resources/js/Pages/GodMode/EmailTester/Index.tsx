@@ -29,9 +29,7 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
   const { props } = usePage<{ flash: PageFlash }>();
   const flash = props.flash ?? {};
 
-  const [selectedTemplate, setSelectedTemplate] = useState<string>(
-    templates[0]?.key ?? "test"
-  );
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(templates[0]?.key ?? "test");
 
   const { data, setData, post, processing, reset } = useForm({
     email: "",
@@ -46,7 +44,7 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    post(route("god-mode.email-tester.send"), {
+    post("/god-mode/email-tester/send", {
       onSuccess: () => reset("email", "note"),
     });
   };
@@ -61,14 +59,10 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-            <span className="material-symbols-outlined text-emerald-400 text-[20px]">
-              mail
-            </span>
+            <span className="material-symbols-outlined text-emerald-400 text-[20px]">mail</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white font-headline">
-              Email Tester
-            </h1>
+            <h1 className="text-xl font-bold text-white font-headline">Email Tester</h1>
             <p className="text-white/50 text-sm">
               Kirim test email untuk memverifikasi SMTP dan template desain.
             </p>
@@ -82,16 +76,12 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
           <span className="material-symbols-outlined text-emerald-400 text-[20px] mt-0.5">
             check_circle
           </span>
-          <p className="text-emerald-400 text-sm leading-relaxed">
-            {flash.success}
-          </p>
+          <p className="text-emerald-400 text-sm leading-relaxed">{flash.success}</p>
         </div>
       )}
       {flash.error && (
         <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
-          <span className="material-symbols-outlined text-red-400 text-[20px] mt-0.5">
-            error
-          </span>
+          <span className="material-symbols-outlined text-red-400 text-[20px] mt-0.5">error</span>
           <p className="text-red-400 text-sm leading-relaxed">{flash.error}</p>
         </div>
       )}
@@ -128,16 +118,12 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
                 <div>
                   <p
                     className={`text-sm font-semibold transition-colors ${
-                      selectedTemplate === tpl.key
-                        ? "text-emerald-300"
-                        : "text-white/80"
+                      selectedTemplate === tpl.key ? "text-emerald-300" : "text-white/80"
                     }`}
                   >
                     {tpl.label}
                   </p>
-                  <p className="text-xs text-white/40 mt-1 leading-relaxed">
-                    {tpl.desc}
-                  </p>
+                  <p className="text-xs text-white/40 mt-1 leading-relaxed">{tpl.desc}</p>
                 </div>
               </div>
             </button>
@@ -154,7 +140,8 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
                 <span className="text-xs text-white/60">Mailtrap Sandbox</span>
               </div>
               <p className="text-xs text-white/30 leading-relaxed">
-                Ganti kredensial di <code className="text-emerald-400/70">.env</code> sebelum deploy ke produksi.
+                Ganti kredensial di <code className="text-emerald-400/70">.env</code> sebelum deploy
+                ke produksi.
               </p>
             </div>
           </div>
@@ -166,9 +153,7 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
             onSubmit={handleSubmit}
             className="bg-[#161b22] border border-white/5 rounded-2xl p-6"
           >
-            <h2 className="text-white font-bold text-base mb-6 font-headline">
-              Kirim Test Email
-            </h2>
+            <h2 className="text-white font-bold text-base mb-6 font-headline">Kirim Test Email</h2>
 
             {/* Active template badge */}
             <div className="mb-6 p-3 bg-[#0d1117] rounded-xl border border-white/5">
@@ -180,12 +165,8 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
 
             {/* Email input */}
             <div className="mb-5">
-              <label
-                htmlFor="email-input"
-                className="block text-sm font-medium text-white/70 mb-2"
-              >
-                Alamat Email Tujuan{" "}
-                <span className="text-red-400">*</span>
+              <label htmlFor="email-input" className="block text-sm font-medium text-white/70 mb-2">
+                Alamat Email Tujuan <span className="text-red-400">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-white/30 text-[18px]">
@@ -210,8 +191,7 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
                   htmlFor="note-input"
                   className="block text-sm font-medium text-white/70 mb-2"
                 >
-                  Catatan Admin{" "}
-                  <span className="text-white/30 text-xs">(opsional)</span>
+                  Catatan Admin <span className="text-white/30 text-xs">(opsional)</span>
                 </label>
                 <textarea
                   id="note-input"
@@ -232,8 +212,8 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
                     info
                   </span>
                   <p className="text-xs text-amber-400/80 leading-relaxed">
-                    Template ini menggunakan data nyata dari database (RSVP/Transaksi terbaru).
-                    Jika database kosong, akan dikirim plain test email sebagai fallback.
+                    Template ini menggunakan data nyata dari database (RSVP/Transaksi terbaru). Jika
+                    database kosong, akan dikirim plain test email sebagai fallback.
                   </p>
                 </div>
               </div>
@@ -254,9 +234,7 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[18px]">
-                    send
-                  </span>
+                  <span className="material-symbols-outlined text-[18px]">send</span>
                   Kirim Test Email
                 </>
               )}
@@ -298,8 +276,8 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
               <li className="flex gap-2">
                 <span className="text-emerald-400/60 font-bold">4.</span>
                 Ganti <code className="text-emerald-400/60">MAIL_USERNAME</code> dan{" "}
-                <code className="text-emerald-400/60">MAIL_PASSWORD</code> di <code className="text-emerald-400/60">.env</code>{" "}
-                dengan kredensial Mailtrap kamu.
+                <code className="text-emerald-400/60">MAIL_PASSWORD</code> di{" "}
+                <code className="text-emerald-400/60">.env</code> dengan kredensial Mailtrap kamu.
               </li>
             </ol>
           </div>
