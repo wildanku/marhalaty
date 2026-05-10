@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 class Transaction extends Model
 {
@@ -15,6 +16,8 @@ class Transaction extends Model
         'user_id',
         'amount',
         'payment_provider',
+        'payment_channel',
+        'payment_hash',
         'status',
         'external_reference',
         'payment_url',
@@ -23,6 +26,20 @@ class Transaction extends Model
         'expired_at',
         'metadata',
     ];
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (Transaction $transaction): void {
+            if (empty($transaction->payment_hash)) {
+                do {
+                    $hash = Str::random(40);
+                } while (static::where('payment_hash', $hash)->exists());
+                $transaction->payment_hash = $hash;
+            }
+        });
+    }
 
     protected $casts = [
         'amount'   => 'decimal:2',

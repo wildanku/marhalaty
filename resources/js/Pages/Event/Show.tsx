@@ -22,6 +22,7 @@ type StepKey = "form" | "package" | "addons" | "infak" | "konfirmasi";
 interface ShowProps extends PageProps {
   event: GontorEvent;
   existingRsvp: Rsvp | null;
+  image_url?: string | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -40,6 +41,35 @@ const formatDate = (dateStr: string) =>
     month: "long",
     year: "numeric",
   });
+
+// ─── Payment Channels ─────────────────────────────────────────────────────────
+
+interface PaymentChannel {
+  code: string;
+  name: string;
+  method: "qris" | "va";
+  fee: number;
+  feeType: "fixed" | "percentage";
+  desc?: string;
+}
+
+const PAYMENT_CHANNELS: PaymentChannel[] = [
+  {
+    code: "qris",
+    name: "QRIS",
+    method: "qris",
+    fee: 0.7,
+    feeType: "percentage",
+    desc: "Semua e-wallet & m-banking",
+  },
+  { code: "bca", name: "BCA Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
+  { code: "bni", name: "BNI Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
+  { code: "bri", name: "BRI Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
+  { code: "mandiri", name: "Mandiri Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
+  { code: "bsi", name: "BSI Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
+  { code: "btn", name: "BTN Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
+  { code: "permata", name: "Permata Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
+];
 
 // ─── Step Config ─────────────────────────────────────────────────────────────
 
@@ -116,7 +146,7 @@ function StepperProgress({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function Show({ auth, event, existingRsvp }: ShowProps) {
+export default function Show({ auth, event, existingRsvp, image_url }: ShowProps) {
   const user = auth.user;
   const customForms: CustomFormField[] = event.metadata?.custom_forms ?? [];
 
@@ -127,14 +157,18 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
     addons: SelectedAddon[];
     custom_form_data: Record<string, string>;
     included_addon_variants: IncludedAddonVariants;
-    payment_provider: "manual";
+    purchased_addon_variants: IncludedAddonVariants;
+    payment_provider: "manual" | "ipaymu";
+    payment_channel: string;
   }>({
     event_package_id: null,
     infak_amount: "0",
     addons: [],
     custom_form_data: {},
     included_addon_variants: {},
+    purchased_addon_variants: {},
     payment_provider: "manual",
+    payment_channel: "",
   });
 
   // ── View / Step State ─────────────────────────────────────────────────────
@@ -211,7 +245,30 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
     const filtered = data.addons.filter((a) => a.id !== addonId);
     const updated =
       qty > 0 ? [...filtered, { id: addonId, quantity: qty, variants: {}, price }] : filtered;
+    // Clear purchased variant slots when qty drops to 0
+    if (qty === 0) {
+      const { [addonId]: _removed, ...rest } = data.purchased_addon_variants;
+      setData("addons" as "addons", updated as SelectedAddon[]);
+      setData("purchased_addon_variants", rest);
+      return;
+    }
     setData("addons", updated);
+  };
+
+  const handlePurchasedVariant = (
+    addonId: number,
+    variantKey: string,
+    slotIndex: number,
+    value: string
+  ) => {
+    const prev = data.purchased_addon_variants[addonId] ?? {};
+    const prevArr = prev[variantKey] ?? [];
+    const newArr = [...prevArr];
+    newArr[slotIndex] = value;
+    setData("purchased_addon_variants", {
+      ...data.purchased_addon_variants,
+      [addonId]: { ...prev, [variantKey]: newArr },
+    });
   };
 
   const handleIncludedVariant = (
@@ -256,21 +313,20 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
         {/* ── Left: Event Content ── */}
         <div className="flex-1 min-w-0">
           {/* Hero Banner */}
-          <div className="w-full rounded-2xl bg-linear-to-br from-primary/20 via-tertiary/10 to-primary/5 h-52 md:h-64 mb-6 flex items-center justify-center overflow-hidden relative">
-            <span
-              className="material-symbols-outlined text-9xl text-primary/20"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              celebration
-            </span>
-            <div className="absolute bottom-4 left-4">
-              <span className="inline-block bg-primary/90 text-on-primary text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">
-                {event.visibility_scope === "global" || !event.visibility_scope
-                  ? "Event Global"
-                  : `Marhalah ${event.visibility_scope}`}
+          {image_url ? (
+            <div className="w-full rounded-2xl h-52 md:h-52 mb-6 overflow-hidden relative">
+              <img src={image_url} alt={event.title} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-full rounded-2xl bg-linear-to-br from-primary/20 via-tertiary/10 to-primary/5 h-52 md:h-52 mb-6 flex items-center justify-center overflow-hidden relative border border-outline">
+              <span
+                className="material-symbols-outlined text-9xl text-primary/20"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                celebration
               </span>
             </div>
-          </div>
+          )}
 
           {/* Title */}
           <h1 className="font-headline text-2xl md:text-3xl font-bold text-on-surface leading-tight mb-5">
@@ -620,9 +676,14 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
 
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start gap-2 mb-1">
-                  <span className="font-headline font-bold text-on-surface text-base">
-                    {pkg.name}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    {pkg.image_url && (
+                      <img src={pkg.image_url} alt={pkg.name} className="w-10 h-10 object-cover rounded-lg border border-surface-container-high shrink-0" />
+                    )}
+                    <span className="font-headline font-bold text-on-surface text-base">
+                      {pkg.name}
+                    </span>
+                  </div>
                   <span className="font-headline font-bold text-primary shrink-0">
                     {formatRupiah(parseFloat(pkg.price))}
                   </span>
@@ -674,9 +735,7 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
 
   // ── Step: Addons ──────────────────────────────────────────────────────────
   const includedAddons = selectedPackage?.included_addons ?? [];
-  const purchasableAddons = (event.addons ?? []).filter(
-    (a) => !includedAddons.some((ia) => ia.id === a.id)
-  );
+  const purchasableAddons = event.addons ?? [];
 
   const stepAddons = (
     <div className="space-y-6">
@@ -788,17 +847,40 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
           </h3>
           {purchasableAddons.map((addon) => {
             const qty = getAddonQty(addon.id);
+            const variantKeys = addon.variants ? Object.keys(addon.variants) : [];
+            const addonVariants = data.purchased_addon_variants[addon.id] ?? {};
+            const includedInfo = includedAddons.find((ia) => ia.id === addon.id);
             return (
-              <div key={addon.id} className="bg-surface-container rounded-2xl p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-headline font-bold text-on-surface text-sm">{addon.name}</p>
-                    <p className="font-body text-xs text-primary font-medium">
-                      {formatRupiah(parseFloat(addon.price))} / pcs
-                    </p>
+              <div key={addon.id} className="bg-surface-container rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex items-center gap-3">
+                    {addon.image_url && (
+                      <img src={addon.image_url} alt={addon.name} className="w-12 h-12 object-cover rounded-xl border border-surface-container-high shrink-0" />
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-headline font-bold text-on-surface text-sm">
+                          {addon.name}
+                        </p>
+                        {includedInfo && (
+                          <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
+                            <span
+                              className="material-symbols-outlined text-[11px]"
+                              style={{ fontVariationSettings: "'FILL' 1" }}
+                            >
+                              check_circle
+                            </span>
+                            ×{includedInfo.pivot.included_quantity} sudah termasuk
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-body text-xs text-primary font-medium mt-0.5">
+                        {formatRupiah(parseFloat(addon.price))} / pcs
+                      </p>
+                    </div>
                   </div>
                   {/* Qty Stepper */}
-                  <div className="flex items-center bg-surface rounded-lg overflow-hidden border border-surface-container-high">
+                  <div className="flex items-center bg-surface rounded-lg overflow-hidden border border-surface-container-high shrink-0">
                     <button
                       type="button"
                       onClick={() => handleAddonQty(addon.id, addon.price, Math.max(0, qty - 1))}
@@ -824,6 +906,48 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
                     </button>
                   </div>
                 </div>
+
+                {/* Per-slot variant picker when qty > 0 and has variants */}
+                {qty > 0 && variantKeys.length > 0 && (
+                  <div className="space-y-3 pt-1 border-t border-surface-container-high">
+                    {Array.from({ length: qty }, (_, slotIdx) => (
+                      <div key={slotIdx} className="bg-surface rounded-xl p-3 space-y-2">
+                        <p className="font-body text-xs font-semibold text-on-surface-variant">
+                          Item #{slotIdx + 1}
+                        </p>
+                        {variantKeys.map((vKey) => {
+                          const options = (addon.variants as Record<string, string[]>)[vKey] ?? [];
+                          const selectedVal = addonVariants[vKey]?.[slotIdx] ?? "";
+                          return (
+                            <div key={vKey}>
+                              <label className="block font-body text-xs text-on-surface-variant mb-1.5 capitalize">
+                                {vKey}
+                              </label>
+                              <div className="flex flex-wrap gap-1.5">
+                                {options.map((opt) => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() =>
+                                      handlePurchasedVariant(addon.id, vKey, slotIdx, opt)
+                                    }
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
+                                      selectedVal === opt
+                                        ? "border-primary bg-primary text-on-primary"
+                                        : "border-surface-container-high bg-surface text-on-surface hover:border-primary/50"
+                                    }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -999,18 +1123,145 @@ export default function Show({ auth, event, existingRsvp }: ShowProps) {
         </div>
       </div>
 
-      {/* Payment info note */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-        <span className="material-symbols-outlined text-amber-600 shrink-0 mt-0.5">info</span>
-        <div>
-          <p className="font-body text-sm font-semibold text-amber-800 mb-0.5">
-            Pembayaran Transfer Manual
-          </p>
-          <p className="font-body text-xs text-amber-700 leading-relaxed">
-            Setelah konfirmasi, kamu akan mendapatkan informasi rekening tujuan. Unggah bukti
-            transfer untuk menyelesaikan pendaftaran.
-          </p>
-        </div>
+      {/* Payment method selection */}
+      <div className="space-y-3">
+        <h3 className="font-body font-bold text-sm text-on-surface">Metode Pembayaran</h3>
+
+        {/* Manual */}
+        <label
+          className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+            data.payment_provider === "manual"
+              ? "border-primary bg-primary/5"
+              : "border-surface-container hover:border-outline-variant"
+          }`}
+        >
+          <div
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+              data.payment_provider === "manual" ? "border-primary" : "border-outline"
+            }`}
+          >
+            {data.payment_provider === "manual" && (
+              <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-headline font-bold text-on-surface text-sm">
+                Transfer Manual
+              </span>
+              <span className="inline-block bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full">
+                Gratis biaya admin
+              </span>
+            </div>
+            <p className="font-body text-xs text-on-surface-variant mt-0.5">
+              Transfer ke rekening BSI lalu upload bukti pembayaran.
+            </p>
+          </div>
+          <input
+            type="radio"
+            className="sr-only"
+            checked={data.payment_provider === "manual"}
+            onChange={() => {
+              setData("payment_provider", "manual");
+              setData("payment_channel", "");
+            }}
+          />
+        </label>
+
+        {/* iPaymu automatic */}
+        <label
+          className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+            data.payment_provider === "ipaymu"
+              ? "border-primary bg-primary/5"
+              : "border-surface-container hover:border-outline-variant"
+          }`}
+        >
+          <div
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+              data.payment_provider === "ipaymu" ? "border-primary" : "border-outline"
+            }`}
+          >
+            {data.payment_provider === "ipaymu" && (
+              <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-headline font-bold text-on-surface text-sm">
+                Pembayaran Otomatis
+              </span>
+              <span className="inline-block bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full">
+                via iPaymu
+              </span>
+            </div>
+            <p className="font-body text-xs text-on-surface-variant mt-0.5">
+              QRIS, Virtual Account BCA/BNI/BRI/Mandiri/BSI dan lainnya. Terverifikasi otomatis.
+            </p>
+          </div>
+          <input
+            type="radio"
+            className="sr-only"
+            checked={data.payment_provider === "ipaymu"}
+            onChange={() => {
+              setData("payment_provider", "ipaymu");
+              setData("payment_channel", "qris");
+            }}
+          />
+        </label>
+
+        {/* iPaymu channel picker */}
+        {data.payment_provider === "ipaymu" && (
+          <div className="pl-2 space-y-2">
+            <p className="font-body text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+              Pilih Metode Pembayaran
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {PAYMENT_CHANNELS.map((ch) => {
+                const isSelected = data.payment_channel === ch.code;
+                const feeLabel =
+                  ch.feeType === "percentage"
+                    ? `+${ch.fee}%`
+                    : ch.fee === 0
+                      ? "Gratis"
+                      : `+${new Intl.NumberFormat("id-ID").format(ch.fee)}`;
+                return (
+                  <button
+                    key={ch.code}
+                    type="button"
+                    onClick={() => setData("payment_channel", ch.code)}
+                    className={`flex flex-col items-start p-3 rounded-xl border-2 text-left transition-all ${
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : "border-surface-container hover:border-outline-variant bg-surface"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-1">
+                      <span className="font-headline font-bold text-xs text-on-surface">
+                        {ch.code === "qris" ? "QRIS" : ch.name.replace(" Virtual Account", " VA")}
+                      </span>
+                      {isSelected && (
+                        <span
+                          className="material-symbols-outlined text-primary text-[14px]"
+                          style={{ fontVariationSettings: "'FILL' 1" }}
+                        >
+                          check_circle
+                        </span>
+                      )}
+                    </div>
+                    {ch.desc && (
+                      <p className="font-body text-[10px] text-on-surface-variant leading-tight mb-1">
+                        {ch.desc}
+                      </p>
+                    )}
+                    <span className="font-body text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                      Biaya {feeLabel}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ class IndonesiaVillageSeeder extends Seeder
         $firstline = true;
         $headers = [];
         $data = [];
-        
+
         while (($row = fgetcsv($csvFile, 4000, ",")) !== false) {
             if (!$firstline) {
                 $record = array_combine($headers, $row);
@@ -36,11 +36,11 @@ class IndonesiaVillageSeeder extends Seeder
                 $firstline = false;
             }
         }
-        
+
         if (count($data) > 0) {
             DB::table('indonesia_villages')->insert($data);
         }
-        
+
         fclose($csvFile);
     }
 }

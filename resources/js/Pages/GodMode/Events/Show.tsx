@@ -28,6 +28,29 @@ export default function EventShow({ admin, event, rsvps, stats }: EventShowProps
           <span className="material-symbols-outlined text-base">arrow_back</span>
           Back to Events
         </Link>
+        <div className="flex gap-3">
+          <Link
+            href={`/god-mode/events/${event.id}/addons`}
+            className="inline-flex items-center gap-2 text-sm bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 px-4 py-2 rounded-lg font-semibold transition-colors"
+          >
+            <span className="material-symbols-outlined text-base">category</span>
+            Manage Addons
+          </Link>
+          <Link
+            href={`/god-mode/events/${event.id}/packages`}
+            className="inline-flex items-center gap-2 text-sm bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 px-4 py-2 rounded-lg font-semibold transition-colors"
+          >
+            <span className="material-symbols-outlined text-base">inventory_2</span>
+            Manage Packages
+          </Link>
+          <Link
+            href={`/god-mode/events/${event.id}/edit`}
+            className="inline-flex items-center gap-2 text-sm bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 px-4 py-2 rounded-lg font-semibold transition-colors"
+          >
+            <span className="material-symbols-outlined text-base">edit</span>
+            Edit Event
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">

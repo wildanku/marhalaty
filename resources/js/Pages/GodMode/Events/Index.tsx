@@ -90,12 +90,20 @@ export default function EventsIndex({ admin, events }: EventsIndexProps) {
                       {event.total_revenue ? `Rp ${parseInt(event.total_revenue).toLocaleString('id-ID')}` : '-'}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Link
-                        href={`/god-mode/events/${event.id}`}
-                        className="px-3 py-1.5 rounded-lg bg-white/5 text-white hover:bg-white/10 transition-colors text-xs font-semibold"
-                      >
-                        Manage
-                      </Link>
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/god-mode/events/${event.id}/edit`}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors text-xs font-semibold"
+                        >
+                          Edit
+                        </Link>
+                        <Link
+                          href={`/god-mode/events/${event.id}`}
+                          className="px-3 py-1.5 rounded-lg bg-white/5 text-white hover:bg-white/10 transition-colors text-xs font-semibold"
+                        >
+                          Manage
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))

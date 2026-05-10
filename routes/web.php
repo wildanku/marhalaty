@@ -52,6 +52,11 @@ Route::middleware('auth')->group(function () {
 // Public Event Detail Route
 Route::get('/events/{slug}', [\App\Domains\Event\Controllers\EventController::class, 'show'])->name('events.show');
 
+// Hash-based payment pages (public – hash is the access token)
+Route::get('/payment/{hash}', [\App\Domains\Event\Controllers\PaymentPageController::class, 'show'])->name('payment.show');
+Route::get('/payment-confirmation/{hash}', [\App\Domains\Event\Controllers\PaymentPageController::class, 'confirmationShow'])->name('payment.confirmation.show');
+Route::post('/payment-confirmation/{hash}', [\App\Domains\Event\Controllers\PaymentPageController::class, 'confirmationStore'])->name('payment.confirmation.store');
+
 // iPaymu webhook (exempt from CSRF – verified by provider signature)
 Route::post('/payments/ipaymu/webhook', [\App\Domains\Event\Controllers\PaymentController::class, 'ipaymuWebhook'])
     ->name('payments.ipaymu.webhook')
@@ -74,6 +79,20 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         // Events
         Route::get('/events', [\App\Domains\GodMode\Controllers\EventController::class, 'index'])->name('events.index');
         Route::get('/events/{id}', [\App\Domains\GodMode\Controllers\EventController::class, 'show'])->name('events.show');
+        Route::get('/events/{id}/edit', [\App\Domains\GodMode\Controllers\EventController::class, 'edit'])->name('events.edit');
+        Route::put('/events/{id}', [\App\Domains\GodMode\Controllers\EventController::class, 'update'])->name('events.update');
+
+        // Event Packages
+        Route::get('/events/{event}/packages', [\App\Domains\GodMode\Controllers\EventPackageController::class, 'index'])->name('events.packages.index');
+        Route::post('/events/{event}/packages', [\App\Domains\GodMode\Controllers\EventPackageController::class, 'store'])->name('events.packages.store');
+        Route::post('/events/{event}/packages/{package}', [\App\Domains\GodMode\Controllers\EventPackageController::class, 'update'])->name('events.packages.update');
+        Route::delete('/events/{event}/packages/{package}', [\App\Domains\GodMode\Controllers\EventPackageController::class, 'destroy'])->name('events.packages.destroy');
+
+        // Event Addons
+        Route::get('/events/{event}/addons', [\App\Domains\GodMode\Controllers\EventAddonController::class, 'index'])->name('events.addons.index');
+        Route::post('/events/{event}/addons', [\App\Domains\GodMode\Controllers\EventAddonController::class, 'store'])->name('events.addons.store');
+        Route::post('/events/{event}/addons/{addon}', [\App\Domains\GodMode\Controllers\EventAddonController::class, 'update'])->name('events.addons.update');
+        Route::delete('/events/{event}/addons/{addon}', [\App\Domains\GodMode\Controllers\EventAddonController::class, 'destroy'])->name('events.addons.destroy');
 
         // Payments (manual transfer approval)
         Route::get('/payments', [\App\Domains\GodMode\Controllers\PaymentController::class, 'index'])->name('payments.index');
@@ -86,5 +105,9 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         Route::post('/consulates', [\App\Domains\GodMode\Controllers\ConsulateController::class, 'store'])->name('consulates.store');
         Route::patch('/consulates/{id}', [\App\Domains\GodMode\Controllers\ConsulateController::class, 'update'])->name('consulates.update');
         Route::delete('/consulates/{id}', [\App\Domains\GodMode\Controllers\ConsulateController::class, 'destroy'])->name('consulates.destroy');
+
+        // Email Tester
+        Route::get('/email-tester', [\App\Domains\GodMode\Controllers\EmailTesterController::class, 'index'])->name('email-tester.index');
+        Route::post('/email-tester/send', [\App\Domains\GodMode\Controllers\EmailTesterController::class, 'send'])->name('email-tester.send');
     });
 });

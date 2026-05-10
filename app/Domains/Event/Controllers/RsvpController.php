@@ -9,9 +9,12 @@ use App\Domains\Event\Models\EventAddon;
 use App\Domains\Event\Models\Rsvp;
 use App\Domains\Event\Models\Transaction;
 use App\Domains\Shared\Services\IPaymuService;
+use App\Mail\EventRegistrationConfirmed;
+use App\Mail\EventRegistrationPendingPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class RsvpController extends Controller
@@ -22,6 +25,7 @@ class RsvpController extends Controller
 
         $validated = $request->validate([
             'payment_provider'                    => 'required|in:manual,ipaymu',
+            'payment_channel'                     => 'nullable|string|max:30',
             'event_package_id'                    => 'nullable|exists:event_packages,id',
             'infak_amount'                        => 'nullable|numeric|min:0',
             'addons'                              => 'array',
@@ -34,6 +38,10 @@ class RsvpController extends Controller
             'included_addon_variants.*'           => 'nullable|array',
             'included_addon_variants.*.*'         => 'nullable|array',
             'included_addon_variants.*.*.*'       => 'nullable|string|max:100',
+            'purchased_addon_variants'            => 'nullable|array',
+            'purchased_addon_variants.*'          => 'nullable|array',
+            'purchased_addon_variants.*.*'        => 'nullable|array',
+            'purchased_addon_variants.*.*.*'      => 'nullable|string|max:100',
         ]);
 
         $infakAmount = $validated['infak_amount'] ?? 0;
@@ -81,6 +89,8 @@ class RsvpController extends Controller
 
             // Handle Addons
             if (!empty($validated['addons'])) {
+                $purchasedAddonVariants = $validated['purchased_addon_variants'] ?? [];
+
                 foreach ($validated['addons'] as $purchasedAddon) {
                     $addon = EventAddon::where('id', $purchasedAddon['id'])
                                         ->where('event_id', $event->id)
@@ -96,12 +106,12 @@ class RsvpController extends Controller
                     $totalAmount += $itemTotal;
 
                     $addonSnapshot[] = [
-                        'id'       => $addon->id,
-                        'name'     => $addon->name,
-                        'price'    => $addon->price,
-                        'quantity' => $purchasedAddon['quantity'],
-                        'variants' => $purchasedAddon['variants'] ?? null,
-                        'total'    => $itemTotal,
+                        'id'             => $addon->id,
+                        'name'           => $addon->name,
+                        'price'          => $addon->price,
+                        'quantity'       => $purchasedAddon['quantity'],
+                        'variant_slots'  => $purchasedAddonVariants[$purchasedAddon['id']] ?? null,
+                        'total'          => $itemTotal,
                     ];
                 }
             }
@@ -148,40 +158,51 @@ class RsvpController extends Controller
                 'user_id'          => $request->user()->id,
                 'amount'           => $totalAmount,
                 'payment_provider' => $provider,
+                'payment_channel'  => $validated['payment_channel'] ?? null,
                 'status'           => 'pending',
             ]);
 
+            // ── Send email notification ───────────────────────────────────
+            $user = $request->user();
+
+            if ($totalAmount <= 0) {
+                // Free event: confirm immediately
+                $rsvp->load(['event', 'user', 'package']);
+                Mail::to($user->email)->queue(new EventRegistrationConfirmed($rsvp));
+            } else {
+                // Paid event: send pending payment instructions
+                Mail::to($user->email)->queue(
+                    new EventRegistrationPendingPayment($rsvp, $transaction)
+                );
+            }
+
             // ── Initiate provider-specific payment ────────────────────────
             if ($provider === 'ipaymu') {
+                $channel = $validated['payment_channel'] ?? 'qris';
                 try {
                     $ipaymu = new IPaymuService();
-                    $result = $ipaymu->initiatePayment($transaction, $rsvp);
+                    $result = $ipaymu->initiateDirectPayment($transaction, $rsvp, $channel);
 
                     $transaction->update([
                         'external_reference' => $result['external_reference'],
-                        'payment_url'        => $result['payment_url'],
                         'va_number'          => $result['va_number'],
+                        'metadata'           => array_merge(
+                            $transaction->metadata ?? [],
+                            ['qr_string' => $result['qr_string']]
+                        ),
                     ]);
-
-                    // Redirect user to iPaymu payment page
-                    return redirect()->away($result['payment_url']);
                 } catch (\Exception $e) {
-                    Log::error('iPaymu initiation failed', [
+                    Log::error('iPaymu direct payment initiation failed', [
                         'transaction_id' => $transaction->id,
                         'error'          => $e->getMessage(),
                     ]);
-
-                    // Fallback: send to payment page where user can retry or switch to manual
-                    return redirect()
-                        ->route('payments.show', $transaction->id)
-                        ->with('error', 'Gagal menghubungi iPaymu. Silakan coba lagi atau gunakan transfer manual.');
+                    // Fallback to manual payment page so user is not stuck
                 }
             }
 
-            // Manual payment: redirect to payment instructions page
-            return redirect()
-                ->route('payments.show', $transaction->id)
-                ->with('success', 'RSVP berhasil! Silakan selesaikan pembayaran transfer manual.');
+            // Redirect to hash-based payment page
+            return redirect('/payment/' . $transaction->payment_hash)
+                ->with('success', 'RSVP berhasil! Silakan selesaikan pembayaran.');
         });
     }
 }

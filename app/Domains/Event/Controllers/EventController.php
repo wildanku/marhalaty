@@ -60,6 +60,7 @@ class EventController extends Controller
         return Inertia::render('Event/Show', [
             'event'        => $event,
             'existingRsvp' => $existingRsvp,
+            'image_url'    => $event->getFirstMediaUrl('event-images'),
         ]);
     }
 }

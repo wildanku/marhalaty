@@ -30,7 +30,7 @@ class Event extends Model implements HasMedia
         'metadata' => 'json',
     ];
 
-    public function getSlugOptions() : SlugOptions
+    public function getSlugOptions(): SlugOptions
     {
         return SlugOptions::create()
             ->generateSlugsFrom('title')

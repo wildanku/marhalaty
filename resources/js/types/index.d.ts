@@ -29,6 +29,7 @@ export interface EventAddon {
   price: string;
   stock_quantity: number;
   variants: Record<string, string[]> | null;
+  image_url?: string | null;
 }
 
 export interface IncludedAddon extends EventAddon {
@@ -45,6 +46,7 @@ export interface EventPackage {
   price: string;
   stock_quantity: number | null;
   included_addons?: IncludedAddon[];
+  image_url?: string | null;
 }
 
 export interface InfakRules {
@@ -128,6 +130,8 @@ export interface Transaction {
   user_id: number;
   amount: string;
   payment_provider: "manual" | "ipaymu";
+  payment_channel: string | null;
+  payment_hash: string | null;
   status: "pending" | "paid" | "failed" | "expired" | "cancelled";
   external_reference: string | null;
   payment_url: string | null;
@@ -146,3 +150,15 @@ export type PageProps<T extends Record<string, unknown> = Record<string, unknown
     user: User | null;
   };
 };
+
+// ── Ziggy global route() helper ───────────────────────────────────────────────
+// route() is injected globally by Ziggy (tightenco/ziggy) via app.tsx.
+// This declaration tells TypeScript it exists as a global without needing
+// an explicit import in every file.
+declare global {
+  function route(
+    name: string,
+    params?: Record<string, unknown> | number | string,
+    absolute?: boolean
+  ): string;
+}

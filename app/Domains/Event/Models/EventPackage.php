@@ -4,10 +4,12 @@ namespace App\Domains\Event\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class EventPackage extends Model
+class EventPackage extends Model implements HasMedia
 {
-    use HasFactory;
+    use HasFactory, InteractsWithMedia;
 
     protected $fillable = [
         'event_id',
@@ -21,6 +23,13 @@ class EventPackage extends Model
         'price' => 'decimal:2',
         'stock_quantity' => 'integer',
     ];
+
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute()
+    {
+        return $this->getFirstMediaUrl('package-images');
+    }
 
     public function event()
     {
@@ -39,5 +48,10 @@ class EventPackage extends Model
             'event_package_id',
             'event_addon_id'
         )->withPivot('included_quantity')->withTimestamps();
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('package-images')->singleFile();
     }
 }

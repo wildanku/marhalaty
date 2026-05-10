@@ -49,4 +49,57 @@ class EventController extends Controller
             'stats' => $stats,
         ]);
     }
+
+    public function edit($id)
+    {
+        $event = Event::findOrFail($id);
+
+        return Inertia::render('GodMode/Events/Edit', [
+            'admin' => auth('admin')->user(),
+            'event' => $event,
+            'current_image_url' => $event->getFirstMediaUrl('event-images'),
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $event = Event::findOrFail($id);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:events,slug,' . $event->id,
+            'description' => 'required|string',
+            'location' => 'required|string',
+            'event_date' => 'required|date',
+            'visibility_scope' => 'nullable|string',
+            'infak_rules' => 'nullable|string',
+            'metadata' => 'nullable|string',
+            'image' => 'nullable|image|max:5120',
+        ]);
+
+        // Decode JSON fields if provided as strings
+        $infakRules = $validated['infak_rules'] ? json_decode($validated['infak_rules'], true) : null;
+        $metadata = $validated['metadata'] ? json_decode($validated['metadata'], true) : null;
+
+        $event->update([
+            'title' => $validated['title'],
+            'slug' => $validated['slug'],
+            'description' => $validated['description'],
+            'location' => $validated['location'],
+            'event_date' => $validated['event_date'],
+            'visibility_scope' => $validated['visibility_scope'],
+            'infak_rules' => $infakRules,
+            'metadata' => $metadata,
+        ]);
+
+        if ($request->hasFile('image')) {
+            $event->clearMediaCollection('event-images');
+            $event->addMediaFromRequest('image')->toMediaCollection('event-images');
+        }
+
+        // Flash message for successful update
+        $request->session()->flash('success', 'Event updated successfully.');
+
+        return redirect()->route('god-mode.events.show', $event->id);
+    }
 }
