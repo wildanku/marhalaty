@@ -3,7 +3,6 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +16,31 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasSlug;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'google_id',
+        'avatar_url',
+        'marhalah_year',
+        'phone_number',
+        'is_verified',
+        'slug',
+        'country',
+        'city_id',
+        'foreign_city',
+        'profession_id',
+        'campus_id',
+        'social_media',
+        'metadata',
+        'privacy_setting',
+        'business_showcase_url',
+    ];
 
     /**
      * Get the options for generating the slug.
