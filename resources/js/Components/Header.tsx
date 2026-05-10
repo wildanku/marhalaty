@@ -48,19 +48,19 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
           <div className="hidden md:flex gap-8 items-center font-headline tracking-tight font-semibold">
             <Link
               href="/directory"
-              className="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
+              className="text-[#444840]  hover:text-[#775a19] transition-colors duration-300"
             >
               {t("Directory")}
             </Link>
             <Link
               href="/events"
-              className="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
+              className="text-[#444840] hover:text-[#775a19] transition-colors duration-300"
             >
               {t("Events")}
             </Link>
             <Link
               href="/maal"
-              className="text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] transition-colors duration-300"
+              className="text-[#444840] hover:text-[#775a19] transition-colors duration-300"
             >
               {t("Baitul Maal")}
             </Link>
@@ -76,7 +76,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               className={`text-xs font-bold py-1.5 px-3 rounded-full uppercase tracking-widest transition-all ${
                 locale === "id"
                   ? "bg-primary text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:text-primary dark:text-[#c4c8bd]"
+                  : "text-on-surface-variant hover:text-primary"
               }`}
               title="Bahasa Indonesia"
             >
@@ -87,7 +87,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               className={`text-xs font-bold py-1.5 px-3 rounded-full uppercase tracking-widest transition-all ${
                 locale === "en"
                   ? "bg-primary text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:text-primary dark:text-[#c4c8bd]"
+                  : "text-on-surface-variant hover:text-primary"
               }`}
               title="English"
             >
@@ -101,7 +101,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               {/* Desktop Trigger (with Name & Arrow) */}
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="hidden md:flex items-center gap-3 px-3 py-2 rounded-full hover:bg-surface-container-low/20 text-[#444840] dark:text-[#c4c8bd] hover:text-[#775a19] dark:hover:text-[#d2eac5] transition-colors duration-300"
+                className="hidden md:flex items-center gap-3 px-3 py-2 rounded-full hover:bg-surface-container-low/20 text-[#444840] hover:text-[#775a19] transition-colors duration-300"
                 title={auth.user.name}
               >
                 {/* Avatar */}
@@ -118,10 +118,10 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                     <span className="material-symbols-outlined text-lg">person</span>
                   )}
                 </div>
-                <span className="font-body text-sm font-medium text-[#444840] dark:text-[#c4c8bd]">
+                <span className="font-body text-sm font-medium text-[#444840]">
                   {auth.user.name}
                 </span>
-                <span className="material-symbols-outlined text-lg text-[#444840] dark:text-[#c4c8bd]">
+                <span className="material-symbols-outlined text-lg text-[#444840]">
                   {isDropdownOpen ? "expand_less" : "expand_more"}
                 </span>
               </button>
@@ -235,14 +235,22 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               <div className="flex items-center gap-3 px-4 py-3 bg-surface-container-low rounded-2xl border border-outline-variant/10">
                 <div className="w-11 h-11 rounded-full overflow-hidden shrink-0 border border-primary/20">
                   {auth.user.avatar_url ? (
-                    <img src={auth.user.avatar_url} alt={auth.user.name} className="w-full h-full object-cover" />
+                    <img
+                      src={auth.user.avatar_url}
+                      alt={auth.user.name}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <span className="material-symbols-outlined text-xl">person</span>
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-headline text-sm font-bold text-on-surface leading-tight truncate">{auth.user.name}</p>
-                  <p className="font-body text-xs text-on-surface-variant truncate">{auth.user.email}</p>
+                  <p className="font-headline text-sm font-bold text-on-surface leading-tight truncate">
+                    {auth.user.name}
+                  </p>
+                  <p className="font-body text-xs text-on-surface-variant truncate">
+                    {auth.user.email}
+                  </p>
                 </div>
               </div>
 
@@ -308,7 +316,9 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
 
                 {/* Mobile Language Selector */}
                 <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="font-body text-sm font-semibold text-on-surface-variant">{t("Language")}</span>
+                  <span className="font-body text-sm font-semibold text-on-surface-variant">
+                    {t("Language")}
+                  </span>
                   <div className="flex items-center gap-1 bg-surface-container rounded-full p-0.5">
                     <button
                       onClick={() => {
@@ -316,7 +326,9 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                         setIsDropdownOpen(false);
                       }}
                       className={`text-[10px] font-bold py-1 px-3 rounded-full uppercase tracking-widest transition-all ${
-                        locale === "id" ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant"
+                        locale === "id"
+                          ? "bg-primary text-on-primary shadow-sm"
+                          : "text-on-surface-variant"
                       }`}
                     >
                       ID
@@ -327,7 +339,9 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                         setIsDropdownOpen(false);
                       }}
                       className={`text-[10px] font-bold py-1 px-3 rounded-full uppercase tracking-widest transition-all ${
-                        locale === "en" ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant"
+                        locale === "en"
+                          ? "bg-primary text-on-primary shadow-sm"
+                          : "text-on-surface-variant"
                       }`}
                     >
                       EN
@@ -381,7 +395,9 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
 
                 {/* Mobile Language Selector */}
                 <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="font-body text-sm font-semibold text-on-surface-variant">{t("Language")}</span>
+                  <span className="font-body text-sm font-semibold text-on-surface-variant">
+                    {t("Language")}
+                  </span>
                   <div className="flex items-center gap-1 bg-surface-container rounded-full p-0.5">
                     <button
                       onClick={() => {
@@ -389,7 +405,9 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                         setIsDropdownOpen(false);
                       }}
                       className={`text-[10px] font-bold py-1 px-3 rounded-full uppercase tracking-widest transition-all ${
-                        locale === "id" ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant"
+                        locale === "id"
+                          ? "bg-primary text-on-primary shadow-sm"
+                          : "text-on-surface-variant"
                       }`}
                     >
                       ID
@@ -400,7 +418,9 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                         setIsDropdownOpen(false);
                       }}
                       className={`text-[10px] font-bold py-1 px-3 rounded-full uppercase tracking-widest transition-all ${
-                        locale === "en" ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant"
+                        locale === "en"
+                          ? "bg-primary text-on-primary shadow-sm"
+                          : "text-on-surface-variant"
                       }`}
                     >
                       EN
