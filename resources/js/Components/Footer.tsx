@@ -55,12 +55,12 @@ export default function Footer() {
               alt="Satutera Logo"
               className="h-5 w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity"
             />
-            <span className="font-body text-sm font-semibold text-white/70 group-hover:text-white transition-colors">
-              {/* Satutera */}
+            {/* <span className="font-body text-sm font-semibold text-white/70 group-hover:text-white transition-colors">
+              Satutera
             </span>
             <span className="font-body text-xs text-white/40 group-hover:text-white/60 transition-colors hidden sm:inline">
               · Bali, Indonesia
-            </span>
+            </span> */}
             {/* <span className="material-symbols-outlined text-[14px] text-white/40 group-hover:text-white/70 transition-colors">
               open_in_new
             </span> */}
