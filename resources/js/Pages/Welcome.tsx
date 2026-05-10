@@ -1,4 +1,5 @@
 import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 import UpcomingEvents from "@/Components/UpcomingEvents";
 import { useTranslate } from "@/hooks/useTranslate";
 import { GontorEvent, PageProps } from "@/types";
@@ -179,43 +180,7 @@ export default function Welcome({ upcomingEvents, auth }: WelcomeProps) {
 
         <UpcomingEvents events={upcomingEvents} />
 
-        <footer className="bg-primary dark:bg-[#150203] full-width py-12">
-          <div className="max-w-7xl mx-auto px-6 flex flex-col items-center text-center gap-6">
-            <div className="font-headline text-white font-bold text-2xl mb-4">
-              Dynamic Foundation
-            </div>
-            <div className="flex flex-wrap justify-center gap-6 mb-8">
-              <a
-                href="#"
-                className="font-body text-sm text-white/80 hover:text-white transition-colors"
-              >
-                {t("Privacy Policy")}
-              </a>
-              <a
-                href="#"
-                className="font-body text-sm text-white/80 hover:text-white transition-colors"
-              >
-                {t("Terms of Service")}
-              </a>
-              <a
-                href="#"
-                className="font-body text-sm text-white/80 hover:text-white transition-colors"
-              >
-                {t("Contact Us")}
-              </a>
-              <a
-                href="#"
-                className="font-body text-sm text-white/80 hover:text-white transition-colors"
-              >
-                {t("Alumni Network")}
-              </a>
-            </div>
-            <p className="font-body text-xs text-white/60">
-              © {new Date().getFullYear()} Dyanamic Everywhere.{" "}
-              {t("Powered by Marhalaty an Open Source for Alumni Platform.")}
-            </p>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   );
