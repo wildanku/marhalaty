@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { ReactElement } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { PageProps, GontorEvent, Rsvp, CustomFormField } from "@/types";
@@ -44,32 +44,19 @@ const formatDate = (dateStr: string) =>
 
 // ─── Payment Channels ─────────────────────────────────────────────────────────
 
-interface PaymentChannel {
+interface PaymentChannelData {
   code: string;
   name: string;
-  method: "qris" | "va";
   fee: number;
-  feeType: "fixed" | "percentage";
-  desc?: string;
+  fee_type: "fixed" | "percentage";
+  image?: string;
+  metadata?: Record<string, unknown>;
 }
 
-const PAYMENT_CHANNELS: PaymentChannel[] = [
-  {
-    code: "qris",
-    name: "QRIS",
-    method: "qris",
-    fee: 0.7,
-    feeType: "percentage",
-    desc: "Semua e-wallet & m-banking",
-  },
-  { code: "bca", name: "BCA Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
-  { code: "bni", name: "BNI Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
-  { code: "bri", name: "BRI Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
-  { code: "mandiri", name: "Mandiri Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
-  { code: "bsi", name: "BSI Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
-  { code: "btn", name: "BTN Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
-  { code: "permata", name: "Permata Virtual Account", method: "va", fee: 4000, feeType: "fixed" },
-];
+// Flattened channel for easier UI rendering
+interface PaymentChannel extends PaymentChannelData {
+  method: "qris" | "va";
+}
 
 // ─── Step Config ─────────────────────────────────────────────────────────────
 
@@ -174,6 +161,32 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
   // ── View / Step State ─────────────────────────────────────────────────────
   const [view, setView] = useState<"detail" | "stepper">("detail");
   const [stepIndex, setStepIndex] = useState(0);
+  const [paymentChannels, setPaymentChannels] = useState<PaymentChannel[]>([]);
+
+  // ── Fetch Payment Channels ─────────────────────────────────────────────────
+  useEffect(() => {
+    const fetchChannels = async () => {
+      try {
+        const response = await fetch("/api/payment-channels");
+        const data: Array<{ method: "qris" | "va"; channels: PaymentChannelData[] }> =
+          await response.json();
+        // Flatten the structure and add method field
+        const flattened: PaymentChannel[] = [];
+        data.forEach((group) => {
+          group.channels.forEach((ch) => {
+            flattened.push({
+              ...ch,
+              method: group.method,
+            });
+          });
+        });
+        setPaymentChannels(flattened);
+      } catch (err) {
+        console.error("Failed to fetch payment channels:", err);
+      }
+    };
+    fetchChannels();
+  }, []);
 
   // ── Active Steps ──────────────────────────────────────────────────────────
   const activeSteps = useMemo(
@@ -196,8 +209,29 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     const pkg = parseFloat(selectedPackage?.price ?? "0");
     const infak = parseFloat(data.infak_amount) || 0;
     const addons = data.addons.reduce((s, a) => s + a.price * a.quantity, 0);
-    return { pkg, infak, addons, total: pkg + infak + addons };
-  }, [selectedPackage, data.infak_amount, data.addons]);
+    const subtotal = pkg + infak + addons;
+
+    // Calculate admin fee
+    let adminFee = 0;
+    if (data.payment_provider === "ipaymu" && data.payment_channel) {
+      const channel = paymentChannels.find((ch) => ch.code === data.payment_channel);
+      if (channel) {
+        adminFee =
+          channel.fee_type === "percentage"
+            ? Math.round(subtotal * (channel.fee / 100))
+            : channel.fee;
+      }
+    }
+
+    return { pkg, infak, addons, subtotal, adminFee, total: subtotal + adminFee };
+  }, [
+    selectedPackage,
+    data.infak_amount,
+    data.addons,
+    data.payment_provider,
+    data.payment_channel,
+    paymentChannels,
+  ]);
 
   // ── Min Price ─────────────────────────────────────────────────────────────
   const minPrice = useMemo(() => {
@@ -1120,6 +1154,47 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           </div>
         )}
 
+        {/* Admin Fee */}
+        {totals.adminFee > 0 && (
+          <div className="p-4 border-b border-surface-container-high">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span
+                  className="material-symbols-outlined text-[16px] text-orange-600"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  receipt
+                </span>
+                <div>
+                  <span className="font-body text-sm text-on-surface">Biaya Admin</span>
+                  {data.payment_channel &&
+                    paymentChannels.length > 0 &&
+                    (() => {
+                      const channel = paymentChannels.find(
+                        (ch) => ch.code === data.payment_channel
+                      );
+                      if (channel) {
+                        const feeLabel =
+                          channel.fee_type === "percentage"
+                            ? `${channel.fee}%`
+                            : formatRupiah(channel.fee);
+                        return (
+                          <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                            {feeLabel}
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
+                </div>
+              </div>
+              <span className="font-body text-sm font-semibold text-orange-600">
+                +{formatRupiah(totals.adminFee)}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Total */}
         <div className="p-4 bg-primary/5">
           <div className="flex justify-between items-center">
@@ -1219,51 +1294,61 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
 
         {/* iPaymu channel picker */}
         {data.payment_provider === "ipaymu" && (
-          <div className="pl-2 space-y-2">
+          <div className="pl-2 space-y-3">
             <p className="font-body text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
               Pilih Metode Pembayaran
             </p>
-            <div className="grid grid-cols-2 gap-2">
-              {PAYMENT_CHANNELS.map((ch) => {
+            <div className="space-y-2">
+              {paymentChannels.map((ch) => {
                 const isSelected = data.payment_channel === ch.code;
                 const feeLabel =
-                  ch.feeType === "percentage"
+                  ch.fee_type === "percentage"
                     ? `+${ch.fee}%`
                     : ch.fee === 0
                       ? "Gratis"
                       : `+${new Intl.NumberFormat("id-ID").format(ch.fee)}`;
+                const displayName =
+                  ch.code === "qris" ? "QRIS" : ch.name.replace(" Virtual Account", "");
                 return (
                   <button
                     key={ch.code}
                     type="button"
                     onClick={() => setData("payment_channel", ch.code)}
-                    className={`flex flex-col items-start p-3 rounded-xl border-2 text-left transition-all ${
+                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
                       isSelected
                         ? "border-primary bg-primary/5"
                         : "border-surface-container hover:border-outline-variant bg-surface"
                     }`}
                   >
-                    <div className="flex items-center justify-between w-full mb-1">
-                      <span className="font-headline font-bold text-xs text-on-surface">
-                        {ch.code === "qris" ? "QRIS" : ch.name.replace(" Virtual Account", " VA")}
-                      </span>
-                      {isSelected && (
-                        <span
-                          className="material-symbols-outlined text-primary text-[14px]"
-                          style={{ fontVariationSettings: "'FILL' 1" }}
-                        >
-                          check_circle
-                        </span>
-                      )}
-                    </div>
-                    {ch.desc && (
-                      <p className="font-body text-[10px] text-on-surface-variant leading-tight mb-1">
-                        {ch.desc}
-                      </p>
+                    {/* Logo/Image */}
+                    {ch.image && (
+                      <img
+                        src={ch.image}
+                        alt={ch.name}
+                        className="w-12 h-12 object-contain shrink-0"
+                      />
                     )}
-                    <span className="font-body text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-                      Biaya {feeLabel}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-headline font-bold text-sm text-on-surface">
+                          {displayName}
+                        </span>
+                        {isSelected && (
+                          <span
+                            className="material-symbols-outlined text-primary text-[20px] shrink-0"
+                            style={{ fontVariationSettings: "'FILL' 1" }}
+                          >
+                            check_circle
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="font-body text-xs text-on-surface-variant">Biaya</span>
+                        <span className="font-body text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                          {feeLabel}
+                        </span>
+                      </div>
+                    </div>
                   </button>
                 );
               })}
@@ -1321,53 +1406,104 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
       <StepperProgress steps={activeSteps} currentIndex={stepIndex} />
 
       {/* Step content */}
-      <div className="bg-surface-container-lowest rounded-2xl p-6 md:p-8 shadow-[0px_10px_40px_rgba(80,100,71,0.06)] border border-surface-container-high">
+      <div
+        className={`bg-surface-container-lowest rounded-2xl p-6 md:p-8 shadow-[0px_10px_40px_rgba(80,100,71,0.06)] border border-surface-container-high ${
+          currentStep?.key === "konfirmasi" ? "pb-32" : ""
+        }`}
+      >
         {currentStep && stepperContent[currentStep.key]}
       </div>
 
-      {/* Navigation buttons */}
-      <div className="flex items-center justify-between mt-6 gap-3">
-        <button
-          type="button"
-          onClick={goBack}
-          className="flex items-center gap-2 px-5 py-3 rounded-full border-2 border-surface-container text-on-surface-variant font-body font-semibold text-sm hover:border-outline-variant transition-all"
-        >
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          Kembali
-        </button>
+      {/* Navigation buttons / Konfirmasi Footer */}
+      {currentStep?.key === "konfirmasi" ? (
+        <div className="fixed bottom-0 left-0 right-0 z-20 bg-surface-container-lowest border-t border-surface-container-high">
+          {/* Total Amount */}
+          <div className="px-4 md:px-8 py-3 border-b border-surface-container-high bg-primary/5">
+            <div className="flex items-center justify-between max-w-2xl mx-auto">
+              <span className="font-body text-sm text-on-surface-variant">
+                Total yang harus dibayar
+              </span>
+              <span className="font-headline font-bold text-primary text-lg">
+                {formatRupiah(totals.total)}
+              </span>
+            </div>
+          </div>
+          {/* Action buttons */}
+          <div className="flex items-center justify-between gap-3 px-4 md:px-8 py-4 max-w-2xl mx-auto w-full">
+            <button
+              type="button"
+              onClick={goBack}
+              className="flex items-center gap-2 px-5 py-3 rounded-full border-2 border-surface-container text-on-surface-variant font-body font-semibold text-sm hover:border-outline-variant transition-all"
+            >
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              Kembali
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={processing}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-on-primary font-headline font-bold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {processing ? (
+                <>
+                  <span className="material-symbols-outlined text-[18px] animate-spin">
+                    progress_activity
+                  </span>
+                  Memproses...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">payment</span>
+                  Konfirmasi & Bayar
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between mt-6 gap-3">
+          <button
+            type="button"
+            onClick={goBack}
+            className="flex items-center gap-2 px-5 py-3 rounded-full border-2 border-surface-container text-on-surface-variant font-body font-semibold text-sm hover:border-outline-variant transition-all"
+          >
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Kembali
+          </button>
 
-        {isLastStep ? (
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={processing}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-on-primary font-headline font-bold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {processing ? (
-              <>
-                <span className="material-symbols-outlined text-[18px] animate-spin">
-                  progress_activity
-                </span>
-                Memproses...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-[18px]">payment</span>
-                Konfirmasi & Bayar
-              </>
-            )}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={goNext}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-on-primary font-headline font-bold text-sm hover:opacity-90 transition-all"
-          >
-            Lanjut
-            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-          </button>
-        )}
-      </div>
+          {isLastStep ? (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={processing}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-on-primary font-headline font-bold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {processing ? (
+                <>
+                  <span className="material-symbols-outlined text-[18px] animate-spin">
+                    progress_activity
+                  </span>
+                  Memproses...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">payment</span>
+                  Konfirmasi & Bayar
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={goNext}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-on-primary font-headline font-bold text-sm hover:opacity-90 transition-all"
+            >
+              Lanjut
+              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 

@@ -52,6 +52,9 @@ Route::middleware('auth')->group(function () {
 // Public Event Detail Route
 Route::get('/events/{slug}', [\App\Domains\Event\Controllers\EventController::class, 'show'])->name('events.show');
 
+// Public API: Payment channels data
+Route::get('/api/payment-channels', [\App\Domains\Event\Controllers\EventController::class, 'paymentChannels'])->name('api.payment-channels');
+
 // Hash-based payment pages (public – hash is the access token)
 Route::get('/payment/{hash}', [\App\Domains\Event\Controllers\PaymentPageController::class, 'show'])->name('payment.show');
 Route::get('/payment-confirmation/{hash}', [\App\Domains\Event\Controllers\PaymentPageController::class, 'confirmationShow'])->name('payment.confirmation.show');

@@ -63,4 +63,13 @@ class EventController extends Controller
             'image_url'    => $event->getFirstMediaUrl('event-images'),
         ]);
     }
+
+    /**
+     * Get available payment channels for iPaymu (for frontend to render payment method selection).
+     */
+    public function paymentChannels()
+    {
+        $ipaymuService = new \App\Domains\Shared\Services\IPaymuService();
+        return response()->json($ipaymuService->getPaymentChannels());
+    }
 }
