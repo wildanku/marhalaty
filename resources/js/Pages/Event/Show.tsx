@@ -314,7 +314,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
         <div className="flex-1 min-w-0">
           {/* Hero Banner */}
           {image_url ? (
-            <div className="w-full rounded-2xl h-52 md:h-52 mb-6 overflow-hidden relative">
+            <div className="w-full rounded-2xl h-auto md:h-52 mb-6 overflow-hidden relative">
               <img src={image_url} alt={event.title} className="w-full h-full object-cover" />
             </div>
           ) : (
@@ -678,7 +678,11 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                 <div className="flex justify-between items-start gap-2 mb-1">
                   <div className="flex items-center gap-3">
                     {pkg.image_url && (
-                      <img src={pkg.image_url} alt={pkg.name} className="w-10 h-10 object-cover rounded-lg border border-surface-container-high shrink-0" />
+                      <img
+                        src={pkg.image_url}
+                        alt={pkg.name}
+                        className="w-10 h-10 object-cover rounded-lg border border-surface-container-high shrink-0"
+                      />
                     )}
                     <span className="font-headline font-bold text-on-surface text-base">
                       {pkg.name}
@@ -855,7 +859,11 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex items-center gap-3">
                     {addon.image_url && (
-                      <img src={addon.image_url} alt={addon.name} className="w-12 h-12 object-cover rounded-xl border border-surface-container-high shrink-0" />
+                      <img
+                        src={addon.image_url}
+                        alt={addon.name}
+                        className="w-12 h-12 object-cover rounded-xl border border-surface-container-high shrink-0"
+                      />
                     )}
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
