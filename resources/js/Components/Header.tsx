@@ -38,7 +38,7 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               Dynamic
             </span>
             <span className="text-sm font-semibold text-secondary font-headline tracking-tight leading-none mt-0.5">
-              Foundation
+              Muleh 87
             </span>
           </div>
         </Link>

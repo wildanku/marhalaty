@@ -258,6 +258,16 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
   };
 
   const goNext = () => {
+    // Validate package selection when on package step
+    if (currentStep?.key === "package" && data.event_package_id === null) {
+      return;
+    }
+
+    // Validate addon variants when on addons step
+    if (currentStep?.key === "addons" && !validateAddonVariants()) {
+      return;
+    }
+
     if (stepIndex < activeSteps.length - 1) {
       setStepIndex((s) => s + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -330,6 +340,54 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
       ...data.included_addon_variants,
       [addonId]: { ...prev, [variantKey]: newArr },
     });
+  };
+
+  // ── Validate addon variants ────────────────────────────────────────────────
+  const validateAddonVariants = () => {
+    const includedAddons = selectedPackage?.included_addons ?? [];
+    const purchasableAddons = event.addons ?? [];
+
+    // Check included addons with variants
+    for (const addon of includedAddons) {
+      const variantKeys = addon.variants ? Object.keys(addon.variants) : [];
+      if (variantKeys.length > 0) {
+        const qty = addon.pivot.included_quantity;
+        const addonVariants = data.included_addon_variants[addon.id] ?? {};
+
+        // Check each slot must have all variants filled
+        for (let slotIdx = 0; slotIdx < qty; slotIdx++) {
+          for (const vKey of variantKeys) {
+            const selectedVal = addonVariants[vKey]?.[slotIdx] ?? "";
+            if (!selectedVal) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+
+    // Check purchasable addons with variants
+    for (const addon of purchasableAddons) {
+      const addonQty = getAddonQty(addon.id);
+      if (addonQty > 0) {
+        const variantKeys = addon.variants ? Object.keys(addon.variants) : [];
+        if (variantKeys.length > 0) {
+          const addonVariants = data.purchased_addon_variants[addon.id] ?? {};
+
+          // Check each slot must have all variants filled
+          for (let slotIdx = 0; slotIdx < addonQty; slotIdx++) {
+            for (const vKey of variantKeys) {
+              const selectedVal = addonVariants[vKey]?.[slotIdx] ?? "";
+              if (!selectedVal) {
+                return false;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return true;
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -724,6 +782,19 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           {errors.event_package_id}
         </p>
       )}
+      {currentStep?.key === "package" && data.event_package_id === null && (
+        <div className="rounded-2xl border border-error/30 bg-error/5 p-4 flex items-start gap-2.5">
+          <span className="material-symbols-outlined text-error text-[18px] mt-0.5">warning</span>
+          <div>
+            <p className="font-headline text-sm font-bold text-error">
+              Pilih Paket Terlebih Dahulu
+            </p>
+            <p className="font-body text-xs text-error/80 leading-relaxed mt-1">
+              Kamu harus memilih salah satu paket untuk melanjutkan ke langkah berikutnya.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="space-y-3">
         {event.packages?.map((pkg) => {
           const isSoldOut = pkg.stock_quantity !== null && pkg.stock_quantity < 1;
@@ -909,6 +980,27 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                   </span>
                 </div>
 
+                {variantKeys.length > 0 &&
+                  (() => {
+                    const isComplete = Array.from({ length: qty }, (_, slotIdx) =>
+                      variantKeys.every((vKey) => {
+                        const selectedVal = addonVariants[vKey]?.[slotIdx] ?? "";
+                        return !!selectedVal;
+                      })
+                    ).every((v) => v);
+
+                    return !isComplete ? (
+                      <div className="rounded-lg border border-error/30 bg-error/5 p-3 flex items-start gap-2">
+                        <span className="material-symbols-outlined text-error text-[16px] mt-0.5 shrink-0">
+                          error
+                        </span>
+                        <p className="font-body text-xs text-error/80">
+                          Pilih semua varian untuk melanjutkan
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
+
                 {variantKeys.length > 0 ? (
                   <div className="space-y-3 pt-1">
                     {Array.from({ length: qty }, (_, slotIdx) => (
@@ -1052,6 +1144,28 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                     </button>
                   </div>
                 </div>
+
+                {qty > 0 &&
+                  variantKeys.length > 0 &&
+                  (() => {
+                    const isComplete = Array.from({ length: qty }, (_, slotIdx) =>
+                      variantKeys.every((vKey) => {
+                        const selectedVal = addonVariants[vKey]?.[slotIdx] ?? "";
+                        return !!selectedVal;
+                      })
+                    ).every((v) => v);
+
+                    return !isComplete ? (
+                      <div className="rounded-lg border border-error/30 bg-error/5 p-3 flex items-start gap-2">
+                        <span className="material-symbols-outlined text-error text-[16px] mt-0.5 shrink-0">
+                          error
+                        </span>
+                        <p className="font-body text-xs text-error/80">
+                          Pilih semua varian untuk melanjutkan
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
 
                 {/* Per-slot variant picker when qty > 0 and has variants */}
                 {qty > 0 && variantKeys.length > 0 && (
@@ -1602,7 +1716,16 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
             <button
               type="button"
               onClick={goNext}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-on-primary font-headline font-bold text-sm hover:opacity-90 transition-all"
+              disabled={
+                (currentStep?.key === "package" && data.event_package_id === null) ||
+                (currentStep?.key === "addons" && !validateAddonVariants())
+              }
+              className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full font-headline font-bold text-sm transition-all ${
+                (currentStep?.key === "package" && data.event_package_id === null) ||
+                (currentStep?.key === "addons" && !validateAddonVariants())
+                  ? "bg-surface-container text-on-surface-variant cursor-not-allowed opacity-50"
+                  : "bg-primary text-on-primary hover:opacity-90"
+              }`}
             >
               Lanjut
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>

@@ -6,9 +6,7 @@ export default function Footer() {
   return (
     <footer className="bg-primary dark:bg-[#150203] full-width py-12">
       <div className="max-w-7xl mx-auto px-6 flex flex-col items-center text-center gap-6">
-        <div className="font-headline text-white font-bold text-2xl mb-4">
-          Dynamic Foundation
-        </div>
+        <div className="font-headline text-white font-bold text-2xl mb-4">Dynamic Muleh 87</div>
 
         <div className="flex flex-wrap justify-center gap-6 mb-4">
           <a
@@ -44,9 +42,7 @@ export default function Footer() {
 
         {/* Satutera Attribution */}
         <div className="mt-4 pt-6 border-t border-white/10 w-full flex flex-col items-center gap-3">
-          <p className="font-body text-xs text-white/50">
-            {t("Developed and designed by")}
-          </p>
+          <p className="font-body text-xs text-white/50">{t("Developed and designed by")}</p>
           <a
             href="https://www.satutera.com"
             target="_blank"
