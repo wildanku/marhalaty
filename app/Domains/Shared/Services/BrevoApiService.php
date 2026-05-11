@@ -10,7 +10,7 @@ class BrevoApiService
 {
     private Client $client;
     private string $apiKey;
-    private const API_BASE_URL = 'https://api.brevo.com/v3';
+    private const API_BASE_URL = 'https://api.brevo.com/v3/';
 
     public function __construct()
     {
