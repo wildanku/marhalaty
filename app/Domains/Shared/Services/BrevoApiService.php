@@ -22,6 +22,12 @@ class BrevoApiService
             );
         }
         
+        // Debug: Log the API key length and first few chars (safe)
+        Log::debug('BrevoApiService initialized', [
+            'api_key_length' => strlen($this->apiKey),
+            'api_key_prefix' => substr($this->apiKey, 0, 10) . '...',
+        ]);
+        
         $this->client = new Client([
             'base_uri' => self::API_BASE_URL,
             'headers' => [
@@ -77,6 +83,14 @@ class BrevoApiService
                 $payload['replyTo'] = $replyTo;
             }
 
+            Log::debug('BrevoApiService sending email', [
+                'to' => $toEmail,
+                'subject' => $subject,
+                'api_key_set' => !empty($this->apiKey),
+                'base_url' => self::API_BASE_URL,
+                'endpoint' => 'smtp/email',
+            ]);
+
             $response = $this->client->post('smtp/email', [
                 'json' => $payload,
             ]);
@@ -99,12 +113,17 @@ class BrevoApiService
                 'to' => $toEmail,
                 'subject' => $subject,
                 'error' => $e->getMessage(),
+                'api_key_length' => strlen($this->apiKey),
                 'response' => $e->getResponse()?->getBody()->getContents(),
             ]);
 
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
+                'debug_info' => [
+                    'api_key_length' => strlen($this->apiKey),
+                    'api_key_empty' => empty($this->apiKey),
+                ],
                 'response' => $e->getResponse()?->getBody()->getContents(),
             ];
         } catch (\Exception $e) {
