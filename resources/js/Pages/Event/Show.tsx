@@ -151,6 +151,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     custom_form_data: Record<string, string>;
     included_addon_variants: IncludedAddonVariants;
     purchased_addon_variants: IncludedAddonVariants;
+    included_addon_forms: Record<number, Record<string, string>>;
+    purchased_addon_forms: Record<number, Record<string, Record<string, string>>>;
     payment_provider: "manual" | "ipaymu";
     payment_channel: string;
   }>({
@@ -160,6 +162,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     custom_form_data: {},
     included_addon_variants: {},
     purchased_addon_variants: {},
+    included_addon_forms: {},
+    purchased_addon_forms: {},
     payment_provider: "manual",
     payment_channel: "",
   });
@@ -342,19 +346,44 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     });
   };
 
+  const handleIncludedAddonForm = (addonId: number, formKey: string, value: string) => {
+    const prev = data.included_addon_forms[addonId] ?? {};
+    setData("included_addon_forms", {
+      ...data.included_addon_forms,
+      [addonId]: { ...prev, [formKey]: value },
+    });
+  };
+
+  const handlePurchasedAddonForm = (
+    addonId: number,
+    slotIndex: number,
+    formKey: string,
+    value: string
+  ) => {
+    const prev = data.purchased_addon_forms[addonId] ?? {};
+    const slotData = prev[slotIndex] ?? {};
+    setData("purchased_addon_forms", {
+      ...data.purchased_addon_forms,
+      [addonId]: { ...prev, [slotIndex]: { ...slotData, [formKey]: value } },
+    });
+  };
+
   // ── Validate addon variants ────────────────────────────────────────────────
   const validateAddonVariants = () => {
     const includedAddons = selectedPackage?.included_addons ?? [];
     const purchasableAddons = event.addons ?? [];
 
-    // Check included addons with variants
+    // Check included addons with variants and forms
     for (const addon of includedAddons) {
-      const variantKeys = addon.variants ? Object.keys(addon.variants) : [];
+      const variantKeys = addon.variants
+        ? Object.keys(addon.variants).filter((k) => k !== "forms")
+        : [];
+
+      // Check variants for each slot
       if (variantKeys.length > 0) {
         const qty = addon.pivot.included_quantity;
         const addonVariants = data.included_addon_variants[addon.id] ?? {};
 
-        // Check each slot must have all variants filled
         for (let slotIdx = 0; slotIdx < qty; slotIdx++) {
           for (const vKey of variantKeys) {
             const selectedVal = addonVariants[vKey]?.[slotIdx] ?? "";
@@ -364,21 +393,49 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           }
         }
       }
+
+      // Check forms (no quantity slots for included addons)
+      if (addon.variants && (addon.variants as any).forms) {
+        const forms = (addon.variants as any).forms as any[];
+        const addonForms = data.included_addon_forms[addon.id] ?? {};
+        for (const form of forms) {
+          if (form.required && !addonForms[form.key]?.trim()) {
+            return false;
+          }
+        }
+      }
     }
 
-    // Check purchasable addons with variants
+    // Check purchasable addons with variants and forms
     for (const addon of purchasableAddons) {
       const addonQty = getAddonQty(addon.id);
       if (addonQty > 0) {
-        const variantKeys = addon.variants ? Object.keys(addon.variants) : [];
+        const variantKeys = addon.variants
+          ? Object.keys(addon.variants).filter((k) => k !== "forms")
+          : [];
+
+        // Check variants for each slot
         if (variantKeys.length > 0) {
           const addonVariants = data.purchased_addon_variants[addon.id] ?? {};
 
-          // Check each slot must have all variants filled
           for (let slotIdx = 0; slotIdx < addonQty; slotIdx++) {
             for (const vKey of variantKeys) {
               const selectedVal = addonVariants[vKey]?.[slotIdx] ?? "";
               if (!selectedVal) {
+                return false;
+              }
+            }
+          }
+        }
+
+        // Check forms for each slot
+        if (addon.variants && (addon.variants as any).forms) {
+          const forms = (addon.variants as any).forms as any[];
+          const addonForms = data.purchased_addon_forms[addon.id] ?? {};
+          for (let slotIdx = 0; slotIdx < addonQty; slotIdx++) {
+            const slotForms = addonForms[slotIdx] ?? {};
+            for (const form of forms) {
+              if (form.required && !slotForms[form.key]?.trim()) {
                 return false;
               }
             }
@@ -1045,6 +1102,80 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                     Tidak ada varian untuk item ini.
                   </p>
                 )}
+
+                {/* Addon Forms for Included Addons */}
+                {addon.variants && (addon.variants as any).forms && (
+                  <div className="space-y-3 pt-3 border-t border-surface-container-high">
+                    {((addon.variants as any).forms as any[]).map((form: any) => {
+                      const addonForms = data.included_addon_forms[addon.id] ?? {};
+                      const value = addonForms[form.key] ?? "";
+                      const isRequired = form.required;
+                      const isError = isRequired && !value.trim();
+
+                      return (
+                        <div key={form.key}>
+                          <label className="block font-body text-xs font-semibold text-on-surface mb-1.5">
+                            {form.label}
+                            {isRequired && <span className="text-error ml-1">*</span>}
+                          </label>
+                          {form.type === "textarea" ? (
+                            <textarea
+                              value={value}
+                              onChange={(e) =>
+                                handleIncludedAddonForm(addon.id, form.key, e.target.value)
+                              }
+                              placeholder={form.placeholder || ""}
+                              className={`w-full px-3 py-2 rounded-lg border-2 font-body text-sm outline-none transition-colors ${
+                                isError
+                                  ? "border-error/50 bg-error/5 text-on-surface"
+                                  : "border-surface-container-high bg-surface text-on-surface focus:border-primary"
+                              }`}
+                              rows={3}
+                            />
+                          ) : form.type === "select" ? (
+                            <select
+                              value={value}
+                              onChange={(e) =>
+                                handleIncludedAddonForm(addon.id, form.key, e.target.value)
+                              }
+                              className={`w-full px-3 py-2 rounded-lg border-2 font-body text-sm outline-none transition-colors ${
+                                isError
+                                  ? "border-error/50 bg-error/5 text-on-surface"
+                                  : "border-surface-container-high bg-surface text-on-surface focus:border-primary"
+                              }`}
+                            >
+                              <option value="">-- Pilih {form.label.toLowerCase()} --</option>
+                              {form.options?.map((opt: string) => (
+                                <option key={opt} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type={form.type || "text"}
+                              value={value}
+                              onChange={(e) =>
+                                handleIncludedAddonForm(addon.id, form.key, e.target.value)
+                              }
+                              placeholder={form.placeholder || ""}
+                              className={`w-full px-3 py-2 rounded-lg border-2 font-body text-sm outline-none transition-colors ${
+                                isError
+                                  ? "border-error/50 bg-error/5 text-on-surface"
+                                  : "border-surface-container-high bg-surface text-on-surface focus:border-primary"
+                              }`}
+                            />
+                          )}
+                          {isError && (
+                            <p className="mt-1 font-body text-xs text-error">
+                              {form.label} wajib diisi
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1201,6 +1332,103 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                                   </button>
                                 ))}
                               </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Addon Forms for Purchased Addons */}
+                {qty > 0 && addon.variants && (addon.variants as any).forms && (
+                  <div className="space-y-3 pt-3 border-t border-surface-container-high">
+                    {Array.from({ length: qty }, (_, slotIdx) => (
+                      <div key={slotIdx} className="bg-surface rounded-xl p-3 space-y-2">
+                        <p className="font-body text-xs font-semibold text-on-surface-variant">
+                          Item #{slotIdx + 1} - Informasi Tambahan
+                        </p>
+                        {((addon.variants as any).forms as any[]).map((form: any) => {
+                          const addonForms = data.purchased_addon_forms[addon.id] ?? {};
+                          const slotForms = addonForms[slotIdx] ?? {};
+                          const value = slotForms[form.key] ?? "";
+                          const isRequired = form.required;
+                          const isError = isRequired && !value.trim();
+
+                          return (
+                            <div key={form.key}>
+                              <label className="block font-body text-xs font-semibold text-on-surface mb-1.5">
+                                {form.label}
+                                {isRequired && <span className="text-error ml-1">*</span>}
+                              </label>
+                              {form.type === "textarea" ? (
+                                <textarea
+                                  value={value}
+                                  onChange={(e) =>
+                                    handlePurchasedAddonForm(
+                                      addon.id,
+                                      slotIdx,
+                                      form.key,
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder={form.placeholder || ""}
+                                  className={`w-full px-3 py-2 rounded-lg border-2 font-body text-sm outline-none transition-colors ${
+                                    isError
+                                      ? "border-error/50 bg-error/5 text-on-surface"
+                                      : "border-surface-container-high bg-surface text-on-surface focus:border-primary"
+                                  }`}
+                                  rows={3}
+                                />
+                              ) : form.type === "select" ? (
+                                <select
+                                  value={value}
+                                  onChange={(e) =>
+                                    handlePurchasedAddonForm(
+                                      addon.id,
+                                      slotIdx,
+                                      form.key,
+                                      e.target.value
+                                    )
+                                  }
+                                  className={`w-full px-3 py-2 rounded-lg border-2 font-body text-sm outline-none transition-colors ${
+                                    isError
+                                      ? "border-error/50 bg-error/5 text-on-surface"
+                                      : "border-surface-container-high bg-surface text-on-surface focus:border-primary"
+                                  }`}
+                                >
+                                  <option value="">-- Pilih {form.label.toLowerCase()} --</option>
+                                  {form.options?.map((opt: string) => (
+                                    <option key={opt} value={opt}>
+                                      {opt}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  type={form.type || "text"}
+                                  value={value}
+                                  onChange={(e) =>
+                                    handlePurchasedAddonForm(
+                                      addon.id,
+                                      slotIdx,
+                                      form.key,
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder={form.placeholder || ""}
+                                  className={`w-full px-3 py-2 rounded-lg border-2 font-body text-sm outline-none transition-colors ${
+                                    isError
+                                      ? "border-error/50 bg-error/5 text-on-surface"
+                                      : "border-surface-container-high bg-surface text-on-surface focus:border-primary"
+                                  }`}
+                                />
+                              )}
+                              {isError && (
+                                <p className="mt-1 font-body text-xs text-error">
+                                  {form.label} wajib diisi
+                                </p>
+                              )}
                             </div>
                           );
                         })}

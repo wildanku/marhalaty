@@ -22,13 +22,22 @@ export interface User {
   business_showcase_url: string | null;
 }
 
+export interface AddonFormField {
+  label: string;
+  key: string;
+  type: "text" | "email" | "number" | "select" | "textarea";
+  placeholder?: string;
+  required: boolean;
+  options?: string[];
+}
+
 export interface EventAddon {
   id: number;
   event_id: number;
   name: string;
   price: string;
   stock_quantity: number;
-  variants: Record<string, string[]> | null;
+  variants: Record<string, string[] | AddonFormField[]> | null;
   image_url?: string | null;
 }
 

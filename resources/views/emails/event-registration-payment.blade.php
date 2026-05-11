@@ -113,6 +113,12 @@
                 <a href="{{ $paymentPageUrl }}" class="cta-button">
                     Lihat Detail Pembayaran →
                 </a>
+                <p style="font-size:12px;color:#49454F;margin-top:12px;word-break:break-all;">
+                    Atau klik link di bawah:
+                </p>
+                <p style="font-family:'Courier New',monospace;font-size:11px;background:#F5F2EE;padding:8px 12px;border-radius:6px;color:#3D5936;margin:8px 0;word-break:break-all;">
+                    {{ $paymentPageUrl }}
+                </p>
             </div>
         @endif
 
@@ -143,12 +149,24 @@
                 <a href="{{ $confirmationUrl }}" class="cta-button">
                     Upload Bukti Pembayaran →
                 </a>
+                <p style="font-size:12px;color:#49454F;margin-top:12px;word-break:break-all;">
+                    Atau klik link di bawah:
+                </p>
+                <p style="font-family:'Courier New',monospace;font-size:11px;background:#F5F2EE;padding:8px 12px;border-radius:6px;color:#3D5936;margin:8px 0;word-break:break-all;">
+                    {{ $confirmationUrl }}
+                </p>
             </div>
         @elseif($paymentPageUrl)
             <div class="cta-wrapper">
                 <a href="{{ $paymentPageUrl }}" class="cta-button">
                     Lihat Halaman Pembayaran →
                 </a>
+                <p style="font-size:12px;color:#49454F;margin-top:12px;word-break:break-all;">
+                    Atau klik link di bawah:
+                </p>
+                <p style="font-family:'Courier New',monospace;font-size:11px;background:#F5F2EE;padding:8px 12px;border-radius:6px;color:#3D5936;margin:8px 0;word-break:break-all;">
+                    {{ $paymentPageUrl }}
+                </p>
             </div>
         @endif
 

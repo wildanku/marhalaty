@@ -164,9 +164,10 @@ class EmailTesterController extends Controller
 HTML;
 
         if ($note) {
+            $escapedNote = e($note);
             $htmlContent .= <<<HTML
             <div class="note">
-                <strong>📝 Note:</strong> {$this->escapeHtml($note)}
+                <strong>📝 Note:</strong> {$escapedNote}
             </div>
 HTML;
         }
@@ -202,49 +203,20 @@ HTML;
             return $this->sendTestEmail($toEmail, '[DUMMY] Tidak ada transaksi manual. Mengirim test email.');
         }
 
-        $rsvp = $transaction->rsvp;
-        $event = $rsvp->event;
-        $user = $rsvp->user;
-        $amount = $transaction->total_amount ?? 0;
+        $rsvp         = $transaction->rsvp;
+        $event        = $rsvp->event;
+        $bankAccounts = \App\Models\Setting::get('bank_account_manual_transfer', []);
 
-        // Build HTML from template data
-        $htmlContent = <<<HTML
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <style>
-        body { font-family: Arial, sans-serif; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #ff9800; color: white; padding: 20px; border-radius: 5px; }
-        .content { padding: 20px; background: #f9f9f9; margin-top: 20px; }
-        .amount { font-size: 24px; font-weight: bold; color: #ff9800; }
-        .button { display: inline-block; background: #ff9800; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>💳 Konfirmasi Pembayaran Diperlukan</h1>
-        </div>
-        <div class="content">
-            <p>Halo {$this->escapeHtml($user->name)},</p>
-            <p>Terima kasih telah mendaftar untuk acara <strong>{$this->escapeHtml($event->title)}</strong>.</p>
-            <p>Untuk menyelesaikan pendaftaran Anda, kami memerlukan konfirmasi pembayaran sebesar:</p>
-            <div class="amount">Rp {$this->formatCurrency($amount)}</div>
-            <p><strong>Instruksi Pembayaran:</strong></p>
-            <p>Silahkan transfer ke rekening yang telah kami sediakan dan kirimkan bukti transfer.</p>
-            <a href="#" class="button">Lihat Detail Pembayaran</a>
-        </div>
-    </div>
-</body>
-</html>
-HTML;
+        $htmlContent = view('emails.event-registration-payment', [
+            'rsvp'         => $rsvp,
+            'transaction'  => $transaction,
+            'bankAccounts' => $bankAccounts,
+        ])->render();
 
         return $this->brevoApi->send(
             toEmail: $toEmail,
-            toName: $user->name,
-            subject: "💳 Konfirmasi Pembayaran - {$event->title}",
+            toName: $rsvp->user->name ?? 'Admin Tester',
+            subject: "💳 [TEST] Selesaikan Pembayaran – {$event->title}",
             htmlContent: $htmlContent,
         );
     }
@@ -264,73 +236,17 @@ HTML;
             return $this->sendTestEmail($toEmail, '[DUMMY] Tidak ada RSVP. Mengirim test email.');
         }
 
-        $event = $rsvp->event;
-        $user = $rsvp->user;
-        $eventDate = $event->event_date ? \Carbon\Carbon::parse($event->event_date)->format('d M Y H:i') : 'TBD';
-
-        // Build HTML from template data
-        $htmlContent = <<<HTML
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <style>
-        body { font-family: Arial, sans-serif; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #28a745; color: white; padding: 20px; border-radius: 5px; }
-        .content { padding: 20px; background: #f9f9f9; margin-top: 20px; }
-        .event-details { background: white; padding: 15px; border-left: 4px solid #28a745; margin: 15px 0; }
-        .button { display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>✅ Pendaftaran Dikonfirmasi</h1>
-        </div>
-        <div class="content">
-            <p>Halo {$this->escapeHtml($user->name)},</p>
-            <p>Selamat! Pendaftaran Anda untuk acara berikut telah <strong>dikonfirmasi</strong>:</p>
-            
-            <div class="event-details">
-                <h3>{$this->escapeHtml($event->title)}</h3>
-                <p><strong>📅 Tanggal:</strong> {$eventDate}</p>
-                <p><strong>📍 Lokasi:</strong> {$this->escapeHtml($event->location ?? 'TBD')}</p>
-                <p><strong>👤 Status:</strong> Terkonfirmasi</p>
-            </div>
-
-            <p>Calendar invite telah terlampir. Anda dapat menambahkannya langsung ke kalender Anda.</p>
-            
-            <p>Untuk pertanyaan lebih lanjut, silakan hubungi kami.</p>
-            
-            <a href="#" class="button">Lihat Detail Acara</a>
-        </div>
-    </div>
-</body>
-</html>
-HTML;
+        $htmlContent = view('emails.event-registration-confirmed', [
+            'rsvp'  => $rsvp,
+            'event' => $rsvp->event,
+            'user'  => $rsvp->user,
+        ])->render();
 
         return $this->brevoApi->send(
             toEmail: $toEmail,
-            toName: $user->name,
-            subject: "✅ Pendaftaran Dikonfirmasi - {$event->title}",
+            toName: $rsvp->user->name,
+            subject: "✅ [TEST] Pendaftaran Dikonfirmasi – {$rsvp->event->title}",
             htmlContent: $htmlContent,
         );
-    }
-
-    /**
-     * Escape HTML entities in a string for safe email display.
-     */
-    private function escapeHtml(string $text): string
-    {
-        return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-    }
-
-    /**
-     * Format currency amount for display (Rupiah).
-     */
-    private function formatCurrency(int|float $amount): string
-    {
-        return number_format((int)$amount, 0, ',', '.');
     }
 }
