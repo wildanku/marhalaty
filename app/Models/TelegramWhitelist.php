@@ -19,8 +19,16 @@ class TelegramWhitelist extends Model
 
     public static function isAllowed(int|string $chatId): bool
     {
-        return static::where('chat_id', $chatId)
+        $exists = static::where('chat_id', $chatId)
             ->where('is_active', true)
             ->exists();
+
+        \Illuminate\Support\Facades\Log::debug('TelegramWhitelist::isAllowed check', [
+            'chat_id'   => $chatId,
+            'exists'    => $exists,
+            'chat_id_type' => gettype($chatId),
+        ]);
+
+        return $exists;
     }
 }

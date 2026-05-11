@@ -25,68 +25,96 @@ class TelegramWebhookController extends Controller
 
     public function handle(Request $request): Response
     {
-        $update = $request->all();
+        try {
+            $update = $request->all();
 
-        Log::info('Telegram webhook received', ['update_id' => $update['update_id'] ?? null]);
+            Log::info('🔔 Telegram webhook received', ['update_id' => $update['update_id'] ?? null, 'keys' => array_keys($update)]);
 
-        // Only handle text messages
-        $message = $update['message'] ?? $update['channel_post'] ?? null;
-        if (! $message || ! isset($message['text'])) {
-            Log::debug('Telegram webhook: ignoring non-text message');
-            return response('ok', 200);
-        }
+            // Only handle text messages
+            $message = $update['message'] ?? $update['channel_post'] ?? null;
+            if (! $message || ! isset($message['text'])) {
+                Log::debug('Telegram webhook: ignoring non-text message', ['update_keys' => array_keys($update)]);
+                return response('ok', 200);
+            }
 
-        $chatId    = $message['chat']['id'];
-        $messageId = $message['message_id'];
-        $text      = trim($message['text']);
-        $fromId    = $message['from']['id'] ?? $chatId;
+            $chatId    = $message['chat']['id'] ?? null;
+            $messageId = $message['message_id'] ?? null;
+            $text      = trim($message['text'] ?? '');
+            $fromId    = $message['from']['id'] ?? $chatId;
 
-        Log::info('Telegram message received', [
-            'chat_id'    => $chatId,
-            'from_id'    => $fromId,
-            'message_id' => $messageId,
-            'text'       => $text,
-            'chat_type'  => $message['chat']['type'] ?? 'unknown',
-        ]);
-
-        // Strip bot username from command (e.g. /approve@dynamic87_bot → approve)
-        $text = preg_replace('/@\w+/', '', $text);
-        $text = ltrim($text, '/');
-
-        // ── Whitelist check ───────────────────────────────────────────────
-        if (! TelegramWhitelist::isAllowed($fromId)) {
-            Log::warning('Telegram webhook: unauthorized sender', [
-                'from_id' => $fromId,
-                'chat_id' => $chatId,
-                'text'    => $text,
+            Log::info('📨 Telegram message received', [
+                'chat_id'    => $chatId,
+                'from_id'    => $fromId,
+                'message_id' => $messageId,
+                'text'       => $text,
+                'chat_type'  => $message['chat']['type'] ?? 'unknown',
             ]);
-            // Send feedback to unauthorized user
-            $this->telegram->sendMessage($chatId,
-                "🔒 Anda tidak memiliki otorisasi untuk menjalankan command ini.\n\n" .
-                "Hubungi admin untuk akses."
-            );
-            return response('ok', 200);
-        }
 
-        Log::info('Telegram webhook: authorized sender', ['from_id' => $fromId]);
+            if (empty($chatId) || empty($messageId) || empty($text)) {
+                Log::error('❌ Missing required message fields', [
+                    'has_chat_id'    => !empty($chatId),
+                    'has_message_id' => !empty($messageId),
+                    'has_text'       => !empty($text),
+                    'message_keys'   => array_keys($message),
+                ]);
+                return response('ok', 200);
+            }
 
-        // ── Command dispatch ──────────────────────────────────────────────
-        if (preg_match('/^approve\s+(\d+)$/i', $text, $matches)) {
-            Log::info('Telegram: approve command detected', ['transaction_id' => $matches[1]]);
-            $this->handleApprove((int) $matches[1], $chatId, $messageId, $fromId);
-        } elseif (preg_match('/^reject\s+(\d+)\s+(.+)$/i', $text, $matches)) {
-            Log::info('Telegram: reject command detected', ['transaction_id' => $matches[1], 'reason' => $matches[2]]);
-            $this->handleReject((int) $matches[1], trim($matches[2]), $chatId, $messageId, $fromId);
-        } elseif (preg_match('/^(approve|reject)/i', $text)) {
-            Log::info('Telegram: invalid command format', ['text' => $text]);
-            $this->telegram->replyMessage($chatId, $messageId,
-                "⚠️ <b>Format salah.</b>\n\nGunakan:\n" .
-                "• <code>approve &lt;ID&gt;</code> - Setujui pembayaran\n" .
-                "• <code>reject &lt;ID&gt; &lt;alasan&gt;</code> - Tolak pembayaran\n\n" .
-                "<i>Contoh:</i>\n" .
-                "<code>approve 9</code>\n" .
-                "<code>reject 9 Bukti kurang jelas</code>"
-            );
+            // Strip bot username from command (e.g. /approve@dynamic87_bot → approve)
+            $text = preg_replace('/@\w+/', '', $text);
+            $text = ltrim($text, '/');
+            $text = trim($text);
+
+            Log::info('📝 Processed text', ['original' => $message['text'], 'processed' => $text]);
+
+            // ── Whitelist check ───────────────────────────────────────────────
+            $isAllowed = TelegramWhitelist::isAllowed($fromId);
+            Log::info('🔑 Whitelist check', ['from_id' => $fromId, 'is_allowed' => $isAllowed]);
+
+            if (! $isAllowed) {
+                Log::warning('🔒 Unauthorized sender attempting command', [
+                    'from_id' => $fromId,
+                    'chat_id' => $chatId,
+                    'text'    => $text,
+                ]);
+                // Send feedback to unauthorized user
+                $this->telegram->sendMessage($chatId,
+                    "🔒 Anda tidak memiliki otorisasi untuk menjalankan command ini.\n\n" .
+                    "Hubungi admin untuk akses."
+                );
+                return response('ok', 200);
+            }
+
+            Log::info('✅ Authorized sender', ['from_id' => $fromId]);
+
+            // ── Command dispatch ──────────────────────────────────────────────
+            Log::info('🔍 Checking command patterns', ['text' => $text, 'text_length' => strlen($text)]);
+
+            if (preg_match('/^approve\s+(\d+)$/i', $text, $matches)) {
+                Log::info('✅ Approve command matched', ['transaction_id' => $matches[1]]);
+                $this->handleApprove((int) $matches[1], $chatId, $messageId, $fromId);
+            } elseif (preg_match('/^reject\s+(\d+)\s+(.+)$/i', $text, $matches)) {
+                Log::info('✅ Reject command matched', ['transaction_id' => $matches[1], 'reason' => $matches[2]]);
+                $this->handleReject((int) $matches[1], trim($matches[2]), $chatId, $messageId, $fromId);
+            } elseif (preg_match('/^(approve|reject)/i', $text)) {
+                Log::info('⚠️ Command detected but format invalid', ['text' => $text]);
+                $this->telegram->replyMessage($chatId, $messageId,
+                    "⚠️ <b>Format salah.</b>\n\nGunakan:\n" .
+                    "• <code>approve &lt;ID&gt;</code> - Setujui pembayaran\n" .
+                    "• <code>reject &lt;ID&gt; &lt;alasan&gt;</code> - Tolak pembayaran\n\n" .
+                    "<i>Contoh:</i>\n" .
+                    "<code>approve 9</code>\n" .
+                    "<code>reject 9 Bukti kurang jelas</code>"
+                );
+            } else {
+                Log::debug('Non-command message received', ['text' => $text]);
+            }
+        } catch (\Exception $e) {
+            Log::error('💥 Telegram webhook handler exception', [
+                'error'   => $e->getMessage(),
+                'trace'   => $e->getTraceAsString(),
+                'request' => $request->all(),
+            ]);
         }
 
         return response('ok', 200);
