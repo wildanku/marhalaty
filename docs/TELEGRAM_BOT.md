@@ -42,7 +42,25 @@ Admin yang sudah di-whitelist bisa mengetik command langsung di group:
 
 ---
 
-## 🔧 Setup & Configuration
+## � Quick Start (TL;DR)
+
+```bash
+# 1. Check if setup is correct
+php artisan telegram:debug
+
+# 2. Get your Telegram ID from @userinfobot, then add to whitelist
+php artisan telegram:whitelist add --chat-id=YOUR_ID --name="Your Name"
+
+# 3. Test in Telegram group
+# Type: approve 9
+
+# 4. If no response, check logs
+tail -f storage/logs/laravel.log | grep telegram
+```
+
+---
+
+## �🔧 Setup & Configuration
 
 ### Prerequisites
 
@@ -147,33 +165,99 @@ php artisan telegram:check-webhook
 
 ## 👥 Admin Whitelist Management
 
-Hanya admin yang di-whitelist yang bisa jalankan command. Setup whitelist:
+Hanya admin yang di-whitelist yang bisa jalankan command. Setup whitelist punya 2 cara:
 
-### Via Database
+### Via Artisan Command (Recommended)
+
+#### **List Whitelist**
+
+```bash
+php artisan telegram:whitelist list
+```
+
+**Output:**
+
+```
+👥 Telegram Admin Whitelist:
+
+| Chat ID     | Name          | Status      | Added               |
+|-------------|---------------|-------------|---------------------|
+| 123456789   | Admin Wildan  | ✅ Active   | 2026-05-11 10:30    |
+| 987654321   | Admin Budi    | ⛔ Inactive | 2026-05-10 15:45    |
+```
+
+#### **Add Admin**
+
+```bash
+php artisan telegram:whitelist add --chat-id=123456789 --name="Admin Wildan"
+```
+
+**Output:**
+
+```
+✅ Added to whitelist: Admin Wildan (123456789)
+
+Now this admin can use:
+  • approve <transaction_id>
+  • reject <transaction_id> <reason>
+```
+
+#### **Remove Admin**
+
+```bash
+php artisan telegram:whitelist remove --chat-id=123456789
+```
+
+#### **Toggle Active Status**
+
+```bash
+php artisan telegram:whitelist toggle --chat-id=123456789
+```
+
+### Via Database (Manual)
 
 ```php
 // Add admin ke whitelist
 App\Models\TelegramWhitelist::create([
-    'chat_id' => 123456789,  // Telegram user ID atau group ID
+    'chat_id' => 123456789,  // Telegram user ID
     'name'    => 'Admin Wildan',
     'is_active' => true,
 ]);
 
 // Check apakah user di-whitelist
 App\Models\TelegramWhitelist::isAllowed(123456789);  // true/false
+
+// List all
+App\Models\TelegramWhitelist::all();
 ```
 
-### Get Your Telegram ID
+### 🆔 How to Find Your Telegram ID
 
-1. **Personal ID:**
-   - Kirim message ke bot: `@userinfobot`
-   - Akan dapat `Your user ID: 123456789`
+**PENTING:** Ada 2 tipe ID:
 
-2. **Group ID:**
-   - Tambahkan bot ke group
-   - Kirim message apapun di group
-   - Check logs: `storage/logs/laravel.log`
-   - Cari `'from_id' => -123456789` (negatif = group)
+- **User ID**: Positif (123456789) - untuk personal chat
+- **Group ID**: Negatif (-123456789) - untuk private group
+
+Gunakan **User ID** untuk approve command, bukan group ID!
+
+#### **Step 1: Get User ID**
+
+1. Buka Telegram
+2. Search: `@userinfobot`
+3. Click `/start`
+4. Bot akan reply: `Your user ID: 123456789` ← Copy ini!
+
+#### **Step 2: Add to Whitelist**
+
+```bash
+php artisan telegram:whitelist add --chat-id=123456789 --name="Nama Anda"
+```
+
+**⚠️ Common Mistakes:**
+
+- ❌ Using group ID (-123456789) → Won't work
+- ❌ Using username (@username) → Won't work
+- ✅ Using numeric user ID (123456789) → Correct!
 
 ---
 
@@ -257,6 +341,79 @@ POST /telegram/webhook
 
 ## 🛠️ Artisan Commands
 
+### `telegram:debug`
+
+Check Telegram bot setup status dan whitelist.
+
+```bash
+php artisan telegram:debug
+```
+
+**Output:**
+
+```
+🔍 Telegram Bot Debug Information
+
+📋 Configuration:
+  Bot Token: ✅ 8667500913:AAEBtR2...
+  Notify Chat ID: ✅ -5112305117
+  App URL: ✅ https://marhalaty.example.com
+
+👥 Whitelist Status:
+  Total active admins: 1
+  ✅ ID: 123456789 | Name: Admin Wildan
+
+✅ Next Steps:
+  1. ✅ All config ready!
+  2. Add your chat_id to whitelist (if not already)
+  3. Test approve command: Type 'approve 9' in Telegram group
+  4. Check logs: tail -f storage/logs/laravel.log
+```
+
+**Gunakan ketika:**
+
+- Setup awal bot
+- Debug kenapa command tidak bekerja
+- Verify config dan whitelist
+
+---
+
+### `telegram:whitelist`
+
+Manage admin whitelist.
+
+```bash
+# List semua admin
+php artisan telegram:whitelist list
+
+# Add admin baru
+php artisan telegram:whitelist add --chat-id=123456789 --name="Admin Name"
+
+# Remove admin
+php artisan telegram:whitelist remove --chat-id=123456789
+
+# Toggle active/inactive
+php artisan telegram:whitelist toggle --chat-id=123456789
+```
+
+**Contoh lengkap:**
+
+```bash
+# Add admin
+php artisan telegram:whitelist add --chat-id=123456789 --name="Admin Wildan"
+
+# Verify
+php artisan telegram:whitelist list
+
+# Disable jika perlu
+php artisan telegram:whitelist toggle --chat-id=123456789
+
+# Remove
+php artisan telegram:whitelist remove --chat-id=123456789
+```
+
+---
+
 ### `telegram:set-webhook`
 
 Register webhook URL ke Telegram API.
@@ -274,6 +431,8 @@ php artisan telegram:set-webhook
 
 ✅ Webhook registered successfully!
 ```
+
+---
 
 ### `telegram:check-webhook`
 
@@ -302,7 +461,7 @@ php artisan telegram:check-webhook
 
 ## 📝 Example: Admin Command Usage
 
-### Approve Payment
+### Approve Payment (Success)
 
 **In Telegram Group:**
 
@@ -317,8 +476,9 @@ Admin: approve 15
 
 👤 Pendaftar: Wildan Maulana
 💰 Nominal: Rp 500.000
+📧 Email: wildan@example.com
 
-Email konfirmasi telah dikirim ke peserta.
+✉️ Email konfirmasi telah dikirim ke peserta.
 ```
 
 **What Happens:**
@@ -328,6 +488,58 @@ Email konfirmasi telah dikirim ke peserta.
 - ✅ PaymentProof: reviewed_at = now(), review_note = "Disetujui via Telegram bot."
 - ✅ Email confirmation sent to user
 - ✅ Package quota incremented (booked_count++)
+- ✅ Logged with transaction details
+
+### Approve Payment (Error - Transaction Not Found)
+
+**Bot Reply:**
+
+```
+❌ Transaksi tidak ditemukan
+
+Transaksi #15 tidak ada atau sudah diproses sebelumnya.
+```
+
+### Approve Payment (Unauthorized User)
+
+**Bot Reply:**
+
+```
+🔒 Anda tidak memiliki otorisasi untuk menjalankan command ini.
+
+Hubungi admin untuk akses.
+```
+
+**Solusi:**
+
+```bash
+# Get your Telegram ID dari @userinfobot
+php artisan telegram:whitelist add --chat-id=YOUR_ID --name="Your Name"
+```
+
+### Approve Payment (Format Error)
+
+**In Telegram Group:**
+
+```
+Admin: approve abc
+```
+
+**Bot Reply:**
+
+```
+⚠️ Format salah.
+
+Gunakan:
+• approve <ID>
+• reject <ID> <alasan>
+
+Contoh:
+approve 9
+reject 9 Bukti kurang jelas
+```
+
+---
 
 ### Reject Payment
 
@@ -340,10 +552,12 @@ Admin: reject 15 Bukti transfer tidak sesuai
 **Bot Reply:**
 
 ```
-🚫 Transaksi #15 ditolak.
+🚫 Transaksi #15 ditolak
 
 👤 Pendaftar: Wildan Maulana
-📝 Alasan: Bukti transfer tidak sesuai
+📧 Email: wildan@example.com
+📝 Alasan Penolakan:
+Bukti transfer tidak sesuai
 ```
 
 **What Happens:**
@@ -352,68 +566,318 @@ Admin: reject 15 Bukti transfer tidak sesuai
 - ✅ RSVP: status = "failed"
 - ✅ PaymentProof: reviewed_at = now(), review_note = "Bukti transfer tidak sesuai"
 - ✅ Package quota NOT incremented
+- ✅ Logged with reason
 
 ---
 
 ## 🔍 Troubleshooting
 
-### Problem: Webhook Not Registered
+### ✅ Quick Diagnosis
+
+Jalankan command ini untuk check setup:
+
+```bash
+php artisan telegram:debug
+```
+
+Jika melihat:
+
+- ✅ All green → Setup OK, test command di Telegram
+- ❌ Red X → Fix sesuai error message
+- ⚠️ No admins in whitelist → Add your ID
+
+---
+
+### Problem: Unauthorized Access (🔒 Response)
+
+**Symptom:** Bot reply dengan `🔒 Anda tidak memiliki otorisasi...`
+
+**Root Cause:** Chat ID tidak di-whitelist atau tidak cocok
+
+**Fix:**
+
+```bash
+# Step 1: Get your Telegram ID
+# Chat dengan @userinfobot → Your user ID: 123456789
+
+# Step 2: Check whitelist
+php artisan telegram:whitelist list
+
+# Step 3: Add your ID
+php artisan telegram:whitelist add --chat-id=123456789 --name="Your Name"
+
+# Step 4: Test again - type "approve 9" di Telegram
+```
+
+**⚠️ Important:**
+
+- Gunakan **User ID** (positif), bukan group ID (negatif)
+- Format: angka saja, tanpa @ atau simbol lain
+- Jangan pakai username, pakai ID dari @userinfobot
+
+---
+
+### Problem: Command Not Found (❌ Transaksi tidak ditemukan)
+
+**Symptom:** Bot reply dengan `❌ Transaksi tidak ditemukan...`
+
+**Root Cause:** Transaction dengan ID tersebut tidak ada atau sudah processed
+
+**Fix:**
+
+```bash
+# Check apakah transaction ada
+php artisan tinker
+> Transaction::where('id', 9)->first();
+
+# Jika ada, cek status
+> Transaction::where('id', 9)->first()->status;
+// Harus: "pending"
+
+# Jika tidak pending, buat transaction baru:
+# User harus upload bukti pembayaran lagi
+```
+
+---
+
+### Problem: Command Format Error (⚠️ Format salah)
+
+**Symptom:** Bot reply dengan `⚠️ Format salah` message
+
+**Root Cause:** Command format tidak sesuai regex
+
+**Correct Format:**
+
+```
+approve 9
+approve 15
+reject 9 Bukti kurang jelas
+reject 15 Nominal tidak sesuai
+```
+
+**Wrong Format:**
+
+```
+❌ approve #9          (jangan pakai #)
+❌ approve (9)         (jangan pakai parentheses)
+❌ reject 9            (harus ada alasan)
+❌ 9 approve           (order salah)
+```
+
+---
+
+### Problem: Webhook Not Receiving Updates
+
+**Symptom:** Command tidak masuk, tidak ada log
 
 **Check:**
 
 ```bash
+# 1. Webhook status
 php artisan telegram:check-webhook
+
+# 2. Check APP_URL benar
+cat .env | grep APP_URL
+
+# 3. Register ulang
+php artisan telegram:set-webhook
+
+# 4. Monitor logs real-time
+tail -f storage/logs/laravel.log | grep -i telegram
 ```
 
-**If URL is empty:**
+**⚠️ Requirements:**
 
-- Pastikan `TELEGRAM_BOT_TOKEN` dan `APP_URL` benar di `.env`
-- Pastikan `APP_URL` adalah HTTPS atau ngrok tunnel (bukan `http://localhost`)
-- Jalankan: `php artisan telegram:set-webhook`
+- ✅ `APP_URL` harus HTTPS atau ngrok tunnel
+- ✅ ❌ Bukan `http://localhost:8000`
+- ✅ URL publicly accessible
 
-### Problem: Bot Tidak Terima Message
+---
 
-**Check:**
+### Problem: Webhook Registered Tapi No Response
 
-1. Bot di-add ke group sebagai admin
-2. Check whitelist: user/group sudah di-add?
-3. Check logs: `tail -f storage/logs/laravel.log | grep -i telegram`
+**Symptom:**
 
-### Problem: Command Tidak Bekerja
+- Webhook URL valid (checked via `telegram:check-webhook`)
+- Bot in group as admin
+- Type command, no reply
 
 **Debug Steps:**
 
 ```bash
-# 1. Check webhook status
-php artisan telegram:check-webhook
-
-# 2. Check logs
+# Step 1: Real-time logs
 tail -f storage/logs/laravel.log
 
-# 3. Verify whitelist
-# Di tinker:
-php artisan tinker
-App\Models\TelegramWhitelist::all();
-App\Models\TelegramWhitelist::isAllowed(123456789);
+# Step 2: Type command in Telegram
+# In Telegram group: approve 9
+
+# Step 3: Look for log like:
+# [2026-05-11 XX:XX:XX] local.INFO: Telegram message received
 ```
 
-### Problem: Notification Tidak Terkirim
+**If NO log appears:**
+
+- ❌ Webhook tidak setup benar
+- Solution: `php artisan telegram:set-webhook` dan restart
+
+**If log appears but no reply:**
+
+- ❌ Authorization failed
+- Solution: Check whitelist dengan `php artisan telegram:whitelist list`
+
+**If log shows "unauthorized":**
+
+- ❌ Chat ID tidak di-whitelist
+- Solution: Add chat_id ke whitelist
+
+---
+
+### Problem: Notification Tidak Terkirim (Payment Proof)
+
+**Symptom:** User upload bukti, tapi tidak ada notifikasi ke admin group
 
 **Check:**
 
-1. `TELEGRAM_NOTIFY_CHAT_ID` benar?
-2. Bot di-add ke group/channel?
-3. Bot punya permission `send_messages` dan `send_photos`?
-4. File bukti proof ada? `storage/app/payment-proofs/{transaction_id}/...`
+1. **Bot added to group?**
+
+   ```bash
+   # Manual: Add bot (@dynamic87_bot) ke group
+   ```
+
+2. **Bot punya permissions?**
+
+   ```bash
+   # Manual: Make bot admin in group (untuk send photos)
+   ```
+
+3. **Config correct?**
+
+   ```bash
+   cat .env | grep TELEGRAM_NOTIFY_CHAT_ID
+   # Harus negatif: -5112305117
+   ```
+
+4. **File exists?**
+
+   ```bash
+   ls -la storage/app/payment-proofs/
+   ```
+
+5. **Check logs:**
+   ```bash
+   grep "notifyPaymentProof" storage/logs/laravel.log
+   ```
+
+---
+
+### Problem: Error on Approve (❌ Error saat approve)
+
+**Symptom:** Bot reply dengan error message dengan code
+
+**What Happened:**
+
+- Exception thrown di handleApprove()
+- Admin sudah dinotifikasi (log)
+- User told to retry atau contact developer
 
 **Debug:**
 
 ```bash
-# Check logs
-grep "notifyPaymentProof" storage/logs/laravel.log
+# Check full error in logs
+tail -f storage/logs/laravel.log
 
-# Check file exists
-ls -la storage/app/payment-proofs/
+# Look for: "Telegram approve command failed"
+# Will show full stack trace
+```
+
+**Common Errors:**
+
+| Error                            | Cause                   | Fix                                          |
+| -------------------------------- | ----------------------- | -------------------------------------------- |
+| `Call to undefined method...`    | Code issue              | Check file edits, run `php artisan optimize` |
+| `SQLSTATE[...]`                  | Database issue          | Run `php artisan migrate`                    |
+| `No query results found`         | Transaction missing     | Upload proof lagi                            |
+| `Integrity constraint violation` | Duplicate status update | Usually safe to retry                        |
+
+---
+
+### Problem: Multiple Admins, One Gets Error
+
+**Symptom:**
+
+- Admin A: "approve 9" → Works ✅
+- Admin B: "approve 9" → Error ❌
+
+**Root Cause:** Race condition atau transaction already locked
+
+**Solution:** Retry dengan transaction ID yang berbeda
+
+---
+
+### Full Debug Workflow
+
+Gunakan sequence ini untuk solve apapun:
+
+```bash
+# 1. Check overall setup
+php artisan telegram:debug
+
+# 2. Check webhook
+php artisan telegram:check-webhook
+
+# 3. Check whitelist
+php artisan telegram:whitelist list
+
+# 4. Check specific transaction
+php artisan tinker
+> Transaction::find(9);
+
+# 5. Monitor logs
+tail -f storage/logs/laravel.log
+
+# 6. Try command in Telegram
+# Type: approve 9
+
+# 7. Check logs untuk hasil
+# grep "Telegram message received" storage/logs/laravel.log
+```
+
+---
+
+## 📊 Logging
+
+All Telegram events logged ke `storage/logs/laravel.log`:
+
+```
+[channel] [level] [time] [message] [context]
+
+# Message received
+[local] [INFO] [2026-05-11 10:30:45] Telegram message received {"chat_id":-5112305117,"from_id":123456789,"message_id":999,"text":"approve 9","chat_type":"supergroup"}
+
+# Authorization check
+[local] [WARNING] [2026-05-11 10:30:46] Telegram webhook: unauthorized sender {"from_id":987654321,"chat_id":-5112305117}
+
+# Processing
+[local] [INFO] [2026-05-11 10:30:47] Processing approve request {"transaction_id":9,"from_id":123456789,"chat_id":-5112305117}
+
+# Success
+[local] [INFO] [2026-05-11 10:30:48] Transaction approved via Telegram bot {"transaction_id":9,"approved_by":123456789,"user_name":"Wildan Maulana","amount":"500000"}
+
+# Error
+[local] [ERROR] [2026-05-11 10:30:49] Telegram approve command failed {"transaction_id":9,"from_id":123456789,"error":"...","trace":"..."}
+```
+
+**Tip:** Filter specific events
+
+```bash
+# Only approve commands
+grep "approve" storage/logs/laravel.log | tail -20
+
+# Only errors
+grep "ERROR.*Telegram" storage/logs/laravel.log
+
+# Real-time monitoring
+tail -f storage/logs/laravel.log | grep -i "telegram\|approve\|reject"
 ```
 
 ---
@@ -449,6 +913,8 @@ ls -la storage/app/payment-proofs/
 | `database/migrations/2026_05_11_100000_create_telegram_whitelists_table.php` | Whitelist table                  |
 | `app/Console/Commands/TelegramSetWebhook.php`                                | Register webhook command         |
 | `app/Console/Commands/TelegramCheckWebhook.php`                              | Check webhook status command     |
+| `app/Console/Commands/TelegramDebugCommand.php`                              | Debug bot setup (NEW)            |
+| `app/Console/Commands/TelegramWhitelistCommand.php`                          | Manage whitelist (NEW)           |
 | `routes/web.php`                                                             | Webhook route definition         |
 
 ---
@@ -475,5 +941,48 @@ Untuk issues atau pertanyaan, check:
 ---
 
 **Last Updated:** May 11, 2026  
-**Bot Version:** 1.0.0  
+**Bot Version:** 1.1.0 (Enhanced with debug commands & whitelist management)  
 **Framework:** Laravel 11, Telegram Bot API v7.10
+
+---
+
+## ⚡ Quick Reference
+
+### Most Used Commands
+
+```bash
+# Check setup
+php artisan telegram:debug
+
+# List admins
+php artisan telegram:whitelist list
+
+# Add admin
+php artisan telegram:whitelist add --chat-id=123456789 --name="Name"
+
+# Check webhook
+php artisan telegram:check-webhook
+
+# View logs
+tail -f storage/logs/laravel.log | grep -i telegram
+```
+
+### Most Used Telegram Commands
+
+```
+approve 9
+reject 9 Bukti tidak jelas
+```
+
+### Get Help
+
+```bash
+# Detailed webhook info
+php artisan telegram:check-webhook
+
+# Whitelist help
+php artisan telegram:whitelist
+
+# Full debug info
+php artisan telegram:debug
+```
