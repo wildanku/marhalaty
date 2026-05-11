@@ -11,6 +11,7 @@ use App\Mail\TestEmail;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 /**
@@ -22,8 +23,17 @@ class EmailTesterController extends Controller
     /** Render the email tester panel. */
     public function index(): \Inertia\Response
     {
+        $mailConfig = [
+            'mailer' => config('mail.default'),
+            'host' => config('mail.mailers.smtp.host'),
+            'port' => config('mail.mailers.smtp.port'),
+            'from' => config('mail.from.address'),
+            'scheme' => config('mail.mailers.smtp.scheme'),
+        ];
+
         return Inertia::render('GodMode/EmailTester/Index', [
             'admin'     => auth('admin')->user(),
+            'mailConfig' => $mailConfig,
             'templates' => [
                 [
                     'key'   => 'test',
@@ -56,6 +66,12 @@ class EmailTesterController extends Controller
         $email    = $validated['email'];
         $template = $validated['template'];
 
+        Log::info("Email Tester: Attempting to send {$template} email to {$email}", [
+            'mailer' => config('mail.default'),
+            'host' => config('mail.mailers.smtp.host'),
+            'port' => config('mail.mailers.smtp.port'),
+        ]);
+
         try {
             match ($template) {
                 'test' => Mail::to($email)->send(new TestEmail(note: $validated['note'] ?? '')),
@@ -65,14 +81,34 @@ class EmailTesterController extends Controller
                 'confirmed' => $this->sendDummyConfirmed($email),
             };
 
+            Log::info("Email Tester: Successfully sent {$template} email to {$email}");
+
             return response()->json([
                 'success' => true,
-                'message' => "Email template [{$template}] berhasil dikirim ke {$email}."
+                'message' => "Email template [{$template}] berhasil dikirim ke {$email}.",
+                'debug' => [
+                    'mailer' => config('mail.default'),
+                    'host' => config('mail.mailers.smtp.host'),
+                    'port' => config('mail.mailers.smtp.port'),
+                ]
             ], 200);
         } catch (\Exception $e) {
+            Log::error("Email Tester: Failed to send {$template} email to {$email}: " . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'mailer' => config('mail.default'),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengirim email: ' . $e->getMessage()
+                'message' => 'Gagal mengirim email: ' . $e->getMessage(),
+                'debug' => [
+                    'exception' => get_class($e),
+                    'mailer' => config('mail.default'),
+                    'host' => config('mail.mailers.smtp.host'),
+                    'port' => config('mail.mailers.smtp.port'),
+                ]
             ], 400);
         }
     }

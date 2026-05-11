@@ -15,6 +15,14 @@ interface Admin {
   role: string;
 }
 
+interface MailConfig {
+  mailer: string;
+  host: string;
+  port: number;
+  from: string;
+  scheme: string | null;
+}
+
 interface PageFlash {
   success?: string;
   error?: string;
@@ -23,9 +31,10 @@ interface PageFlash {
 interface Props {
   admin: Admin;
   templates: Template[];
+  mailConfig?: MailConfig;
 }
 
-export default function EmailTesterIndex({ admin, templates }: Props) {
+export default function EmailTesterIndex({ admin, templates, mailConfig }: Props) {
   const { props } = usePage<{ flash: PageFlash }>();
   const flash = props.flash ?? {};
 
@@ -156,14 +165,39 @@ export default function EmailTesterIndex({ admin, templates }: Props) {
             <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">
               SMTP Config
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-2 text-xs">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs text-white/60">Mailtrap Sandbox</span>
+                <span className="text-white/60">
+                  Mailer: <code className="text-emerald-300">{mailConfig?.mailer || "—"}</code>
+                </span>
               </div>
-              <p className="text-xs text-white/30 leading-relaxed">
-                Ganti kredensial di <code className="text-emerald-400/70">.env</code> sebelum deploy
-                ke produksi.
+              <div className="text-white/50">
+                {mailConfig?.host && (
+                  <>
+                    <p>
+                      Host: <code className="text-amber-300">{mailConfig.host}</code>
+                    </p>
+                    <p>
+                      Port: <code className="text-amber-300">{mailConfig.port}</code>
+                    </p>
+                    {mailConfig.scheme && (
+                      <p>
+                        Scheme: <code className="text-amber-300">{mailConfig.scheme}</code>
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+              <p className="text-white/30 text-xs leading-relaxed pt-2">
+                {mailConfig?.mailer === "log" && (
+                  <span className="text-amber-400">
+                    ⚠️ Email dikirim ke log, bukan SMTP. Ubah MAIL_MAILER di .env
+                  </span>
+                )}
+                {mailConfig?.mailer === "smtp" && (
+                  <span className="text-emerald-400">✓ SMTP mode aktif</span>
+                )}
               </p>
             </div>
           </div>
