@@ -53,7 +53,10 @@ export interface EventPackage {
   name: string;
   description: string | null;
   price: string;
-  stock_quantity: number | null;
+  quota: number | null;
+  booked_count: number;
+  available_quota: number | null;
+  is_available: boolean;
   included_addons?: IncludedAddon[];
   image_url?: string | null;
 }

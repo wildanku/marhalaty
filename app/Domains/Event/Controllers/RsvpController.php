@@ -74,12 +74,11 @@ class RsvpController extends Controller
                                 ->lockForUpdate()
                                 ->firstOrFail();
                                 
-                if ($package->stock_quantity !== null) {
-                    if ($package->stock_quantity < 1) {
-                        throw ValidationException::withMessages(['event_package_id' => "Package {$package->name} is sold out."]);
-                    }
-                    $package->decrement('stock_quantity', 1);
+                // Validate available quota (booked only when payment confirmed)
+                if (! $package->hasAvailableQuota()) {
+                    throw ValidationException::withMessages(['event_package_id' => "Paket {$package->name} sudah penuh. Silakan pilih paket lain."]);
                 }
+                
                 $packageAmount = $package->price;
             }
 

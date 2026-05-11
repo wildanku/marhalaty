@@ -854,7 +854,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
       )}
       <div className="space-y-3">
         {event.packages?.map((pkg) => {
-          const isSoldOut = pkg.stock_quantity !== null && pkg.stock_quantity < 1;
+          const isSoldOut = !pkg.is_available;
           const isSelected = data.event_package_id === pkg.id;
           return (
             <label
@@ -936,11 +936,15 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                     ))}
                   </div>
                 )}
-                {isSoldOut && (
+                {isSoldOut ? (
                   <span className="inline-block bg-error/10 text-error text-[10px] font-bold px-2 py-0.5 rounded mt-1.5">
                     Habis Terjual
                   </span>
-                )}
+                ) : pkg.quota !== null ? (
+                  <span className="inline-block bg-warning/10 text-warning text-[10px] font-bold px-2 py-0.5 rounded mt-1.5">
+                    {pkg.available_quota} dari {pkg.quota} tersedia
+                  </span>
+                ) : null}
               </div>
 
               <input

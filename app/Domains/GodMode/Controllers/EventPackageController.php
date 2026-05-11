@@ -40,7 +40,7 @@ class EventPackageController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'stock_quantity' => 'nullable|integer|min:0',
+            'quota' => 'nullable|integer|min:0',
             'image' => 'nullable|image|max:5120',
             'included_addons' => 'nullable|array',
             'included_addons.*.id' => 'required|exists:event_addons,id',
@@ -51,7 +51,7 @@ class EventPackageController extends Controller
             'name' => $validated['name'],
             'description' => $validated['description'],
             'price' => $validated['price'],
-            'stock_quantity' => $validated['stock_quantity'],
+            'quota' => $validated['quota'],
         ]);
 
         if ($request->hasFile('image')) {
@@ -78,7 +78,7 @@ class EventPackageController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'stock_quantity' => 'nullable|integer|min:0',
+            'quota' => 'nullable|integer|min:0',
             'image' => 'nullable|image|max:5120',
             'included_addons' => 'nullable|array',
             'included_addons.*.id' => 'required|exists:event_addons,id',
@@ -89,7 +89,7 @@ class EventPackageController extends Controller
             'name' => $validated['name'],
             'description' => $validated['description'],
             'price' => $validated['price'],
-            'stock_quantity' => $validated['stock_quantity'],
+            'quota' => $validated['quota'],
         ]);
 
         if ($request->hasFile('image')) {

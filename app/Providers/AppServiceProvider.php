@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domains\Event\Models\Rsvp;
+use App\Domains\Event\Observers\RsvpObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register quota management observer
+        Rsvp::observe(RsvpObserver::class);
     }
 }
