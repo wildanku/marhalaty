@@ -64,6 +64,7 @@ class TelegramWebhookController extends Controller
             $text = preg_replace('/@\w+/', '', $text);
             $text = ltrim($text, '/');
             $text = trim($text);
+            $text = strtolower($text); // Normalize to lowercase
 
             Log::info('📝 Processed text', ['original' => $message['text'], 'processed' => $text]);
 
@@ -90,13 +91,13 @@ class TelegramWebhookController extends Controller
             // ── Command dispatch ──────────────────────────────────────────────
             Log::info('🔍 Checking command patterns', ['text' => $text, 'text_length' => strlen($text)]);
 
-            if (preg_match('/^approve\s+(\d+)$/i', $text, $matches)) {
+            if (preg_match('/^approve\s+(\d+)$/', $text, $matches)) {
                 Log::info('✅ Approve command matched', ['transaction_id' => $matches[1]]);
                 $this->handleApprove((int) $matches[1], $chatId, $messageId, $fromId);
-            } elseif (preg_match('/^reject\s+(\d+)\s+(.+)$/i', $text, $matches)) {
+            } elseif (preg_match('/^reject\s+(\d+)\s+(.+)$/', $text, $matches)) {
                 Log::info('✅ Reject command matched', ['transaction_id' => $matches[1], 'reason' => $matches[2]]);
                 $this->handleReject((int) $matches[1], trim($matches[2]), $chatId, $messageId, $fromId);
-            } elseif (preg_match('/^(approve|reject)/i', $text)) {
+            } elseif (preg_match('/^(approve|reject)/', $text)) {
                 Log::info('⚠️ Command detected but format invalid', ['text' => $text]);
                 $this->telegram->replyMessage($chatId, $messageId,
                     "⚠️ <b>Format salah.</b>\n\nGunakan:\n" .
