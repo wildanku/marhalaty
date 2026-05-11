@@ -9,12 +9,11 @@ use App\Domains\Event\Models\EventAddon;
 use App\Domains\Event\Models\Rsvp;
 use App\Domains\Event\Models\Transaction;
 use App\Domains\Shared\Services\IPaymuService;
-use App\Mail\EventRegistrationConfirmed;
-use App\Mail\EventRegistrationPendingPayment;
+use App\Jobs\SendEventRegistrationConfirmedEmail;
+use App\Jobs\SendEventRegistrationPendingPaymentEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class RsvpController extends Controller
@@ -166,14 +165,11 @@ class RsvpController extends Controller
             $user = $request->user();
 
             if ($totalAmount <= 0) {
-                // Free event: confirm immediately
-                $rsvp->load(['event', 'user', 'package']);
-                Mail::to($user->email)->queue(new EventRegistrationConfirmed($rsvp));
+                // Free event: confirm immediately via Brevo API queue job
+                SendEventRegistrationConfirmedEmail::dispatch($rsvp);
             } else {
-                // Paid event: send pending payment instructions
-                Mail::to($user->email)->queue(
-                    new EventRegistrationPendingPayment($rsvp, $transaction)
-                );
+                // Paid event: send pending payment instructions via Brevo API queue job
+                SendEventRegistrationPendingPaymentEmail::dispatch($rsvp, $transaction);
             }
 
             // ── Initiate provider-specific payment ────────────────────────

@@ -4,10 +4,9 @@ namespace App\Domains\GodMode\Controllers;
 
 use App\Domains\Event\Models\Transaction;
 use App\Http\Controllers\Controller;
-use App\Mail\EventRegistrationConfirmed;
+use App\Jobs\SendEventRegistrationConfirmedEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -62,10 +61,10 @@ class PaymentController extends Controller
             if ($transaction->rsvp) {
                 $transaction->rsvp->update(['status' => 'paid']);
 
-                // Send confirmation email with .ics calendar attachment
+                // Send confirmation email via Brevo API queue job
                 $rsvp = $transaction->rsvp->load(['event', 'user', 'package']);
                 if ($rsvp->user && $rsvp->user->email) {
-                    Mail::to($rsvp->user->email)->queue(new EventRegistrationConfirmed($rsvp));
+                    SendEventRegistrationConfirmedEmail::dispatch($rsvp);
                 }
             }
         });
