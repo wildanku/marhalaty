@@ -98,7 +98,7 @@
     <div class="divider"></div>
 
     <p style="font-size:13px;color:#49454F;line-height:1.7;margin:0;">
-        Jika ada pertanyaan atau perubahan, silakan hubungi panitia melalui platform Marhalaty.
+        Jika ada pertanyaan atau perubahan, silakan hubungi panitia melalui platform Dynamic Foundation.
         <br><br>
         Barakallah fiikum. Semoga acaranya bermanfaat dan penuh berkah! 🤲
     </p>

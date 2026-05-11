@@ -1,12 +1,12 @@
 @extends('emails.layout')
 
-@section('email_title', '[TEST] Email dari Marhalaty GodMode')
+@section('email_title', '[TEST] Email dari Dynamic Foundation GodMode')
 @section('header_icon', '🧪')
 
 @section('content')
     <h1 class="greeting">Test Email Berhasil! 🎉</h1>
     <p class="lead-text">
-        Ini adalah email pengujian dari panel <strong>GodMode</strong> Marhalaty.
+        Ini adalah email pengujian dari panel <strong>GodMode</strong> Dynamic Foundation.
         Jika kamu menerima email ini, artinya konfigurasi SMTP sudah berjalan dengan baik.
     </p>
 
@@ -48,7 +48,7 @@
     @endif
 
     <div class="success-box">
-        ✅ Konfigurasi email berjalan normal. Template desain Marhalaty juga berhasil di-render.
+        ✅ Konfigurasi email berjalan normal. Template desain Dynamic Foundation juga berhasil di-render.
     </div>
 
     <p style="font-size:13px;color:#49454F;line-height:1.7;margin:0;">

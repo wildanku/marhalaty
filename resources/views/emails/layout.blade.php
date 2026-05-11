@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>@yield('email_title', 'Marhalaty – Dynamic Foundation')</title>
+    <title>@yield('email_title', 'Dynamic Foundation')</title>
     <style>
         /* ────────────────────────────────────────────
            Reset & Base
@@ -289,7 +289,7 @@
         <tr>
             <td class="email-header">
                 <p class="header-icon">@yield('header_icon', '🌿')</p>
-                <p class="brand-name">Marhalaty</p>
+                <p class="brand-name">Dynamic Foundation</p>
                 <p class="brand-tagline">Dynamic Foundation · Gontor 2013</p>
             </td>
         </tr>
@@ -306,7 +306,7 @@
             <td class="email-footer">
                 <p class="footer-brand">Dynamic Foundation</p>
                 <p class="footer-sub">
-                    Email ini dikirim otomatis oleh sistem Marhalaty.<br>
+                    Email ini dikirim otomatis oleh sistem Dynamic Foundation.<br>
                     Jangan membalas email ini.
                 </p>
                 <div class="footer-links">
@@ -315,7 +315,7 @@
                     <a href="{{ config('app.url') }}/events">Events</a>
                 </div>
                 <p style="font-size:11px;color:rgba(255,255,255,0.35);margin:16px 0 0;">
-                    © {{ date('Y') }} Marhalaty · Powered by Dynamic Foundation
+                    © {{ date('Y') }} Dynamic Foundation
                 </p>
             </td>
         </tr>
