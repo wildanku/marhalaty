@@ -1701,8 +1701,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           />
         </label>
 
-        {/* iPaymu automatic — DISABLED FOR NOW */}
-        {false && (
+        {/* iPaymu automatic — ENABLED */}
+        {true && (
           <label
             className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
               data.payment_provider === "ipaymu"
@@ -1744,8 +1744,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           </label>
         )}
 
-        {/* iPaymu channel picker — DISABLED FOR NOW */}
-        {false && data.payment_provider === "ipaymu" && (
+        {/* iPaymu channel picker — ENABLED */}
+        {true && data.payment_provider === "ipaymu" && (
           <div className="pl-2 space-y-3">
             <p className="font-body text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
               Pilih Metode Pembayaran

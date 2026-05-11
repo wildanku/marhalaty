@@ -35,9 +35,11 @@ class IPaymuService implements PaymentProviderInterface
 
     /**
      * Create a direct payment (VA / QRIS) on iPaymu without redirecting user away.
+     * Uses /api/v2/payment/direct endpoint with proper signature from JSON body.
+     * Adapted from working Node.js version.
      *
      * @param  string $channel  e.g. 'qris', 'bca', 'mandiri', 'bni', 'bri', 'bsi', 'btn', 'cimb'
-     * @return array{external_reference:string, va_number:string|null, qr_string:string|null}
+     * @return array{external_reference:string, qr_string:string|null, payment_no:string|null}
      */
     public function initiateDirectPayment(Transaction $transaction, Rsvp $rsvp, string $channel): array
     {
@@ -46,47 +48,94 @@ class IPaymuService implements PaymentProviderInterface
         $paymentMethod = $channel === 'qris' ? 'qris' : 'va';
 
         $body = [
-            'product'        => [$rsvp->event->title],
-            'qty'            => [1],
-            'price'          => [(int) round((float) $transaction->amount)],
-            'description'    => ["RSVP #{$rsvp->id} - {$rsvp->event->title}"],
-            'referenceId'    => (string) $transaction->id,
+            'name'           => $rsvp->user->name,
+            'phone'          => $rsvp->user->phone_number ?? '08000000000',
+            'email'          => $rsvp->user->email,
+            'amount'         => (int) round((float) $transaction->amount),
             'notifyUrl'      => route('payments.ipaymu.webhook'),
-            'returnUrl'      => url('/payment/' . $transaction->payment_hash),
-            'cancelUrl'      => route('events.show', $rsvp->event->slug),
-            'buyerName'      => $rsvp->user->name,
-            'buyerEmail'     => $rsvp->user->email,
-            'buyerPhone'     => $rsvp->user->phone_number ?? '08000000000',
+            'referenceId'    => (string) $transaction->id,
             'paymentMethod'  => $paymentMethod,
             'paymentChannel' => $channel,
         ];
 
-        $signature = $this->buildSignature($body);
-        $timestamp = now()->format('YmdHis');
+        // Signature must be built from JSON string body, not from array
+        $bodyJson = json_encode($body);
+        $bodyHash = hash('sha256', $bodyJson);
+        $stringToSign = 'POST:' . $this->va . ':' . $bodyHash . ':' . $this->apiKey;
+        $signature = hash_hmac('sha256', $stringToSign, $this->apiKey);
+        $timestamp = (string) (time() * 1000); // milliseconds as string
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'va'           => $this->va,
-            'signature'    => $signature,
-            'timestamp'    => $timestamp,
-        ])->post($this->baseUrl . '/direct-payment', $body);
+        Log::info('iPaymu direct payment initiated', [
+            'transaction_id'  => $transaction->id,
+            'channel'         => $channel,
+            'amount'          => $transaction->amount,
+            'request_body'    => $body,
+            'body_json'       => $bodyJson,
+            'body_hash'       => $bodyHash,
+            'signature'       => $signature,
+            'timestamp'       => $timestamp,
+            'api_endpoint'    => $this->baseUrl . '/api/v2/payment/direct',
+        ]);
 
-        $data = $response->json();
+        try {
+            $response = Http::timeout(30)->withHeaders([
+                'Content-Type' => 'application/json',
+                'va'           => $this->va,
+                'signature'    => $signature,
+                'timestamp'    => $timestamp,
+            ])->post($this->baseUrl . '/api/v2/payment/direct', $body);
 
-        if (($data['Status'] ?? null) !== 200) {
-            Log::error('iPaymu direct payment failed', [
-                'transaction_id' => $transaction->id,
-                'channel'        => $channel,
-                'response'       => $data,
+            $data = $response->json();
+
+            if (($data['Status'] ?? null) !== 200) {
+                $errorMessage = $data['Message'] ?? 'Unknown error';
+                Log::error('iPaymu direct payment failed', [
+                    'transaction_id'     => $transaction->id,
+                    'channel'            => $channel,
+                    'amount'             => $transaction->amount,
+                    'request_body'       => $body,
+                    'status_code'        => $data['Status'] ?? null,
+                    'error_message'      => $errorMessage,
+                    'full_response'      => $data,
+                    'http_status'        => $response->status(),
+                    'response_body_raw'  => $response->body(),
+                    'response_headers'   => $response->headers(),
+                ]);
+                throw new \Exception('iPaymu Error: ' . $errorMessage);
+            }
+
+            Log::info('iPaymu direct payment successful', [
+                'transaction_id'      => $transaction->id,
+                'channel'             => $channel,
+                'external_reference'  => $data['Data']['TransactionId'] ?? null,
+                'qr_string'           => $data['Data']['QrString'] ?? null,
+                'payment_no'          => $data['Data']['PaymentNo'] ?? null,
+                'payment_name'        => $data['Data']['PaymentName'] ?? null,
             ]);
-            throw new \Exception('iPaymu Error: ' . ($data['Message'] ?? 'Unknown error'));
-        }
 
-        return [
-            'external_reference' => (string) ($data['Data']['SessionID'] ?? ''),
-            'va_number'          => $data['Data']['No'] ?? null,
-            'qr_string'          => $data['Data']['QRString'] ?? null,
-        ];
+            return [
+                'external_reference' => (string) ($data['Data']['TransactionId'] ?? ''),
+                'qr_string'          => $data['Data']['QrString'] ?? null,
+                'payment_no'         => $data['Data']['PaymentNo'] ?? null,
+                'payment_name'       => $data['Data']['PaymentName'] ?? null,
+                'via'                => $data['Data']['Via'] ?? null,
+                'channel'            => $data['Data']['Channel'] ?? null,
+                'fee'                => $data['Data']['Fee'] ?? null,
+                'total'              => $data['Data']['Total'] ?? null,
+                'expired'            => $data['Data']['Expired'] ?? null,
+            ];
+        } catch (\Exception $e) {
+            if ($e->getMessage() !== 'iPaymu Error: ' && strpos($e->getMessage(), 'iPaymu Error:') !== 0) {
+                Log::error('iPaymu direct payment exception', [
+                    'transaction_id' => $transaction->id,
+                    'channel'        => $channel,
+                    'request_body'   => $body,
+                    'error'          => $e->getMessage(),
+                    'trace'          => $e->getTraceAsString(),
+                ]);
+            }
+            throw $e;
+        }
     }
 
     /**
@@ -111,24 +160,67 @@ class IPaymuService implements PaymentProviderInterface
             'paymentMethod' => 'redirect',
         ];
 
-        $signature = $this->buildSignature($body);
-        $timestamp = now()->format('YmdHis');
+        // Signature must be built from JSON string body
+        $bodyJson = json_encode($body);
+        $bodyHash = hash('sha256', $bodyJson);
+        $stringToSign = 'POST:' . $this->va . ':' . $bodyHash . ':' . $this->apiKey;
+        $signature = hash_hmac('sha256', $stringToSign, $this->apiKey);
+        $timestamp = (string) (time() * 1000); // milliseconds as string
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'va' => $this->va,
-            'signature' => $signature,
-            'timestamp' => $timestamp,
-        ])->post($this->baseUrl . '/payment', $body);
+        Log::info('iPaymu payment initiation started', [
+            'transaction_id'  => $transaction->id,
+            'amount'          => $transaction->amount,
+            'request_body'    => $body,
+            'body_json'       => $bodyJson,
+            'body_hash'       => $bodyHash,
+            'signature'       => $signature,
+            'timestamp'       => $timestamp,
+            'api_endpoint'    => $this->baseUrl . '/payment',
+        ]);
 
-        $data = $response->json();
+        try {
+            $response = Http::timeout(30)->withHeaders([
+                'Content-Type' => 'application/json',
+                'va' => $this->va,
+                'signature' => $signature,
+                'timestamp' => $timestamp,
+            ])->post($this->baseUrl . '/payment', $body);
 
-        if (($data['Status'] ?? null) !== 200) {
-            Log::error('iPaymu payment initiation failed', [
-                'transaction_id' => $transaction->id,
-                'response' => $data,
+            $data = $response->json();
+
+            if (($data['Status'] ?? null) !== 200) {
+                $errorMessage = $data['Message'] ?? 'Unknown error';
+                Log::error('iPaymu payment initiation failed', [
+                    'transaction_id'    => $transaction->id,
+                    'amount'            => $transaction->amount,
+                    'request_body'      => $body,
+                    'status_code'       => $data['Status'] ?? null,
+                    'error_message'     => $errorMessage,
+                    'full_response'     => $data,
+                    'http_status'       => $response->status(),
+                    'response_body_raw' => $response->body(),
+                    'response_headers'  => $response->headers(),
+                ]);
+                throw new \Exception('iPaymu Error: ' . $errorMessage);
+            }
+
+            Log::info('iPaymu payment initiation successful', [
+                'transaction_id'      => $transaction->id,
+                'amount'              => $transaction->amount,
+                'external_reference'  => $data['Data']['SessionID'] ?? null,
+                'payment_url'         => 'redirected_to_ipaymu',
             ]);
-            throw new \Exception('iPaymu Error: ' . ($data['Message'] ?? 'Unknown error'));
+        } catch (\Exception $e) {
+            if ($e->getMessage() !== 'iPaymu Error: ' && strpos($e->getMessage(), 'iPaymu Error:') !== 0) {
+                Log::error('iPaymu payment initiation exception', [
+                    'transaction_id' => $transaction->id,
+                    'amount'         => $transaction->amount,
+                    'request_body'   => $body,
+                    'error'          => $e->getMessage(),
+                    'trace'          => $e->getTraceAsString(),
+                ]);
+            }
+            throw $e;
         }
 
         return [
@@ -183,18 +275,6 @@ class IPaymuService implements PaymentProviderInterface
     public function verifyWebhook(Request $request): bool
     {
         return $request->has('referenceId') && $request->has('status');
-    }
-
-    // ─── Private ─────────────────────────────────────────────────────
-
-    /**
-     * Build HMAC-SHA256 signature required by iPaymu v2 API.
-     */
-    private function buildSignature(array $body): string
-    {
-        $bodyHash = hash('sha256', json_encode($body));
-        $stringSign = 'POST:' . $this->va . ':' . $bodyHash . ':' . $this->apiKey;
-        return hash_hmac('sha256', $stringSign, $this->apiKey);
     }
 
     /**
