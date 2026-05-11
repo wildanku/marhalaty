@@ -77,7 +77,7 @@ class BrevoApiService
                 $payload['replyTo'] = $replyTo;
             }
 
-            $response = $this->client->post('/smtp/email', [
+            $response = $this->client->post('smtp/email', [
                 'json' => $payload,
             ]);
 
