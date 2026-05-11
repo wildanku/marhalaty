@@ -3,6 +3,7 @@
 namespace App\Domains\Event\Controllers;
 
 use App\Domains\Event\Models\Transaction;
+use App\Domains\Shared\Services\TelegramService;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ use Inertia\Inertia;
  */
 class PaymentPageController extends Controller
 {
+    public function __construct(private readonly TelegramService $telegram) {}
     /**
      * GET /payment/{hash}
      * Show payment details: VA / QRIS info for iPaymu, or bank info for manual.
@@ -98,6 +100,10 @@ class PaymentPageController extends Controller
                 'transaction_id' => $transaction->id,
                 'hash'           => $transaction->payment_hash,
             ]);
+
+            // Notify admin Telegram channel with proof image
+            $transaction->refresh()->load(['rsvp.event', 'user', 'proof']);
+            $this->telegram->notifyPaymentProof($transaction);
         });
 
         return redirect('/payment/' . $hash)->with('success', 'Bukti pembayaran berhasil diunggah. Admin akan memverifikasi segera.');
