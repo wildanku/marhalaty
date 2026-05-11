@@ -258,7 +258,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     }
     setView("stepper");
     setStepIndex(0);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   };
 
   const goNext = () => {
@@ -274,7 +274,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
 
     if (stepIndex < activeSteps.length - 1) {
       setStepIndex((s) => s + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: "auto" });
     }
   };
 
@@ -284,7 +284,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     } else {
       setView("detail");
     }
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   };
 
   const openImagePreview = (src: string, title: string) => {
@@ -999,7 +999,9 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           </h3>
           {includedAddons.map((addon) => {
             const qty = addon.pivot.included_quantity;
-            const variantKeys = addon.variants ? Object.keys(addon.variants) : [];
+            const variantKeys = addon.variants
+              ? Object.keys(addon.variants).filter((k) => k !== "forms")
+              : [];
             const addonVariants = data.included_addon_variants[addon.id] ?? {};
 
             return (
@@ -1202,7 +1204,9 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           </h3>
           {purchasableAddons.map((addon) => {
             const qty = getAddonQty(addon.id);
-            const variantKeys = addon.variants ? Object.keys(addon.variants) : [];
+            const variantKeys = addon.variants
+              ? Object.keys(addon.variants).filter((k) => k !== "forms")
+              : [];
             const addonVariants = data.purchased_addon_variants[addon.id] ?? {};
             const includedInfo = includedAddons.find((ia) => ia.id === addon.id);
             return (
