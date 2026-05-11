@@ -93,6 +93,21 @@ Route::post('/telegram/webhook', [App\Domains\Shared\Controllers\TelegramWebhook
     ->name('telegram.webhook')
     ->withoutMiddleware([VerifyCsrfToken::class]);
 
+// Telegram webhook test/debug (raw logging)
+Route::post('/telegram/webhook-debug', function (\Illuminate\Http\Request $request) {
+    \Illuminate\Support\Facades\Log::info('🔍 Telegram webhook debug request received', [
+        'update_id' => $request->input('update_id'),
+        'message' => $request->input('message.text'),
+        'from_id' => $request->input('message.from.id'),
+        'chat_id' => $request->input('message.chat.id'),
+        'all_keys' => array_keys($request->all()),
+        'raw_body' => $request->getContent(),
+    ]);
+    return response('ok', 200);
+})
+    ->name('telegram.webhook.debug')
+    ->withoutMiddleware([VerifyCsrfToken::class]);
+
 // ─── God Mode ────────────────────────────────────────────────────────────────
 Route::prefix('god-mode')->name('god-mode.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
