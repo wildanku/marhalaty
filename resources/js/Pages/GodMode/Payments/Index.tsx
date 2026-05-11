@@ -48,8 +48,8 @@ function ReviewModal({ transactionId, action, userName, onClose }: ReviewModalPr
     e.preventDefault();
     const endpoint =
       action === "approve"
-        ? route("god-mode.payments.approve", transactionId)
-        : route("god-mode.payments.reject", transactionId);
+        ? `/god-mode/payments/${transactionId}/approve`
+        : `/god-mode/payments/${transactionId}/reject`;
 
     post(endpoint, {
       onSuccess: onClose,
@@ -195,8 +195,9 @@ export default function PaymentsIndex({ admin, transactions }: PaymentsIndexProp
               </thead>
               <tbody className="divide-y divide-white/5">
                 {transactions.data.map((tx) => {
-                  const user = tx.rsvp?.user as any;
-                  const event = tx.rsvp?.event as any;
+                  const rsvp = tx.rsvp as any;
+                  const user = rsvp?.user;
+                  const event = rsvp?.event;
                   const hasProof = !!tx.proof;
 
                   return (
@@ -221,7 +222,7 @@ export default function PaymentsIndex({ admin, transactions }: PaymentsIndexProp
                       <td className="px-5 py-4">
                         {hasProof ? (
                           <a
-                            href={route("god-mode.payments.proof", tx.id)}
+                            href={`/god-mode/payments/${tx.id}/proof`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-xs transition-colors"

@@ -5,7 +5,8 @@ interface Admin {
   id: number;
   name: string;
   email: string;
-  role: string;
+  role?: string;
+  avatar_url?: string | null;
 }
 
 interface GodModeLayoutProps {
@@ -17,6 +18,8 @@ interface GodModeLayoutProps {
 const navItems = [
   { href: "/god-mode", label: "Dashboard", icon: "dashboard" },
   { href: "/god-mode/users", label: "Users", icon: "group" },
+  { href: "/god-mode/admins", label: "Admins", icon: "admin_panel_settings" },
+  { href: "/god-mode/activity-logs", label: "Activity Logs", icon: "receipt_long" },
   { href: "/god-mode/events", label: "Events", icon: "event" },
   { href: "/god-mode/consulates", label: "Consulates", icon: "location_city" },
 ];
@@ -48,7 +51,7 @@ export default function GodModeLayout({ admin, children, title }: GodModeLayoutP
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = currentPath === item.href || (item.href !== "/god-mode" && currentPath.startsWith(item.href));
             return (
@@ -76,11 +79,19 @@ export default function GodModeLayout({ admin, children, title }: GodModeLayoutP
         {/* Admin Profile */}
         <div className="px-3 py-4 border-t border-white/5">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-              <span className="text-emerald-400 text-sm font-bold">
-                {admin.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
+            {admin.avatar_url ? (
+              <img
+                src={admin.avatar_url}
+                alt={admin.name}
+                className="w-8 h-8 rounded-full object-cover shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <span className="text-emerald-400 text-sm font-bold">
+                  {admin.name?.charAt(0).toUpperCase() || "?"}
+                </span>
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">{admin.name}</p>
               <p className="text-xs text-white/40 uppercase tracking-wider">{admin.role}</p>

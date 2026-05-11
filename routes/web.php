@@ -96,11 +96,20 @@ Route::post('/telegram/webhook', [App\Domains\Shared\Controllers\TelegramWebhook
 // ─── God Mode ────────────────────────────────────────────────────────────────
 Route::prefix('god-mode')->name('god-mode.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+    Route::get('/auth/google', [AuthController::class, 'redirectToGoogle'])->name('auth.google');
+    Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::middleware('god-mode.auth')->group(function () {
         Route::get('/', [App\Domains\GodMode\Controllers\DashboardController::class, 'index'])->name('dashboard');
+
+        // Admins Management
+        Route::get('/admins', [App\Domains\GodMode\Controllers\AdminManagementController::class, 'index'])->name('admins.index');
+        Route::post('/admins', [App\Domains\GodMode\Controllers\AdminManagementController::class, 'store'])->name('admins.store');
+        Route::delete('/admins/{id}', [App\Domains\GodMode\Controllers\AdminManagementController::class, 'destroy'])->name('admins.destroy');
+
+        // Admin Activity Logs
+        Route::get('/activity-logs', [App\Domains\GodMode\Controllers\AdminActivityLogController::class, 'index'])->name('activity-logs.index');
 
         // Users
         Route::get('/users', [UserController::class, 'index'])->name('users.index');

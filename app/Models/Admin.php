@@ -12,11 +12,18 @@ class Admin extends Authenticatable
     protected $guard = 'admin';
 
     protected $fillable = [
+        'google_id',
         'name',
         'email',
         'password',
+        'avatar_url',
         'role',
     ];
+
+    public function activityLogs()
+    {
+        return $this->hasMany(AdminActivityLog::class);
+    }
 
     protected $hidden = [
         'password',

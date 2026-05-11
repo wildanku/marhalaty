@@ -265,7 +265,7 @@ export default function Edit({ auth, user, campuses, professions, status }: Edit
                   <select
                     id="privacy_setting"
                     value={data.privacy_setting}
-                    onChange={(e) => setData("privacy_setting", e.target.value)}
+                    onChange={(e) => setData("privacy_setting", e.target.value as any)}
                     className="block w-full py-3 px-4 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors"
                   >
                     <option value="public">Public Directory (Visible to all verified alumni)</option>

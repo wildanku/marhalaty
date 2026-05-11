@@ -20,7 +20,7 @@ export default function AsyncSelect({ endpoint, value, onChange, placeholder = "
   const [open, setOpen] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<any | null>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

@@ -85,7 +85,7 @@ export default function PaymentShow({
 
   const submitProof = (e: React.FormEvent) => {
     e.preventDefault();
-    proofForm.post(route("payments.proof.store", transaction.id), {
+    proofForm.post(`/payments/${transaction.id}/proof`, {
       forceFormData: true,
     });
   };

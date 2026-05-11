@@ -51,8 +51,8 @@ function ReviewForm({ transactionId, action, onCancel }: ReviewFormProps) {
     e.preventDefault();
     const endpoint =
       action === "approve"
-        ? route("god-mode.payments.approve", transactionId)
-        : route("god-mode.payments.reject", transactionId);
+        ? `/god-mode/payments/${transactionId}/approve`
+        : `/god-mode/payments/${transactionId}/reject`;
     post(endpoint);
   };
 
