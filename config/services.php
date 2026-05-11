@@ -53,4 +53,8 @@ return [
         'account_holder' => env('MANUAL_PAYMENT_ACCOUNT_HOLDER', ''),
     ],
 
+    'brevo' => [
+        'api_key' => env('BREVO_API_KEY'),
+    ],
+
 ];

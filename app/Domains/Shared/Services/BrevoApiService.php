@@ -15,6 +15,13 @@ class BrevoApiService
     public function __construct()
     {
         $this->apiKey = config('services.brevo.api_key') ?? env('BREVO_API_KEY');
+        
+        if (empty($this->apiKey)) {
+            throw new \RuntimeException(
+                'Brevo API key is not configured. Please set BREVO_API_KEY in .env and run: php artisan config:cache'
+            );
+        }
+        
         $this->client = new Client([
             'base_uri' => self::API_BASE_URL,
             'headers' => [
