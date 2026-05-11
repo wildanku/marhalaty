@@ -57,4 +57,9 @@ return [
         'api_key' => env('BREVO_API_KEY'),
     ],
 
+    'telegram' => [
+        'bot_token'      => env('TELEGRAM_BOT_TOKEN', ''),
+        'notify_chat_id' => env('TELEGRAM_NOTIFY_CHAT_ID', ''),
+    ],
+
 ];

@@ -88,6 +88,11 @@ Route::post('/payments/ipaymu/webhook', [PaymentController::class, 'ipaymuWebhoo
     ->name('payments.ipaymu.webhook')
     ->withoutMiddleware([VerifyCsrfToken::class]);
 
+// Telegram bot webhook (exempt from CSRF – verified by whitelist check)
+Route::post('/telegram/webhook', [App\Domains\Shared\Controllers\TelegramWebhookController::class, 'handle'])
+    ->name('telegram.webhook')
+    ->withoutMiddleware([VerifyCsrfToken::class]);
+
 // ─── God Mode ────────────────────────────────────────────────────────────────
 Route::prefix('god-mode')->name('god-mode.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

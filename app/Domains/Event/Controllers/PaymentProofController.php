@@ -3,12 +3,15 @@
 namespace App\Domains\Event\Controllers;
 
 use App\Domains\Event\Models\Transaction;
+use App\Domains\Shared\Services\TelegramService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class PaymentProofController extends Controller
 {
+    public function __construct(private readonly TelegramService $telegram) {}
+
     /**
      * Upload a manual payment proof for a pending transaction.
      */
@@ -45,6 +48,10 @@ class PaymentProofController extends Controller
             'original_name' => $originalName,
             'notes'         => $request->input('notes'),
         ]);
+
+        // Notify admin Telegram channel with proof image
+        $transaction->refresh()->load(['rsvp.event', 'user', 'proof']);
+        $this->telegram->notifyPaymentProof($transaction);
 
         return back()->with('success', 'Bukti pembayaran berhasil diunggah. Admin akan segera memverifikasi.');
     }
