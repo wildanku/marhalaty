@@ -9,6 +9,7 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 /**
@@ -83,11 +84,12 @@ class PaymentPageController extends Controller
         DB::transaction(function () use ($request, $transaction) {
             // Delete previous proof if exists
             if ($transaction->proof) {
+                Storage::disk('public')->delete($transaction->proof->file_path);
                 $transaction->proof->delete();
             }
 
             $file = $request->file('proof');
-            $path = $file->store('payment-proofs', 'local');
+            $path = $file->store("payment-proofs/{$transaction->id}", 'public');
 
             \App\Domains\Event\Models\PaymentProof::create([
                 'transaction_id' => $transaction->id,
