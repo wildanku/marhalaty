@@ -1,6 +1,6 @@
 import { Link, router } from "@inertiajs/react";
 import { ReactNode } from "react";
-import Footer from "@/Components/Footer";
+import AdminFooter from "@/Components/AdminFooter";
 
 interface Admin {
   id: number;
@@ -134,7 +134,7 @@ export default function GodModeLayout({ admin, children, title }: GodModeLayoutP
 
         <main className="flex-1 p-6">{children}</main>
 
-        <Footer />
+        <AdminFooter />
       </div>
     </div>
   );
