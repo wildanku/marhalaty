@@ -28,7 +28,7 @@ class PaymentProofController extends Controller
                 'required',
                 'file',
                 'mimes:jpg,jpeg,png,pdf',
-                'max:5120', // 5 MB
+                'max:2048', // 2 MB
             ],
             'notes' => 'nullable|string|max:500',
         ]);

@@ -213,7 +213,7 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
       <main className="flex-1 pb-24 md:pb-0 min-h-screen">
         <div className="max-w-6xl mx-auto px-6 lg:px-12 py-8 flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
-          <aside className="w-full lg:w-64 flex-shrink-0 space-y-8">
+          <aside className="w-full lg:w-64 shrink-0 space-y-8">
             <div className="rounded-2xl bg-surface-container-lowest border border-surface-container-high p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-headline font-semibold text-on-surface">Filters</h3>

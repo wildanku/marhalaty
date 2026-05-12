@@ -77,7 +77,7 @@ class PaymentPageController extends Controller
         }
 
         $request->validate([
-            'proof' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'proof' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'notes' => 'nullable|string|max:500',
         ]);
 

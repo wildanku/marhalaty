@@ -4,6 +4,7 @@ import { Head, Link, useForm } from "@inertiajs/react";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
+import { validateFile, MAX_FILE_SIZE_MB } from "@/Helpers/fileValidation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -166,6 +167,7 @@ export default function PaymentPage({
 }: PaymentPageProps): ReactElement {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [copiedVa, setCopiedVa] = useState(false);
+  const [fileValidationError, setFileValidationError] = useState<string | null>(null);
 
   const status = statusConfig[transaction.status] ?? statusConfig.pending;
   const isManual = transaction.payment_provider === "manual";
@@ -569,14 +571,33 @@ export default function PaymentPage({
                 ) : (
                   <form onSubmit={submitProof} className="mt-3 space-y-3">
                     <p className="font-body text-xs text-on-surface-variant">
-                      Format: JPG, PNG, atau PDF. Maks 5 MB.
+                      Format: JPG, PNG, atau PDF. Maks 2 MB.
                     </p>
                     <input
                       type="file"
                       accept=".jpg,.jpeg,.png,.pdf"
-                      onChange={(e) => proofForm.setData("proof", e.target.files?.[0] ?? null)}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const error = validateFile(
+                            file,
+                            ["image/jpeg", "image/png", "application/pdf"],
+                            MAX_FILE_SIZE_MB
+                          );
+                          if (error) {
+                            setFileValidationError(error.message);
+                            proofForm.setData("proof", null);
+                            return;
+                          }
+                        }
+                        setFileValidationError(null);
+                        proofForm.setData("proof", file ?? null);
+                      }}
                       className="w-full text-sm text-on-surface-variant file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-primary file:text-on-primary file:font-medium hover:file:bg-primary/90"
                     />
+                    {fileValidationError && (
+                      <p className="text-error text-xs">{fileValidationError}</p>
+                    )}
                     {proofForm.errors.proof && (
                       <p className="text-error text-xs">{proofForm.errors.proof}</p>
                     )}

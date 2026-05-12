@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Head, useForm, Link } from "@inertiajs/react";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import { validateFile } from "@/Helpers/fileValidation";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 
 interface BankAccount {
@@ -65,6 +66,7 @@ export default function PaymentShow({
   bankAccounts,
 }: PaymentShowProps) {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, idx: number) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -83,6 +85,25 @@ export default function PaymentShow({
     proof: null,
     notes: "",
   });
+
+  const handleProofFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setFileError(null);
+      proofForm.setData("proof", null);
+      return;
+    }
+
+    // Validate file
+    const error = validateFile(file, ["image/jpeg", "image/png", "application/pdf"]);
+    if (error) {
+      setFileError(error.message);
+      proofForm.setData("proof", null);
+    } else {
+      setFileError(null);
+      proofForm.setData("proof", file);
+    }
+  };
 
   const submitProof = (e: React.FormEvent) => {
     e.preventDefault();
@@ -357,18 +378,20 @@ export default function PaymentShow({
                 ) : (
                   <form onSubmit={submitProof} className="mt-4 space-y-4">
                     <p className="font-body text-xs text-on-surface-variant">
-                      Upload screenshot / foto struk transfer. Format: JPG, PNG, atau PDF. Maks 5
+                      Upload screenshot / foto struk transfer. Format: JPG, PNG, atau PDF. Maks 2
                       MB.
                     </p>
                     <div>
                       <input
                         type="file"
                         accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={(e) => proofForm.setData("proof", e.target.files?.[0] ?? null)}
+                        onChange={handleProofFileChange}
                         className="w-full text-sm text-on-surface-variant file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-primary file:text-on-primary file:font-medium hover:file:bg-primary/90"
                       />
-                      {proofForm.errors.proof && (
-                        <p className="text-error text-xs mt-1">{proofForm.errors.proof}</p>
+                      {(fileError || proofForm.errors.proof) && (
+                        <p className="text-error text-xs mt-1">
+                          {fileError || proofForm.errors.proof}
+                        </p>
                       )}
                     </div>
                     <div>

@@ -398,7 +398,7 @@ export default function EventShow({
                         <td className="px-5 py-4">
                           {rsvp.user?.phone_number && getWhatsAppUrl(rsvp.user.phone_number) ? (
                             <a
-                              href={getWhatsAppUrl(rsvp.user.phone_number)}
+                              href={getWhatsAppUrl(rsvp.user.phone_number) ?? "#"}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 hover:underline transition-colors"
@@ -566,7 +566,7 @@ export default function EventShow({
                     </tr>
                   ) : (
                     package_stats.map((pkg) => (
-                      <tr key={pkg.package_id} className="hover:bg-white/[0.02]">
+                      <tr key={pkg.package_id} className="hover:bg-white/2">
                         <td className="px-5 py-4 font-semibold text-white">{pkg.package_name}</td>
                         <td className="px-5 py-4 text-right">{pkg.count}</td>
                         <td className="px-5 py-4 text-right text-emerald-400">{pkg.paid_count}</td>

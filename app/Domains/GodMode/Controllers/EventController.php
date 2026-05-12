@@ -220,7 +220,7 @@ class EventController extends Controller
             'visibility_scope' => 'nullable|string',
             'infak_rules' => 'nullable|string',
             'metadata' => 'nullable|string',
-            'image' => 'nullable|image|max:5120',
+            'image' => 'nullable|image|max:2048',
         ]);
 
         // Normalize slug: lowercase, replace spaces with hyphens, remove special chars

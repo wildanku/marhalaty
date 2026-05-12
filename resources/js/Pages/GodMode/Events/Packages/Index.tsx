@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Head, Link, useForm, router } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
+import { validateFile, MAX_FILE_SIZE_MB } from "@/Helpers/fileValidation";
 
 interface Addon {
   id: number;
@@ -49,9 +50,11 @@ export default function PackagesIndex({ admin, event, packages, addons }: Packag
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [fileValidationError, setFileValidationError] = useState<string | null>(null);
 
   const openCreateModal = () => {
     clearErrors();
+    setFileValidationError(null);
     setEditingPackage(null);
     setData({
       _method: "POST",
@@ -68,6 +71,7 @@ export default function PackagesIndex({ admin, event, packages, addons }: Packag
 
   const openEditModal = (pkg: Package) => {
     clearErrors();
+    setFileValidationError(null);
     setEditingPackage(pkg);
     setData({
       _method: "PUT",
@@ -93,6 +97,13 @@ export default function PackagesIndex({ admin, event, packages, addons }: Packag
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const error = validateFile(file, ["image/jpeg", "image/png", "image/webp"], MAX_FILE_SIZE_MB);
+      if (error) {
+        setFileValidationError(error.message);
+        setData("image", null);
+        return;
+      }
+      setFileValidationError(null);
       setData("image", file);
       setImagePreview(URL.createObjectURL(file));
     }

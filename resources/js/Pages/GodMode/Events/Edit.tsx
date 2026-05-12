@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
+import { validateFile, MAX_FILE_SIZE_MB } from "@/Helpers/fileValidation";
 
 interface EventEditProps {
   admin: any;
@@ -23,10 +24,18 @@ export default function EventEdit({ admin, event, current_image_url }: EventEdit
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(current_image_url);
+  const [fileValidationError, setFileValidationError] = useState<string | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const error = validateFile(file, ["image/jpeg", "image/png", "image/webp"], MAX_FILE_SIZE_MB);
+      if (error) {
+        setFileValidationError(error.message);
+        setData("image", null);
+        return;
+      }
+      setFileValidationError(null);
       setData("image", file);
       setImagePreview(URL.createObjectURL(file));
     }
@@ -91,23 +100,29 @@ export default function EventEdit({ admin, event, current_image_url }: EventEdit
                 onChange={(e) => setData("event_date", e.target.value)}
                 className="w-full bg-[#0d1117] border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
               />
-              {errors.event_date && <div className="text-red-400 text-sm mt-1">{errors.event_date}</div>}
+              {errors.event_date && (
+                <div className="text-red-400 text-sm mt-1">{errors.event_date}</div>
+              )}
             </div>
 
             {/* Visibility Scope */}
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">Visibility Scope</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Visibility Scope
+              </label>
               <select
-                value={data.visibility_scope || 'global'}
+                value={data.visibility_scope || "global"}
                 onChange={(e) => setData("visibility_scope", e.target.value)}
                 className="w-full bg-[#0d1117] border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
               >
                 <option value="global">Global (Public)</option>
                 <option value="private">Private</option>
               </select>
-              {errors.visibility_scope && <div className="text-red-400 text-sm mt-1">{errors.visibility_scope}</div>}
+              {errors.visibility_scope && (
+                <div className="text-red-400 text-sm mt-1">{errors.visibility_scope}</div>
+              )}
             </div>
-            
+
             {/* Location */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-white/70 mb-2">Location</label>
@@ -117,7 +132,9 @@ export default function EventEdit({ admin, event, current_image_url }: EventEdit
                 onChange={(e) => setData("location", e.target.value)}
                 className="w-full bg-[#0d1117] border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
               />
-              {errors.location && <div className="text-red-400 text-sm mt-1">{errors.location}</div>}
+              {errors.location && (
+                <div className="text-red-400 text-sm mt-1">{errors.location}</div>
+              )}
             </div>
 
             {/* Description */}
@@ -129,12 +146,16 @@ export default function EventEdit({ admin, event, current_image_url }: EventEdit
                 rows={4}
                 className="w-full bg-[#0d1117] border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
               />
-              {errors.description && <div className="text-red-400 text-sm mt-1">{errors.description}</div>}
+              {errors.description && (
+                <div className="text-red-400 text-sm mt-1">{errors.description}</div>
+              )}
             </div>
 
             {/* Infak Rules */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-white/70 mb-2">Infak Rules (JSON Format)</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Infak Rules (JSON Format)
+              </label>
               <textarea
                 value={data.infak_rules}
                 onChange={(e) => setData("infak_rules", e.target.value)}
@@ -142,12 +163,16 @@ export default function EventEdit({ admin, event, current_image_url }: EventEdit
                 placeholder='[{"amount": 50000, "label": "Minimal"}]'
                 className="w-full bg-[#0d1117] border border-white/10 rounded-lg px-4 py-2 text-white font-mono text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
               />
-              {errors.infak_rules && <div className="text-red-400 text-sm mt-1">{errors.infak_rules}</div>}
+              {errors.infak_rules && (
+                <div className="text-red-400 text-sm mt-1">{errors.infak_rules}</div>
+              )}
             </div>
 
             {/* Metadata */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-white/70 mb-2">Metadata (JSON Format)</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Metadata (JSON Format)
+              </label>
               <textarea
                 value={data.metadata}
                 onChange={(e) => setData("metadata", e.target.value)}
@@ -155,16 +180,24 @@ export default function EventEdit({ admin, event, current_image_url }: EventEdit
                 placeholder='{"external_link": "https..."}'
                 className="w-full bg-[#0d1117] border border-white/10 rounded-lg px-4 py-2 text-white font-mono text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
               />
-              {errors.metadata && <div className="text-red-400 text-sm mt-1">{errors.metadata}</div>}
+              {errors.metadata && (
+                <div className="text-red-400 text-sm mt-1">{errors.metadata}</div>
+              )}
             </div>
 
             {/* Image Upload */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-white/70 mb-2">Event Image / Poster</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Event Image / Poster
+              </label>
               <div className="flex items-center gap-6">
                 {imagePreview && (
                   <div className="shrink-0">
-                    <img src={imagePreview} alt="Event Preview" className="h-32 w-32 object-cover rounded-xl border border-white/10" />
+                    <img
+                      src={imagePreview}
+                      alt="Event Preview"
+                      className="h-32 w-32 object-cover rounded-xl border border-white/10"
+                    />
                   </div>
                 )}
                 <div className="flex-1">
@@ -174,12 +207,16 @@ export default function EventEdit({ admin, event, current_image_url }: EventEdit
                     onChange={handleImageChange}
                     className="block w-full text-sm text-white/50 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-500/10 file:text-emerald-400 hover:file:bg-emerald-500/20 transition-all cursor-pointer"
                   />
-                  <p className="mt-2 text-xs text-white/40">Upload a new image to replace the current one. Max size: 5MB.</p>
+                  <p className="mt-2 text-xs text-white/40">
+                    Upload a new image to replace the current one. Max size: 2MB.
+                  </p>
+                  {fileValidationError && (
+                    <div className="text-red-400 text-xs mt-1">{fileValidationError}</div>
+                  )}
                   {errors.image && <div className="text-red-400 text-sm mt-1">{errors.image}</div>}
                 </div>
               </div>
             </div>
-
           </div>
 
           <div className="flex justify-end pt-4 border-t border-white/5">

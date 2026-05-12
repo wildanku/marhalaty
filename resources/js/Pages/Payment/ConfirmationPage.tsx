@@ -1,7 +1,9 @@
 import type { ReactElement } from "react";
+import { useState } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import { validateFile } from "@/Helpers/fileValidation";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 
 interface ConfirmationPageProps extends PageProps {
@@ -25,10 +27,30 @@ export default function ConfirmationPage({
   event,
   hash,
 }: ConfirmationPageProps): ReactElement {
+  const [fileError, setFileError] = useState<string | null>(null);
   const form = useForm<{ proof: File | null; notes: string }>({
     proof: null,
     notes: "",
   });
+
+  const handleProofFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setFileError(null);
+      form.setData("proof", null);
+      return;
+    }
+
+    // Validate file
+    const error = validateFile(file, ["image/jpeg", "image/png", "application/pdf"]);
+    if (error) {
+      setFileError(error.message);
+      form.setData("proof", null);
+    } else {
+      setFileError(null);
+      form.setData("proof", file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +157,7 @@ export default function ConfirmationPage({
                     File Bukti Transfer <span className="text-error">*</span>
                   </label>
                   <p className="font-body text-xs text-on-surface-variant mb-3">
-                    Screenshot atau foto struk transfer. Format: JPG, PNG, atau PDF. Maks 5 MB.
+                    Screenshot atau foto struk transfer. Format: JPG, PNG, atau PDF. Maks 2 MB.
                   </p>
                   <div
                     className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
@@ -149,7 +171,7 @@ export default function ConfirmationPage({
                       id="proof-file"
                       accept=".jpg,.jpeg,.png,.pdf"
                       className="sr-only"
-                      onChange={(e) => form.setData("proof", e.target.files?.[0] ?? null)}
+                      onChange={handleProofFileChange}
                     />
                     <label htmlFor="proof-file" className="cursor-pointer block">
                       <span
@@ -173,14 +195,14 @@ export default function ConfirmationPage({
                             Klik untuk pilih file
                           </p>
                           <p className="font-body text-xs text-on-surface-variant/60 mt-1">
-                            JPG, PNG, PDF maks 5 MB
+                            JPG, PNG, PDF maks 2 MB
                           </p>
                         </>
                       )}
                     </label>
                   </div>
-                  {form.errors.proof && (
-                    <p className="text-error text-xs mt-1">{form.errors.proof}</p>
+                  {(fileError || form.errors.proof) && (
+                    <p className="text-error text-xs mt-1">{fileError || form.errors.proof}</p>
                   )}
                 </div>
 

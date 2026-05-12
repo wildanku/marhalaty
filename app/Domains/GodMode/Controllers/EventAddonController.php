@@ -34,7 +34,7 @@ class EventAddonController extends Controller
             'price' => 'required|numeric|min:0',
             'stock_quantity' => 'nullable|integer|min:0',
             'variants' => 'nullable|string', // Will be JSON string from frontend
-            'image' => 'nullable|image|max:5120',
+            'image' => 'nullable|image|max:2048',
         ]);
 
         $variants = $validated['variants'] ? json_decode($validated['variants'], true) : null;
@@ -63,7 +63,7 @@ class EventAddonController extends Controller
             'price' => 'required|numeric|min:0',
             'stock_quantity' => 'nullable|integer|min:0',
             'variants' => 'nullable|string',
-            'image' => 'nullable|image|max:5120',
+            'image' => 'nullable|image|max:2048',
         ]);
 
         $variants = $validated['variants'] ? json_decode($validated['variants'], true) : null;
