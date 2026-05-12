@@ -102,7 +102,7 @@ function ReviewForm({ transactionId, action, onCancel }: ReviewFormProps) {
 export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowProps) {
   const [reviewAction, setReviewAction] = useState<"approve" | "reject" | null>(null);
   const [imagePreview, setImagePreview] = useState<{
-    proofId: number;
+    imagePath: string;
     fileName: string;
   } | null>(null);
   const tx = rsvp.latest_transaction;
@@ -121,7 +121,7 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
 
       {imagePreview && (
         <ImagePreviewModal
-          proofId={imagePreview.proofId}
+          imagePath={imagePreview.imagePath}
           fileName={imagePreview.fileName}
           onClose={() => setImagePreview(null)}
         />
@@ -288,7 +288,7 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
                         <button
                           onClick={() =>
                             setImagePreview({
-                              proofId: tx!.proof!.id,
+                              imagePath: `/storage/${tx!.proof!.file_path}`,
                               fileName: tx!.proof!.original_name,
                             })
                           }
@@ -298,7 +298,7 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
                           Lihat Gambar
                         </button>
                         <a
-                          href={`/payments/proof/${tx!.proof!.id}/download`}
+                          href={`/storage/${tx!.proof!.file_path}`}
                           download={tx!.proof!.original_name}
                           className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition-colors"
                         >

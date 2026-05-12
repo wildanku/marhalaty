@@ -57,17 +57,17 @@ class TelegramService
 
     /**
      * Send a photo (binary) with caption to a specific chat.
-     * Reads the file from local storage and uploads it — not a URL.
+     * Reads the file from public storage and uploads it as binary to Telegram.
      */
     public function sendPhoto(string|int $chatId, string $storagePath, string $caption, string $parseMode = 'HTML'): bool
     {
         try {
-            if (! Storage::disk('local')->exists($storagePath)) {
+            if (! Storage::disk('public')->exists($storagePath)) {
                 Log::warning('Telegram sendPhoto: file not found', ['path' => $storagePath]);
                 return $this->sendMessage($chatId, $caption . "\n\n⚠️ <i>Gambar bukti tidak ditemukan di server.</i>", $parseMode);
             }
 
-            $fileContents = Storage::disk('local')->get($storagePath);
+            $fileContents = Storage::disk('public')->get($storagePath);
             $fileName     = basename($storagePath);
 
             $response = Http::timeout(30)->attach(

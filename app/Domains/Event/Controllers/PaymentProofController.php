@@ -35,13 +35,13 @@ class PaymentProofController extends Controller
 
         // Remove old proof if it exists (re-upload scenario)
         if ($transaction->proof) {
-            Storage::disk('local')->delete($transaction->proof->file_path);
+            Storage::disk('public')->delete($transaction->proof->file_path);
             $transaction->proof->delete();
         }
 
         $file         = $request->file('proof');
         $originalName = $file->getClientOriginalName();
-        $path         = $file->store("payment-proofs/{$transaction->id}", 'local');
+        $path         = $file->store("payment-proofs/{$transaction->id}", 'public');
 
         $transaction->proof()->create([
             'file_path'     => $path,
@@ -71,11 +71,11 @@ class PaymentProofController extends Controller
             abort(403, 'Unauthorized to view this payment proof.');
         }
 
-        if (! Storage::disk('local')->exists($proof->file_path)) {
+        if (! Storage::disk('public')->exists($proof->file_path)) {
             abort(404, 'Payment proof file not found.');
         }
 
-        return Storage::disk('local')->download(
+        return Storage::disk('public')->download(
             $proof->file_path,
             $proof->original_name
         );
@@ -96,12 +96,12 @@ class PaymentProofController extends Controller
             abort(403, 'Unauthorized to view this payment proof.');
         }
 
-        if (! Storage::disk('local')->exists($proof->file_path)) {
+        if (! Storage::disk('public')->exists($proof->file_path)) {
             abort(404, 'Payment proof file not found.');
         }
 
-        $mimeType = Storage::disk('local')->mimeType($proof->file_path);
-        $content  = Storage::disk('local')->get($proof->file_path);
+        $mimeType = Storage::disk('public')->mimeType($proof->file_path);
+        $content  = Storage::disk('public')->get($proof->file_path);
 
         return response($content, 200, [
             'Content-Type'   => $mimeType,
