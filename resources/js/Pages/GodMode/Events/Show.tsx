@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
 import ImagePreviewModal from "@/Components/ImagePreviewModal";
+import { sanitizePhoneNumber, getWhatsAppUrl } from "@/utils/phoneHelper";
 import { Rsvp, Transaction } from "@/types";
 
 interface EventStats {
@@ -39,7 +40,13 @@ interface EventShowProps {
     metadata: Record<string, unknown> | null;
   };
   rsvps: (Rsvp & {
-    user: { id: number; name: string; email: string; marhalah_year: number } | null;
+    user: {
+      id: number;
+      name: string;
+      email: string;
+      marhalah_year: number;
+      phone_number: string;
+    } | null;
     package: { id: number; name: string } | null;
     latest_transaction: Transaction | null;
   })[];
@@ -352,6 +359,7 @@ export default function EventShow({
               <thead className="bg-white/5 text-xs uppercase text-white/40 border-b border-white/5">
                 <tr>
                   <th className="px-5 py-3 font-semibold">Peserta</th>
+                  <th className="px-5 py-3 font-semibold">HP / WhatsApp</th>
                   <th className="px-5 py-3 font-semibold">Paket</th>
                   <th className="px-5 py-3 font-semibold">Total</th>
                   <th className="px-5 py-3 font-semibold">Metode Bayar</th>
@@ -364,7 +372,7 @@ export default function EventShow({
               <tbody className="divide-y divide-white/5">
                 {filteredRsvps.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-10 text-center text-white/30">
+                    <td colSpan={9} className="px-5 py-10 text-center text-white/30">
                       Tidak ada peserta ditemukan.
                     </td>
                   </tr>
@@ -385,6 +393,23 @@ export default function EventShow({
                           <div className="text-xs text-white/30 mt-0.5">
                             {new Date(rsvp.created_at).toLocaleDateString("id-ID")}
                           </div>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          {rsvp.user?.phone_number && getWhatsAppUrl(rsvp.user.phone_number) ? (
+                            <a
+                              href={getWhatsAppUrl(rsvp.user.phone_number)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 hover:underline transition-colors"
+                              title={`Chat ${rsvp.user.name} di WhatsApp`}
+                            >
+                              <span className="material-symbols-outlined text-xs">phone</span>
+                              <span className="text-sm">{rsvp.user.phone_number}</span>
+                            </a>
+                          ) : (
+                            <span className="text-xs text-white/30">—</span>
+                          )}
                         </td>
 
                         <td className="px-5 py-4">
