@@ -1,4 +1,4 @@
-import { FormEventHandler } from "react";
+import { FormEventHandler, useState } from "react";
 import { Head, useForm, Link } from "@inertiajs/react";
 import { PageProps, User } from "@/types";
 import AsyncSelect from "@/Components/AsyncSelect";
@@ -28,6 +28,49 @@ export default function Edit({ auth, user, campuses, professions, educations, st
     privacy_setting: user.privacy_setting || "public",
     business_showcase_url: user.business_showcase_url || "",
   });
+
+  const [photoPreview, setPhotoPreview] = useState<string | null>(
+    user.no_stambuk ? `https://storage.gontorian.com/src/${user.no_stambuk}.jpg` : null
+  );
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [validatedStambuk, setValidatedStambuk] = useState<string | null>(user.no_stambuk || null);
+
+  const validateStambuk = async () => {
+    if (!data.no_stambuk.trim()) {
+      setPhotoError("Masukkan nomor stambuk terlebih dahulu");
+      return;
+    }
+
+    setPhotoLoading(true);
+    setPhotoError(null);
+    setPhotoPreview(null);
+
+    try {
+      const imageUrl = `https://storage.gontorian.com/src/${data.no_stambuk}.jpg`;
+      const response = await fetch(imageUrl, { method: "HEAD" });
+
+      if (response.ok) {
+        setPhotoPreview(imageUrl);
+        setValidatedStambuk(data.no_stambuk);
+        setPhotoError(null);
+      } else {
+        setPhotoError(
+          `Stambuk "${data.no_stambuk}" tidak ditemukan. Mungkin ada kesalahan penulisan atau stambuk belum terdaftar. Tidak masalah, kamu tetap bisa melanjutkan!`
+        );
+        setPhotoPreview(null);
+        setValidatedStambuk(null);
+      }
+    } catch (error) {
+      setPhotoError(
+        `Gagal mengecek stambuk. Mungkin ada kesalahan penulisan atau stambuk belum terdaftar. Tidak masalah, kamu tetap bisa melanjutkan!`
+      );
+      setPhotoPreview(null);
+      setValidatedStambuk(null);
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
 
   const submit: FormEventHandler = (e) => {
     e.preventDefault();
@@ -167,28 +210,80 @@ export default function Edit({ auth, user, campuses, professions, educations, st
               )}
 
               {/* No Stambuk & Pendidikan Terakhir */}
-              <div className="sm:col-span-1">
+              <div className="sm:col-span-2">
                 <label
                   htmlFor="no_stambuk"
                   className="block font-label text-sm font-medium text-on-surface mb-2"
                 >
                   No Stambuk
                 </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-primary">
-                    <span className="material-symbols-outlined">badge</span>
-                  </span>
-                  <input
-                    type="text"
-                    id="no_stambuk"
-                    value={data.no_stambuk}
-                    onChange={(e) => setData("no_stambuk", e.target.value)}
-                    placeholder="e.g., 2020001"
-                    className="block w-full pl-12 pr-4 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest"
-                  />
+                <div className="flex gap-3 items-start">
+                  <div className="flex-1">
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1 relative">
+                        <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-primary">
+                          <span className="material-symbols-outlined">badge</span>
+                        </span>
+                        <input
+                          type="text"
+                          id="no_stambuk"
+                          value={data.no_stambuk}
+                          onChange={(e) => {
+                            setData("no_stambuk", e.target.value);
+                            setPhotoPreview(null);
+                            setPhotoError(null);
+                          }}
+                          placeholder="e.g., 2020001"
+                          className="block w-full pl-12 pr-4 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={validateStambuk}
+                        disabled={!data.no_stambuk.trim() || photoLoading}
+                        className="px-4 py-3 bg-primary text-on-primary rounded-t-DEFAULT font-medium text-sm hover:bg-primary-container disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                      >
+                        {photoLoading ? (
+                          <span className="flex items-center gap-1">
+                            <span className="material-symbols-outlined animate-spin text-sm">
+                              refresh
+                            </span>
+                          </span>
+                        ) : (
+                          "Validasi"
+                        )}
+                      </button>
+                    </div>
+                    {errors.no_stambuk && (
+                      <p className="mt-2 text-xs text-error">{errors.no_stambuk}</p>
+                    )}
+                  </div>
+
+                  {/* Compact Photo Preview */}
+                  {photoPreview && (
+                    <div className="flex-shrink-0 animate-fade-in">
+                      <div className="relative group">
+                        <img
+                          src={photoPreview}
+                          alt="Stambuk Photo"
+                          className="w-32 h-40 rounded-lg object-cover shadow-md hover:shadow-lg transition-shadow border-2 border-primary/30"
+                          onError={() => {
+                            setPhotoError("Gagal memuat foto");
+                            setPhotoPreview(null);
+                          }}
+                        />
+                        <div className="absolute -top-2 -right-2 bg-primary text-on-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-md">
+                          ✓
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                {errors.no_stambuk && (
-                  <p className="mt-2 text-xs text-error">{errors.no_stambuk}</p>
+
+                {photoError && (
+                  <div className="mt-3 bg-error-container text-on-error-container rounded-lg px-4 py-3 border-l-4 border-error">
+                    <p className="text-sm">{photoError}</p>
+                  </div>
                 )}
               </div>
 
