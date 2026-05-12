@@ -1,6 +1,6 @@
 import { Head, Link } from "@inertiajs/react";
 import Header from "@/Components/Header";
-import Footer from "@/Components/Footer";
+import AdminFooter from "@/Components/AdminFooter";
 import { useTranslate } from "@/hooks/useTranslate";
 
 export default function Login() {
@@ -148,7 +148,7 @@ export default function Login() {
           </div>
         </div>
 
-        <Footer />
+        {/* <AdminFooter /> */}
       </div>
     </div>
   );
