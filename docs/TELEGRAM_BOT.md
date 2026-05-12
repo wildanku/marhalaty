@@ -341,6 +341,55 @@ POST /telegram/webhook
 
 ## 🛠️ Artisan Commands
 
+### `telegram:group-members`
+
+Lihat list member Telegram group dengan ID-nya, langsung bisa copy-paste untuk whitelist.
+
+```bash
+php artisan telegram:group-members
+```
+
+**Output:**
+
+```
+🔍 Mengambil informasi group Telegram...
+
+📊 Group Information:
+   Title: Dynamic Muleh
+   Type: group
+   Chat ID: -5112305117
+   Members: N/A
+
+👥 Group Administrators:
+
++------------+---------+----------------+---------------+
+| ID         | Name    | Username       | Role          |
++------------+---------+----------------+---------------+
+| 8185420712 | MZA     | N/A            | Administrator |
+| 7729297845 | Er Din  | N/A            | Administrator |
+| 5887287141 | ~       | @suryaasap     | Administrator |
+| 8667500913 | DynaBOT | @dynamic87_bot | Administrator |
+| 884434430  | Wildan  | @wildanma      | Creator       |
++------------+---------+----------------+---------------+
+
+💡 Untuk menambahkan ke whitelist, gunakan:
+   php artisan telegram:whitelist add --chat-id=8185420712 --name="MZA"
+   php artisan telegram:whitelist add --chat-id=7729297845 --name="Er Din"
+   php artisan telegram:whitelist add --chat-id=5887287141 --name="~"
+   php artisan telegram:whitelist add --chat-id=8667500913 --name="DynaBOT"
+   php artisan telegram:whitelist add --chat-id=884434430 --name="Wildan"
+
+✅ Done!
+```
+
+**Gunakan ketika:**
+
+- Setup awal - lihat siapa aja yang admin di group
+- Ingin menambah member baru ke whitelist
+- Copy-paste command langsung ke terminal
+
+---
+
 ### `telegram:debug`
 
 Check Telegram bot setup status dan whitelist.
@@ -915,6 +964,7 @@ tail -f storage/logs/laravel.log | grep -i "telegram\|approve\|reject"
 | `app/Console/Commands/TelegramCheckWebhook.php`                              | Check webhook status command     |
 | `app/Console/Commands/TelegramDebugCommand.php`                              | Debug bot setup (NEW)            |
 | `app/Console/Commands/TelegramWhitelistCommand.php`                          | Manage whitelist (NEW)           |
+| `app/Console/Commands/TelegramGroupMembersCommand.php`                       | List group members & IDs (NEW)   |
 | `routes/web.php`                                                             | Webhook route definition         |
 
 ---
@@ -954,7 +1004,10 @@ Untuk issues atau pertanyaan, check:
 # Check setup
 php artisan telegram:debug
 
-# List admins
+# Lihat list member & ID-nya
+php artisan telegram:group-members
+
+# List admins di whitelist
 php artisan telegram:whitelist list
 
 # Add admin
