@@ -13,8 +13,7 @@ class EducationOptionSeeder extends Seeder
     public function run(): void
     {
         $educations = [
-            ['key' => 'education', 'name' => 'SD (Sekolah Dasar)', 'value' => 'sd', 'type' => 'string'],
-            ['key' => 'education', 'name' => 'SMP (Sekolah Menengah Pertama)', 'value' => 'smp', 'type' => 'string'],
+            ['key' => 'education', 'name' => 'KMI', 'value' => 'kmi', 'type' => 'string'],
             ['key' => 'education', 'name' => 'SMA (Sekolah Menengah Atas)', 'value' => 'sma', 'type' => 'string'],
             ['key' => 'education', 'name' => 'Diploma (D1/D2/D3)', 'value' => 'diploma', 'type' => 'string'],
             ['key' => 'education', 'name' => 'S1 (Sarjana)', 'value' => 's1', 'type' => 'string'],

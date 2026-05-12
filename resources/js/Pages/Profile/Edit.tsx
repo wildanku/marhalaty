@@ -42,7 +42,9 @@ export default function Edit({ auth, user, campuses, professions, educations, st
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="mb-8">
           <h1 className="font-headline text-3xl font-bold text-on-surface">Edit Profile</h1>
-          <p className="text-on-surface-variant mt-2">Update your personal information and directory settings.</p>
+          <p className="text-on-surface-variant mt-2">
+            Update your personal information and directory settings.
+          </p>
         </div>
 
         {status && (
@@ -55,14 +57,16 @@ export default function Edit({ auth, user, campuses, professions, educations, st
         <div className="bg-surface-container-lowest rounded-3xl p-8 md:p-12 shadow-[0px_20px_60px_rgba(80,100,71,0.05)] border border-surface-container-high relative overflow-hidden">
           <form onSubmit={submit} className="relative z-10">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-              
               <div className="sm:col-span-2 border-b border-surface-container pb-4 mb-2">
                 <h3 className="font-headline text-lg font-bold text-on-surface">Personal Info</h3>
               </div>
 
               {/* Whatsapp */}
               <div className="sm:col-span-2">
-                <label htmlFor="whatsapp" className="block font-label text-sm font-medium text-on-surface mb-2">
+                <label
+                  htmlFor="whatsapp"
+                  className="block font-label text-sm font-medium text-on-surface mb-2"
+                >
                   WhatsApp Number
                 </label>
                 <div className="relative">
@@ -121,7 +125,10 @@ export default function Edit({ auth, user, campuses, professions, educations, st
 
               {data.domisili === "indonesia" ? (
                 <div className="sm:col-span-2">
-                  <label htmlFor="city_id" className="block font-label text-sm font-medium text-on-surface mb-2">
+                  <label
+                    htmlFor="city_id"
+                    className="block font-label text-sm font-medium text-on-surface mb-2"
+                  >
                     Kota Domisili
                   </label>
                   <AsyncSelect
@@ -134,7 +141,10 @@ export default function Edit({ auth, user, campuses, professions, educations, st
                 </div>
               ) : (
                 <div className="sm:col-span-2">
-                  <label htmlFor="foreign_city" className="block font-label text-sm font-medium text-on-surface mb-2">
+                  <label
+                    htmlFor="foreign_city"
+                    className="block font-label text-sm font-medium text-on-surface mb-2"
+                  >
                     Nama Kota (Luar Negeri)
                   </label>
                   <div className="relative">
@@ -150,13 +160,18 @@ export default function Edit({ auth, user, campuses, professions, educations, st
                       placeholder="e.g. Cairo, London, Sydney"
                     />
                   </div>
-                  {errors.foreign_city && <p className="mt-2 text-xs text-error">{errors.foreign_city}</p>}
+                  {errors.foreign_city && (
+                    <p className="mt-2 text-xs text-error">{errors.foreign_city}</p>
+                  )}
                 </div>
               )}
 
               {/* No Stambuk & Pendidikan Terakhir */}
               <div className="sm:col-span-1">
-                <label htmlFor="no_stambuk" className="block font-label text-sm font-medium text-on-surface mb-2">
+                <label
+                  htmlFor="no_stambuk"
+                  className="block font-label text-sm font-medium text-on-surface mb-2"
+                >
                   No Stambuk
                 </label>
                 <div className="relative">
@@ -172,11 +187,16 @@ export default function Edit({ auth, user, campuses, professions, educations, st
                     className="block w-full pl-12 pr-4 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest"
                   />
                 </div>
-                {errors.no_stambuk && <p className="mt-2 text-xs text-error">{errors.no_stambuk}</p>}
+                {errors.no_stambuk && (
+                  <p className="mt-2 text-xs text-error">{errors.no_stambuk}</p>
+                )}
               </div>
 
               <div className="sm:col-span-1">
-                <label htmlFor="pendidikan_terakhir_id" className="block font-label text-sm font-medium text-on-surface mb-2">
+                <label
+                  htmlFor="pendidikan_terakhir_id"
+                  className="block font-label text-sm font-medium text-on-surface mb-2"
+                >
                   Pendidikan Terakhir
                 </label>
                 <select
@@ -186,16 +206,23 @@ export default function Edit({ auth, user, campuses, professions, educations, st
                   className="block w-full py-3 px-4 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors"
                 >
                   <option value="">Pilih Pendidikan</option>
-                  {educations.map(e => (
-                    <option key={e.id} value={e.id}>{e.name}</option>
+                  {educations.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.name}
+                    </option>
                   ))}
                 </select>
-                {errors.pendidikan_terakhir_id && <p className="mt-2 text-xs text-error">{errors.pendidikan_terakhir_id}</p>}
+                {errors.pendidikan_terakhir_id && (
+                  <p className="mt-2 text-xs text-error">{errors.pendidikan_terakhir_id}</p>
+                )}
               </div>
 
               {/* Campus */}
               <div className="sm:col-span-1">
-                <label htmlFor="campus_id" className="block font-label text-sm font-medium text-on-surface mb-2">
+                <label
+                  htmlFor="campus_id"
+                  className="block font-label text-sm font-medium text-on-surface mb-2"
+                >
                   Kampus Asal
                 </label>
                 <select
@@ -205,9 +232,13 @@ export default function Edit({ auth, user, campuses, professions, educations, st
                   className="block w-full py-3 px-4 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors"
                   required
                 >
-                  <option value="" disabled>Pilih Kampus</option>
-                  {campuses.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                  <option value="" disabled>
+                    Pilih Kampus
+                  </option>
+                  {campuses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
                 {errors.campus_id && <p className="mt-2 text-xs text-error">{errors.campus_id}</p>}
@@ -215,7 +246,10 @@ export default function Edit({ auth, user, campuses, professions, educations, st
 
               {/* Profession */}
               <div className="sm:col-span-1">
-                <label htmlFor="profession_id" className="block font-label text-sm font-medium text-on-surface mb-2">
+                <label
+                  htmlFor="profession_id"
+                  className="block font-label text-sm font-medium text-on-surface mb-2"
+                >
                   Profesi
                 </label>
                 <select
@@ -225,17 +259,25 @@ export default function Edit({ auth, user, campuses, professions, educations, st
                   className="block w-full py-3 px-4 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors"
                   required
                 >
-                  <option value="" disabled>Pilih Profesi</option>
-                  {professions.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                  <option value="" disabled>
+                    Pilih Profesi
+                  </option>
+                  {professions.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
                   ))}
                 </select>
-                {errors.profession_id && <p className="mt-2 text-xs text-error">{errors.profession_id}</p>}
+                {errors.profession_id && (
+                  <p className="mt-2 text-xs text-error">{errors.profession_id}</p>
+                )}
               </div>
 
               {/* Social Media */}
               <div className="sm:col-span-2 mt-4 border-t border-surface-container pt-6">
-                <h3 className="font-headline text-lg font-bold text-on-surface mb-4">Social Media & Links</h3>
+                <h3 className="font-headline text-lg font-bold text-on-surface mb-4">
+                  Social Media & Links
+                </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary">
@@ -278,10 +320,15 @@ export default function Edit({ auth, user, campuses, professions, educations, st
 
               {/* Showcase & Privacy */}
               <div className="sm:col-span-2 mt-4 border-t border-surface-container pt-6">
-                <h3 className="font-headline text-lg font-bold text-on-surface mb-4">Directory Settings</h3>
-                
+                <h3 className="font-headline text-lg font-bold text-on-surface mb-4">
+                  Directory Settings
+                </h3>
+
                 <div className="mb-6">
-                  <label htmlFor="business_showcase_url" className="block font-label text-sm font-medium text-on-surface mb-2">
+                  <label
+                    htmlFor="business_showcase_url"
+                    className="block font-label text-sm font-medium text-on-surface mb-2"
+                  >
                     Business Showcase URL
                   </label>
                   <div className="relative">
@@ -297,11 +344,16 @@ export default function Edit({ auth, user, campuses, professions, educations, st
                       placeholder="https://your-business.com"
                     />
                   </div>
-                  {errors.business_showcase_url && <p className="mt-2 text-xs text-error">{errors.business_showcase_url}</p>}
+                  {errors.business_showcase_url && (
+                    <p className="mt-2 text-xs text-error">{errors.business_showcase_url}</p>
+                  )}
                 </div>
 
                 <div>
-                  <label htmlFor="privacy_setting" className="block font-label text-sm font-medium text-on-surface mb-2">
+                  <label
+                    htmlFor="privacy_setting"
+                    className="block font-label text-sm font-medium text-on-surface mb-2"
+                  >
                     Privacy Setting
                   </label>
                   <select
@@ -310,14 +362,17 @@ export default function Edit({ auth, user, campuses, professions, educations, st
                     onChange={(e) => setData("privacy_setting", e.target.value as any)}
                     className="block w-full py-3 px-4 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors"
                   >
-                    <option value="public">Public Directory (Visible to all verified alumni)</option>
+                    <option value="public">
+                      Public Directory (Visible to all verified alumni)
+                    </option>
                     <option value="circle">Circle Only (Visible to your Marhalah only)</option>
                     <option value="private">Private (Hidden from Directory)</option>
                   </select>
-                  {errors.privacy_setting && <p className="mt-2 text-xs text-error">{errors.privacy_setting}</p>}
+                  {errors.privacy_setting && (
+                    <p className="mt-2 text-xs text-error">{errors.privacy_setting}</p>
+                  )}
                 </div>
               </div>
-
             </div>
 
             <div className="pt-8 flex flex-col-reverse sm:flex-row items-center justify-end gap-6 border-t border-outline-variant/20 mt-8">

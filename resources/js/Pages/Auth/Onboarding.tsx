@@ -191,7 +191,9 @@ export default function Onboarding({
                     className="block w-full pl-12 pr-4 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest"
                   />
                 </div>
-                {errors.no_stambuk && <p className="mt-2 text-xs text-error">{errors.no_stambuk}</p>}
+                {errors.no_stambuk && (
+                  <p className="mt-2 text-xs text-error">{errors.no_stambuk}</p>
+                )}
               </div>
 
               <div>
