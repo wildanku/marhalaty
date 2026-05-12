@@ -42,6 +42,7 @@ Route::middleware('web')->group(function () {
     Route::post('/onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
 
     Route::get('/api/locations/cities', [LocationController::class, 'cities'])->name('api.locations.cities');
+    Route::get('/api/locations/foreign-cities', [LocationController::class, 'foreignCities'])->name('api.locations.foreign-cities');
 });
 
 // Placeholder for protected dashboard

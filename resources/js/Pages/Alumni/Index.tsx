@@ -3,6 +3,7 @@ import { Head, Link, router } from "@inertiajs/react";
 import { PageProps, User } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import AsyncSelect from "@/Components/AsyncSelect";
 
 interface Pagination<T> {
   data: T[];
@@ -14,36 +15,126 @@ interface IndexProps extends PageProps {
   users: Pagination<User>;
   filters?: {
     search?: string;
-    city?: string;
-    profession?: string;
+    city_id?: string;
+    foreign_city?: string;
+    profession_id?: string;
+    marhalah_year?: string;
+  };
+  filterOptions?: {
+    cities: { id: string; name: string }[];
+    professions: { id: number; name: string }[];
+    marhalahYears: number[];
   };
 }
 
-export default function Index({ auth, users, filters = {} }: IndexProps) {
+export default function Index({ auth, users, filters = {}, filterOptions }: IndexProps) {
   const [alumniList, setAlumniList] = useState<User[]>(users.data);
   const [searchQuery, setSearchQuery] = useState(filters.search || "");
+  const [selectedCityId, setSelectedCityId] = useState(filters.city_id || "");
+  const [selectedForeignCity, setSelectedForeignCity] = useState(filters.foreign_city || "");
+  const [selectedProfessionId, setSelectedProfessionId] = useState(filters.profession_id || "");
+  const [selectedMarhalahYear, setSelectedMarhalahYear] = useState(filters.marhalah_year || "");
+  const [locationScope, setLocationScope] = useState<"indonesia" | "luar_negeri">(
+    filters.foreign_city ? "luar_negeri" : "indonesia"
+  );
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(users.next_page_url);
+
+  useEffect(() => {
+    setAlumniList(users.data);
+    setNextPageUrl(users.next_page_url);
+  }, [users]);
+
+  const buildFilterPayload = (
+    overrides?: Partial<{
+      search: string;
+      city_id: string;
+      foreign_city: string;
+      profession_id: string;
+      marhalah_year: string;
+    }>
+  ) => {
+    const scope =
+      overrides?.foreign_city !== undefined || overrides?.city_id !== undefined
+        ? overrides?.foreign_city
+          ? "luar_negeri"
+          : locationScope
+        : locationScope;
+
+    const payload = {
+      search: overrides?.search ?? searchQuery,
+      city_id: scope === "indonesia" ? (overrides?.city_id ?? selectedCityId) : "",
+      foreign_city: scope === "luar_negeri" ? (overrides?.foreign_city ?? selectedForeignCity) : "",
+      profession_id: overrides?.profession_id ?? selectedProfessionId,
+      marhalah_year: overrides?.marhalah_year ?? selectedMarhalahYear,
+    };
+
+    return {
+      search: payload.search || undefined,
+      city_id: payload.city_id || undefined,
+      foreign_city: payload.foreign_city || undefined,
+      profession_id: payload.profession_id || undefined,
+      marhalah_year: payload.marhalah_year || undefined,
+    };
+  };
+
+  const applyFilters = (
+    overrides?: Partial<{
+      search: string;
+      city_id: string;
+      foreign_city: string;
+      profession_id: string;
+      marhalah_year: string;
+    }>
+  ) => {
+    router.get(
+      "/directory",
+      { filter: buildFilterPayload(overrides) },
+      {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        onSuccess: (page) => {
+          const newUsers = page.props.users as unknown as Pagination<User>;
+          setAlumniList(newUsers.data);
+          setNextPageUrl(newUsers.next_page_url);
+        },
+      }
+    );
+  };
 
   // Quick debounce for search input
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchQuery !== filters.search) {
-        router.get(
-          "/directory",
-          { filter: { search: searchQuery } },
-          {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-            onSuccess: (page) => {
-              const newUsers = page.props.users as unknown as Pagination<User>;
-              setAlumniList(newUsers.data);
-            },
-          }
-        );
+        applyFilters({ search: searchQuery });
       }
     }, 500);
     return () => clearTimeout(handler);
-  }, [searchQuery]);
+  }, [
+    searchQuery,
+    filters.search,
+    selectedCityId,
+    selectedForeignCity,
+    selectedProfessionId,
+    selectedMarhalahYear,
+    locationScope,
+  ]);
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setLocationScope("indonesia");
+    setSelectedCityId("");
+    setSelectedForeignCity("");
+    setSelectedProfessionId("");
+    setSelectedMarhalahYear("");
+    applyFilters({
+      search: "",
+      city_id: "",
+      foreign_city: "",
+      profession_id: "",
+      marhalah_year: "",
+    });
+  };
 
   // Infinite Scroll Implementation
   const observer = useRef<IntersectionObserver | null>(null);
@@ -52,15 +143,16 @@ export default function Index({ auth, users, filters = {} }: IndexProps) {
       if (observer.current) observer.current.disconnect();
 
       observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && users.next_page_url) {
+        if (entries[0].isIntersecting && nextPageUrl) {
           router.get(
-            users.next_page_url,
-            {},
+            nextPageUrl,
+            { filter: buildFilterPayload() },
             {
               preserveState: true,
               preserveScroll: true,
               onSuccess: (page) => {
                 const newUsers = page.props.users as unknown as Pagination<User>;
+                setNextPageUrl(newUsers.next_page_url);
                 // Append uniquely
                 setAlumniList((prev) => {
                   const newIds = newUsers.data.map((u) => u.id);
@@ -75,7 +167,15 @@ export default function Index({ auth, users, filters = {} }: IndexProps) {
 
       if (node) observer.current.observe(node);
     },
-    [users.next_page_url]
+    [
+      nextPageUrl,
+      searchQuery,
+      selectedCityId,
+      selectedForeignCity,
+      selectedProfessionId,
+      selectedMarhalahYear,
+      locationScope,
+    ]
   );
 
   return (
@@ -114,13 +214,117 @@ export default function Index({ auth, users, filters = {} }: IndexProps) {
         <div className="max-w-6xl mx-auto px-6 lg:px-12 py-8 flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
           <aside className="w-full lg:w-64 flex-shrink-0 space-y-8">
-            <div>
-              <h3 className="font-headline font-semibold text-on-surface mb-4">
-                Filters can go here
-              </h3>
-              <p className="text-sm font-body text-on-surface-variant">
-                Extend Spatie Query Builder parameters automatically
-              </p>
+            <div className="rounded-2xl bg-surface-container-lowest border border-surface-container-high p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-headline font-semibold text-on-surface">Filters</h3>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Reset
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-xs text-on-surface-variant mb-1.5">Marhalah</label>
+                <select
+                  value={selectedMarhalahYear}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedMarhalahYear(value);
+                    applyFilters({ marhalah_year: value });
+                  }}
+                  className="w-full bg-surface-container-high border border-surface-container-highest rounded-lg px-3 py-2 text-sm text-on-surface"
+                >
+                  <option value="">Semua Marhalah</option>
+                  {filterOptions?.marhalahYears?.map((year) => (
+                    <option key={year} value={String(year)}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs text-on-surface-variant mb-1.5">Profesi</label>
+                <select
+                  value={selectedProfessionId}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedProfessionId(value);
+                    applyFilters({ profession_id: value });
+                  }}
+                  className="w-full bg-surface-container-high border border-surface-container-highest rounded-lg px-3 py-2 text-sm text-on-surface"
+                >
+                  <option value="">Semua Profesi</option>
+                  {filterOptions?.professions?.map((profession) => (
+                    <option key={profession.id} value={String(profession.id)}>
+                      {profession.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs text-on-surface-variant mb-1.5">Domisili</label>
+                <div className="flex items-center gap-4 mb-3">
+                  <label className="inline-flex items-center gap-2 text-sm text-on-surface">
+                    <input
+                      type="radio"
+                      name="location_scope"
+                      value="indonesia"
+                      checked={locationScope === "indonesia"}
+                      onChange={() => {
+                        setLocationScope("indonesia");
+                        setSelectedForeignCity("");
+                        applyFilters({ foreign_city: "" });
+                      }}
+                      className="text-primary focus:ring-primary"
+                    />
+                    Indonesia
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-on-surface">
+                    <input
+                      type="radio"
+                      name="location_scope"
+                      value="luar_negeri"
+                      checked={locationScope === "luar_negeri"}
+                      onChange={() => {
+                        setLocationScope("luar_negeri");
+                        setSelectedCityId("");
+                        applyFilters({ city_id: "" });
+                      }}
+                      className="text-primary focus:ring-primary"
+                    />
+                    Luar Negeri
+                  </label>
+                </div>
+
+                {locationScope === "indonesia" ? (
+                  <AsyncSelect
+                    endpoint="/api/locations/cities"
+                    value={selectedCityId}
+                    onChange={(val) => {
+                      const value = String(val);
+                      setSelectedCityId(value);
+                      applyFilters({ city_id: value, foreign_city: "" });
+                    }}
+                    placeholder="Cari kota atau provinsi..."
+                  />
+                ) : (
+                  <AsyncSelect
+                    endpoint="/api/locations/foreign-cities"
+                    value={selectedForeignCity}
+                    onChange={(val) => {
+                      const value = String(val);
+                      setSelectedForeignCity(value);
+                      applyFilters({ foreign_city: value, city_id: "" });
+                    }}
+                    placeholder="Cari kota luar negeri..."
+                  />
+                )}
+              </div>
             </div>
           </aside>
 
