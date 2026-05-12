@@ -857,9 +857,16 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
         {event.packages?.map((pkg) => {
           const isSoldOut = !pkg.is_available;
           const isSelected = data.event_package_id === pkg.id;
+          const handlePackageClick = (e: React.MouseEvent) => {
+            // Jangan select package jika click di area button image
+            if ((e.target as HTMLElement).closest("button")) return;
+            if (!isSoldOut) setData("event_package_id", pkg.id);
+          };
+
           return (
-            <label
+            <div
               key={pkg.id}
+              onClick={handlePackageClick}
               className={`flex items-start gap-4 p-4 rounded-2xl border-2 transition-all ${
                 isSoldOut
                   ? "opacity-50 cursor-not-allowed bg-surface-container"
@@ -872,7 +879,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
             >
               {/* Radio circle */}
               <div
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all pointer-events-none ${
                   isSelected && !isSoldOut ? "border-primary" : "border-outline"
                 }`}
               >
@@ -888,8 +895,6 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                       <button
                         type="button"
                         onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
                           openImagePreview(pkg.image_url as string, pkg.name);
                         }}
                         className="relative shrink-0 group"
@@ -947,15 +952,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                   </span>
                 ) : null}
               </div>
-
-              <input
-                type="radio"
-                className="sr-only"
-                disabled={isSoldOut}
-                checked={isSelected}
-                onChange={() => !isSoldOut && setData("event_package_id", pkg.id)}
-              />
-            </label>
+            </div>
           );
         })}
       </div>

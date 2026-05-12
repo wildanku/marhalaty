@@ -44,29 +44,25 @@ export default function Edit({ auth, user, campuses, professions, educations, st
 
     setPhotoLoading(true);
     setPhotoError(null);
-    setPhotoPreview(null);
 
     try {
-      const imageUrl = `https://storage.gontorian.com/src/${data.no_stambuk}.jpg`;
+      const imageUrl = `https://storage.gontorian.com/src/${stambuk}.jpg`;
       const response = await fetch(imageUrl, { method: "HEAD" });
 
       if (response.ok) {
         setPhotoPreview(imageUrl);
-        setValidatedStambuk(data.no_stambuk);
-        setPhotoError(null);
+        setValidatedStambuk(stambuk);
       } else {
-        setPhotoError(
-          `Stambuk "${data.no_stambuk}" tidak ditemukan. Mungkin ada kesalahan penulisan atau stambuk belum terdaftar. Tidak masalah, kamu tetap bisa melanjutkan!`
-        );
+        // Foto tidak ditemukan - jangan tampilkan error, cukup silent
         setPhotoPreview(null);
         setValidatedStambuk(null);
+        setPhotoError(null);
       }
     } catch (error) {
-      setPhotoError(
-        `Gagal mengecek stambuk. Mungkin ada kesalahan penulisan atau stambuk belum terdaftar. Tidak masalah, kamu tetap bisa melanjutkan!`
-      );
+      // Error saat fetch - jangan tampilkan error, cukup silent
       setPhotoPreview(null);
       setValidatedStambuk(null);
+      setPhotoError(null);
     } finally {
       setPhotoLoading(false);
     }

@@ -58,37 +58,34 @@ export default function Onboarding({
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [validatedStambuk, setValidatedStambuk] = useState<string | null>(null);
 
-  const validateStambuk = async () => {
-    if (!data.no_stambuk.trim()) {
-      setPhotoError("Masukkan nomor stambuk terlebih dahulu");
+  const validateStambuk = async (stambuk: string) => {
+    if (!stambuk.trim()) {
+      setPhotoPreview(null);
+      setPhotoError(null);
       return;
     }
 
     setPhotoLoading(true);
     setPhotoError(null);
-    setPhotoPreview(null);
 
     try {
-      const imageUrl = `https://storage.gontorian.com/src/${data.no_stambuk}.jpg`;
+      const imageUrl = `https://storage.gontorian.com/src/${stambuk}.jpg`;
       const response = await fetch(imageUrl, { method: "HEAD" });
 
       if (response.ok) {
         setPhotoPreview(imageUrl);
-        setValidatedStambuk(data.no_stambuk);
-        setPhotoError(null);
+        setValidatedStambuk(stambuk);
       } else {
-        setPhotoError(
-          `Stambuk "${data.no_stambuk}" tidak ditemukan. Mungkin ada kesalahan penulisan atau stambuk belum terdaftar. Tidak masalah, kamu tetap bisa melanjutkan!`
-        );
+        // Foto tidak ditemukan - jangan tampilkan error, cukup silent
         setPhotoPreview(null);
         setValidatedStambuk(null);
+        setPhotoError(null);
       }
     } catch (error) {
-      setPhotoError(
-        `Gagal mengecek stambuk. Mungkin ada kesalahan penulisan atau stambuk belum terdaftar. Tidak masalah, kamu tetap bisa melanjutkan!`
-      );
+      // Error saat fetch - jangan tampilkan error, cukup silent
       setPhotoPreview(null);
       setValidatedStambuk(null);
+      setPhotoError(null);
     } finally {
       setPhotoLoading(false);
     }
@@ -235,30 +232,14 @@ export default function Onboarding({
                             id="no_stambuk"
                             value={data.no_stambuk}
                             onChange={(e) => {
-                              setData("no_stambuk", e.target.value);
-                              setPhotoPreview(null);
-                              setPhotoError(null);
+                              const value = e.target.value;
+                              setData("no_stambuk", value);
+                              validateStambuk(value);
                             }}
                             placeholder="e.g., 2020001"
                             className="block w-full pl-12 pr-4 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest"
                           />
                         </div>
-                        <button
-                          type="button"
-                          onClick={validateStambuk}
-                          disabled={!data.no_stambuk.trim() || photoLoading}
-                          className="px-4 py-3 bg-primary text-on-primary rounded-t-DEFAULT font-medium text-sm hover:bg-primary-container disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                        >
-                          {photoLoading ? (
-                            <span className="flex items-center gap-1">
-                              <span className="material-symbols-outlined animate-spin text-sm">
-                                refresh
-                              </span>
-                            </span>
-                          ) : (
-                            "Validasi"
-                          )}
-                        </button>
                       </div>
                       {errors.no_stambuk && (
                         <p className="mt-2 text-xs text-error">{errors.no_stambuk}</p>
