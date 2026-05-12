@@ -62,6 +62,8 @@ Route::middleware('auth')->group(function () {
     // Payment routes (authenticated user)
     Route::get('/payments/{id}', [PaymentController::class, 'show'])->name('payments.show');
     Route::post('/payments/{id}/proof', [PaymentProofController::class, 'store'])->name('payments.proof.store');
+    Route::get('/payments/proof/{id}', [PaymentProofController::class, 'show'])->name('payments.proof.show');
+    Route::get('/payments/proof/{id}/download', [PaymentProofController::class, 'download'])->name('payments.proof.download');
 
     // Baitul Maal routes
     Route::get('/maal', [CampaignController::class, 'index'])->name('maal.index');

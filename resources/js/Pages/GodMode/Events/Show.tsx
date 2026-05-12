@@ -160,7 +160,7 @@ export default function EventShow({
     userName: string;
   } | null>(null);
   const [imagePreview, setImagePreview] = useState<{
-    imagePath: string;
+    proofId: number;
     fileName: string;
   } | null>(null);
 
@@ -188,7 +188,7 @@ export default function EventShow({
 
       {imagePreview && (
         <ImagePreviewModal
-          imagePath={imagePreview.imagePath}
+          proofId={imagePreview.proofId}
           fileName={imagePreview.fileName}
           onClose={() => setImagePreview(null)}
         />
@@ -434,7 +434,7 @@ export default function EventShow({
                             <button
                               onClick={() =>
                                 setImagePreview({
-                                  imagePath: `/storage/${tx!.proof!.file_path}`,
+                                  proofId: tx!.proof!.id,
                                   fileName: tx!.proof!.original_name,
                                 })
                               }
