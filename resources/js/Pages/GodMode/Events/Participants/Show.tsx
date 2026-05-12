@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
+import ImagePreviewModal from "@/Components/ImagePreviewModal";
 import { Rsvp, Transaction, PaymentProof, RsvpAddonSnapshot, CustomFormField } from "@/types";
 
 interface ParticipantRsvp extends Rsvp {
@@ -100,6 +101,10 @@ function ReviewForm({ transactionId, action, onCancel }: ReviewFormProps) {
 
 export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowProps) {
   const [reviewAction, setReviewAction] = useState<"approve" | "reject" | null>(null);
+  const [imagePreview, setImagePreview] = useState<{
+    imagePath: string;
+    fileName: string;
+  } | null>(null);
   const tx = rsvp.latest_transaction;
   const isManualPending = tx?.payment_provider === "manual" && tx?.status === "pending";
   const customForms = event.metadata?.custom_forms ?? [];
@@ -113,6 +118,14 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
   return (
     <GodModeLayout admin={admin} title={`Peserta: ${rsvp.user?.name ?? "—"}`}>
       <Head title={`God Mode - Detail Peserta`} />
+
+      {imagePreview && (
+        <ImagePreviewModal
+          imagePath={imagePreview.imagePath}
+          fileName={imagePreview.fileName}
+          onClose={() => setImagePreview(null)}
+        />
+      )}
 
       {/* Back */}
       <div className="mb-6">
@@ -248,7 +261,7 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
                 )}
 
                 {/* Proof */}
-                {tx.proof && (
+                {tx?.proof && (
                   <div className="mt-3 pt-3 border-t border-white/5">
                     <p className="text-xs text-white/40 mb-2">Bukti Pembayaran</p>
                     <div className="bg-white/5 rounded-lg p-3 text-xs">
@@ -271,15 +284,28 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
                           )}
                         </div>
                       )}
-                      <a
-                        href={`/god-mode/payments/${tx.id}/proof`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 mt-2 ml-6"
-                      >
-                        <span className="material-symbols-outlined text-sm">download</span>
-                        Unduh bukti
-                      </a>
+                      <div className="flex gap-2 mt-2 ml-6">
+                        <button
+                          onClick={() =>
+                            setImagePreview({
+                              imagePath: `/storage/${tx!.proof!.file_path}`,
+                              fileName: tx!.proof!.original_name,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-sm">preview</span>
+                          Lihat Gambar
+                        </button>
+                        <a
+                          href={`/storage/${tx!.proof!.file_path}`}
+                          download={tx!.proof!.original_name}
+                          className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-sm">download</span>
+                          Download
+                        </a>
+                      </div>
                     </div>
                   </div>
                 )}

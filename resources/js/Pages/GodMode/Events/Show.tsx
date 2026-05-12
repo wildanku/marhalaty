@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
+import ImagePreviewModal from "@/Components/ImagePreviewModal";
 import { Rsvp, Transaction } from "@/types";
 
 interface EventStats {
@@ -52,7 +53,10 @@ const formatRp = (val: string | number) =>
 
 const providerLabel: Record<string, { label: string; color: string }> = {
   manual: { label: "Manual", color: "bg-blue-900/30 text-blue-300 border border-blue-700/40" },
-  ipaymu: { label: "iPaymu", color: "bg-purple-900/30 text-purple-300 border border-purple-700/40" },
+  ipaymu: {
+    label: "iPaymu",
+    color: "bg-purple-900/30 text-purple-300 border border-purple-700/40",
+  },
 };
 
 const txStatusBadge: Record<string, string> = {
@@ -113,7 +117,9 @@ function QuickReviewModal({ transactionId, action, userName, onClose }: QuickRev
               }
               className="w-full bg-[#0d1117] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/30 focus:ring-1 focus:ring-emerald-500 resize-none"
             />
-            {errors.review_note && <p className="text-red-400 text-xs mt-1">{errors.review_note}</p>}
+            {errors.review_note && (
+              <p className="text-red-400 text-xs mt-1">{errors.review_note}</p>
+            )}
           </div>
           <div className="flex gap-3">
             <button
@@ -137,7 +143,14 @@ function QuickReviewModal({ transactionId, action, userName, onClose }: QuickRev
   );
 }
 
-export default function EventShow({ admin, event, rsvps, stats, package_stats, addon_stats }: EventShowProps) {
+export default function EventShow({
+  admin,
+  event,
+  rsvps,
+  stats,
+  package_stats,
+  addon_stats,
+}: EventShowProps) {
   const [activeTab, setActiveTab] = useState<"peserta" | "statistik">("peserta");
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -145,6 +158,10 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
     transactionId: number;
     action: "approve" | "reject";
     userName: string;
+  } | null>(null);
+  const [imagePreview, setImagePreview] = useState<{
+    imagePath: string;
+    fileName: string;
   } | null>(null);
 
   const filteredRsvps = rsvps.filter((r) => {
@@ -166,6 +183,14 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
           action={modal.action}
           userName={modal.userName}
           onClose={() => setModal(null)}
+        />
+      )}
+
+      {imagePreview && (
+        <ImagePreviewModal
+          imagePath={imagePreview.imagePath}
+          fileName={imagePreview.fileName}
+          onClose={() => setImagePreview(null)}
         />
       )}
 
@@ -214,7 +239,9 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <div className="bg-[#161b22] border border-white/5 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">Total RSVP</p>
+            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+              Total RSVP
+            </p>
             <span className="material-symbols-outlined text-blue-400 text-[18px]">group</span>
           </div>
           <p className="text-3xl font-bold text-white font-headline">{stats.total_registrants}</p>
@@ -223,7 +250,9 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
         <div className="bg-[#161b22] border border-white/5 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">Lunas</p>
-            <span className="material-symbols-outlined text-emerald-400 text-[18px]">check_circle</span>
+            <span className="material-symbols-outlined text-emerald-400 text-[18px]">
+              check_circle
+            </span>
           </div>
           <p className="text-3xl font-bold text-emerald-400 font-headline">{stats.paid_count}</p>
         </div>
@@ -235,13 +264,17 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
           </div>
           <p className="text-3xl font-bold text-amber-400 font-headline">{stats.pending_count}</p>
           {stats.manual_pending > 0 && (
-            <p className="text-xs text-amber-300/70 mt-1">{stats.manual_pending} butuh verifikasi</p>
+            <p className="text-xs text-amber-300/70 mt-1">
+              {stats.manual_pending} butuh verifikasi
+            </p>
           )}
         </div>
 
         <div className="bg-[#161b22] border border-white/5 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">Gagal/Expired</p>
+            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+              Gagal/Expired
+            </p>
             <span className="material-symbols-outlined text-red-400 text-[18px]">cancel</span>
           </div>
           <p className="text-3xl font-bold text-red-400 font-headline">{stats.failed_count}</p>
@@ -249,10 +282,14 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
 
         <div className="col-span-2 lg:col-span-1 bg-[#161b22] border border-white/5 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">Pendapatan</p>
+            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+              Pendapatan
+            </p>
             <span className="material-symbols-outlined text-emerald-400 text-[18px]">payments</span>
           </div>
-          <p className="text-xl font-bold text-white font-headline">{formatRp(stats.total_revenue)}</p>
+          <p className="text-xl font-bold text-white font-headline">
+            {formatRp(stats.total_revenue)}
+          </p>
         </div>
       </div>
 
@@ -284,7 +321,9 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
           <div className="p-5 border-b border-white/5 flex flex-wrap gap-3 items-center justify-between">
             <h3 className="text-base font-bold text-white">
               Daftar Peserta
-              <span className="ml-2 text-white/40 font-normal text-sm">({filteredRsvps.length} dari {rsvps.length})</span>
+              <span className="ml-2 text-white/40 font-normal text-sm">
+                ({filteredRsvps.length} dari {rsvps.length})
+              </span>
             </h3>
             <div className="flex gap-3">
               <input
@@ -337,10 +376,12 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
                     const providerInfo = tx ? (providerLabel[tx.payment_provider] ?? null) : null;
 
                     return (
-                      <tr key={rsvp.id} className="hover:bg-white/[0.02] transition-colors">
+                      <tr key={rsvp.id} className="hover:bg-white/2 transition-colors">
                         <td className="px-5 py-4">
                           <div className="font-semibold text-white">{rsvp.user?.name ?? "—"}</div>
-                          <div className="text-xs text-white/40 mt-0.5">{rsvp.user?.email ?? "—"}</div>
+                          <div className="text-xs text-white/40 mt-0.5">
+                            {rsvp.user?.email ?? "—"}
+                          </div>
                           <div className="text-xs text-white/30 mt-0.5">
                             {new Date(rsvp.created_at).toLocaleDateString("id-ID")}
                           </div>
@@ -362,7 +403,9 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
                         <td className="px-5 py-4">
                           {providerInfo ? (
                             <div className="space-y-1">
-                              <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded ${providerInfo.color}`}>
+                              <span
+                                className={`inline-block text-xs font-semibold px-2 py-0.5 rounded ${providerInfo.color}`}
+                              >
                                 {providerInfo.label}
                               </span>
                               {tx?.payment_channel && (
@@ -376,7 +419,9 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
 
                         <td className="px-5 py-4">
                           {tx ? (
-                            <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-md ${txStatusBadge[tx.status] ?? ""}`}>
+                            <span
+                              className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-md ${txStatusBadge[tx.status] ?? ""}`}
+                            >
                               {tx.status}
                             </span>
                           ) : (
@@ -386,17 +431,27 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
 
                         <td className="px-5 py-4">
                           {tx?.proof ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+                            <button
+                              onClick={() =>
+                                setImagePreview({
+                                  imagePath: `/storage/${tx!.proof!.file_path}`,
+                                  fileName: tx!.proof!.original_name,
+                                })
+                              }
+                              className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer transition-colors"
+                            >
                               <span className="material-symbols-outlined text-sm">attach_file</span>
-                              Ada
-                            </span>
+                              Lihat
+                            </button>
                           ) : (
                             <span className="text-xs text-white/30">Belum</span>
                           )}
                         </td>
 
                         <td className="px-5 py-4">
-                          <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-md ${txStatusBadge[rsvp.status] ?? ""}`}>
+                          <span
+                            className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-md ${txStatusBadge[rsvp.status] ?? ""}`}
+                          >
                             {rsvp.status}
                           </span>
                         </td>
@@ -414,16 +469,26 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
                               <>
                                 <button
                                   onClick={() =>
-                                    setModal({ transactionId: tx.id, action: "approve", userName: rsvp.user?.name ?? "" })
+                                    setModal({
+                                      transactionId: tx.id,
+                                      action: "approve",
+                                      userName: rsvp.user?.name ?? "",
+                                    })
                                   }
                                   className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
                                 >
-                                  <span className="material-symbols-outlined text-sm">check_circle</span>
+                                  <span className="material-symbols-outlined text-sm">
+                                    check_circle
+                                  </span>
                                   Setujui
                                 </button>
                                 <button
                                   onClick={() =>
-                                    setModal({ transactionId: tx.id, action: "reject", userName: rsvp.user?.name ?? "" })
+                                    setModal({
+                                      transactionId: tx.id,
+                                      action: "reject",
+                                      userName: rsvp.user?.name ?? "",
+                                    })
                                   }
                                   className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors"
                                 >
@@ -451,7 +516,9 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
           <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
             <div className="p-5 border-b border-white/5">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-blue-400 text-[18px]">inventory_2</span>
+                <span className="material-symbols-outlined text-blue-400 text-[18px]">
+                  inventory_2
+                </span>
                 Statistik Paket
               </h3>
             </div>
@@ -468,7 +535,9 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
                 <tbody className="divide-y divide-white/5">
                   {package_stats.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-5 py-8 text-center text-white/30">Belum ada data paket.</td>
+                      <td colSpan={4} className="px-5 py-8 text-center text-white/30">
+                        Belum ada data paket.
+                      </td>
                     </tr>
                   ) : (
                     package_stats.map((pkg) => (
@@ -476,16 +545,26 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
                         <td className="px-5 py-4 font-semibold text-white">{pkg.package_name}</td>
                         <td className="px-5 py-4 text-right">{pkg.count}</td>
                         <td className="px-5 py-4 text-right text-emerald-400">{pkg.paid_count}</td>
-                        <td className="px-5 py-4 text-right font-semibold text-white">{formatRp(pkg.revenue)}</td>
+                        <td className="px-5 py-4 text-right font-semibold text-white">
+                          {formatRp(pkg.revenue)}
+                        </td>
                       </tr>
                     ))
                   )}
                   {package_stats.length > 0 && (
                     <tr className="bg-white/5 font-bold">
-                      <td className="px-5 py-3 text-white/60 text-xs uppercase tracking-wider">Total</td>
-                      <td className="px-5 py-3 text-right text-white">{package_stats.reduce((s, p) => s + p.count, 0)}</td>
-                      <td className="px-5 py-3 text-right text-emerald-400">{package_stats.reduce((s, p) => s + p.paid_count, 0)}</td>
-                      <td className="px-5 py-3 text-right text-white">{formatRp(package_stats.reduce((s, p) => s + p.revenue, 0))}</td>
+                      <td className="px-5 py-3 text-white/60 text-xs uppercase tracking-wider">
+                        Total
+                      </td>
+                      <td className="px-5 py-3 text-right text-white">
+                        {package_stats.reduce((s, p) => s + p.count, 0)}
+                      </td>
+                      <td className="px-5 py-3 text-right text-emerald-400">
+                        {package_stats.reduce((s, p) => s + p.paid_count, 0)}
+                      </td>
+                      <td className="px-5 py-3 text-right text-white">
+                        {formatRp(package_stats.reduce((s, p) => s + p.revenue, 0))}
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -497,7 +576,9 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
           <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
             <div className="p-5 border-b border-white/5">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-purple-400 text-[18px]">category</span>
+                <span className="material-symbols-outlined text-purple-400 text-[18px]">
+                  category
+                </span>
                 Statistik Addon
               </h3>
             </div>
@@ -514,7 +595,9 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
                 <tbody className="divide-y divide-white/5">
                   {addon_stats.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-5 py-8 text-center text-white/30">Belum ada addon yang dipesan.</td>
+                      <td colSpan={4} className="px-5 py-8 text-center text-white/30">
+                        Belum ada addon yang dipesan.
+                      </td>
                     </tr>
                   ) : (
                     addon_stats.map((addon) => (
@@ -522,16 +605,26 @@ export default function EventShow({ admin, event, rsvps, stats, package_stats, a
                         <td className="px-5 py-4 font-semibold text-white">{addon.addon_name}</td>
                         <td className="px-5 py-4 text-right">{addon.count}</td>
                         <td className="px-5 py-4 text-right">{addon.total_qty}</td>
-                        <td className="px-5 py-4 text-right font-semibold text-white">{formatRp(addon.revenue)}</td>
+                        <td className="px-5 py-4 text-right font-semibold text-white">
+                          {formatRp(addon.revenue)}
+                        </td>
                       </tr>
                     ))
                   )}
                   {addon_stats.length > 0 && (
                     <tr className="bg-white/5 font-bold">
-                      <td className="px-5 py-3 text-white/60 text-xs uppercase tracking-wider">Total</td>
-                      <td className="px-5 py-3 text-right text-white">{addon_stats.reduce((s, a) => s + a.count, 0)}</td>
-                      <td className="px-5 py-3 text-right text-white">{addon_stats.reduce((s, a) => s + a.total_qty, 0)}</td>
-                      <td className="px-5 py-3 text-right text-white">{formatRp(addon_stats.reduce((s, a) => s + a.revenue, 0))}</td>
+                      <td className="px-5 py-3 text-white/60 text-xs uppercase tracking-wider">
+                        Total
+                      </td>
+                      <td className="px-5 py-3 text-right text-white">
+                        {addon_stats.reduce((s, a) => s + a.count, 0)}
+                      </td>
+                      <td className="px-5 py-3 text-right text-white">
+                        {addon_stats.reduce((s, a) => s + a.total_qty, 0)}
+                      </td>
+                      <td className="px-5 py-3 text-right text-white">
+                        {formatRp(addon_stats.reduce((s, a) => s + a.revenue, 0))}
+                      </td>
                     </tr>
                   )}
                 </tbody>
