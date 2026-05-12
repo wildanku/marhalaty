@@ -35,13 +35,13 @@ class PaymentProofController extends Controller
 
         // Remove old proof if it exists (re-upload scenario)
         if ($transaction->proof) {
-            Storage::disk('local')->delete($transaction->proof->file_path);
+            Storage::disk('public')->delete($transaction->proof->file_path);
             $transaction->proof->delete();
         }
 
         $file         = $request->file('proof');
         $originalName = $file->getClientOriginalName();
-        $path         = $file->store("payment-proofs/{$transaction->id}", 'local');
+        $path         = $file->store("payment-proofs/{$transaction->id}", 'public');
 
         $transaction->proof()->create([
             'file_path'     => $path,
