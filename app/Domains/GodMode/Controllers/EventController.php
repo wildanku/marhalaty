@@ -113,6 +113,22 @@ class EventController extends Controller
     }
 
     /**
+     * Delete a participant RSVP.
+     */
+    public function participantDestroy($eventId, $rsvpId)
+    {
+        $event = Event::findOrFail($eventId);
+        $rsvp = Rsvp::where('event_id', $eventId)->findOrFail($rsvpId);
+
+        // Delete will trigger the observer to decrement package quota if paid
+        $userName = $rsvp->user?->name ?? 'Unknown';
+        $rsvp->delete();
+
+        return redirect()->route('events.show', $eventId)
+            ->with('success', "Peserta $userName berhasil dihapus dari acara.");
+    }
+
+    /**
      * Export participants to CSV.
      */
     public function exportCsv($id)

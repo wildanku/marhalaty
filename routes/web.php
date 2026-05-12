@@ -140,6 +140,7 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         Route::get('/events/{id}/edit', [App\Domains\GodMode\Controllers\EventController::class, 'edit'])->name('events.edit');
         Route::put('/events/{id}', [App\Domains\GodMode\Controllers\EventController::class, 'update'])->name('events.update');
         Route::get('/events/{id}/participants/{rsvp_id}', [App\Domains\GodMode\Controllers\EventController::class, 'participantShow'])->name('events.participants.show');
+        Route::delete('/events/{id}/participants/{rsvp_id}', [App\Domains\GodMode\Controllers\EventController::class, 'participantDestroy'])->name('events.participants.destroy');
         Route::get('/events/{id}/export-csv', [App\Domains\GodMode\Controllers\EventController::class, 'exportCsv'])->name('events.export-csv');
 
         // Event Packages

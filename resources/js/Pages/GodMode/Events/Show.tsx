@@ -170,6 +170,13 @@ export default function EventShow({
     imagePath: string;
     fileName: string;
   } | null>(null);
+  const deleteForm = useForm({});
+
+  const handleDeleteRsvp = (rsvpId: number) => {
+    if (confirm("Apakah Anda yakin ingin menghapus peserta ini?")) {
+      deleteForm.delete(`/god-mode/events/${event.id}/participants/${rsvpId}`);
+    }
+  };
 
   const filteredRsvps = rsvps.filter((r) => {
     const matchSearch =
@@ -359,7 +366,6 @@ export default function EventShow({
               <thead className="bg-white/5 text-xs uppercase text-white/40 border-b border-white/5">
                 <tr>
                   <th className="px-5 py-3 font-semibold">Peserta</th>
-                  <th className="px-5 py-3 font-semibold">HP / WhatsApp</th>
                   <th className="px-5 py-3 font-semibold">Paket</th>
                   <th className="px-5 py-3 font-semibold">Total</th>
                   <th className="px-5 py-3 font-semibold">Metode Bayar</th>
@@ -372,7 +378,7 @@ export default function EventShow({
               <tbody className="divide-y divide-white/5">
                 {filteredRsvps.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-5 py-10 text-center text-white/30">
+                    <td colSpan={8} className="px-5 py-10 text-center text-white/30">
                       Tidak ada peserta ditemukan.
                     </td>
                   </tr>
@@ -386,30 +392,33 @@ export default function EventShow({
                     return (
                       <tr key={rsvp.id} className="hover:bg-white/2 transition-colors">
                         <td className="px-5 py-4">
-                          <div className="font-semibold text-white">{rsvp.user?.name ?? "—"}</div>
-                          <div className="text-xs text-white/40 mt-0.5">
-                            {rsvp.user?.email ?? "—"}
+                          <Link
+                            href={`/god-mode/events/${event.id}/participants/${rsvp.id}`}
+                            className="font-semibold text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+                          >
+                            {rsvp.user?.name ?? "—"}
+                          </Link>
+                          <div className="mt-0.5">
+                            {rsvp.user?.phone_number && getWhatsAppUrl(rsvp.user.phone_number) ? (
+                              <a
+                                href={getWhatsAppUrl(rsvp.user.phone_number) ?? "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 hover:underline transition-colors"
+                                title={`Chat ${rsvp.user.name} di WhatsApp`}
+                              >
+                                <span>{rsvp.user.phone_number}</span>
+                              </a>
+                            ) : (
+                              <span className="text-xs text-white/30">—</span>
+                            )}
                           </div>
                           <div className="text-xs text-white/30 mt-0.5">
-                            {new Date(rsvp.created_at).toLocaleDateString("id-ID")}
+                            {new Date(rsvp.created_at).toLocaleString("id-ID", {
+                              dateStyle: "long",
+                              timeStyle: "short",
+                            })}
                           </div>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          {rsvp.user?.phone_number && getWhatsAppUrl(rsvp.user.phone_number) ? (
-                            <a
-                              href={getWhatsAppUrl(rsvp.user.phone_number) ?? "#"}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 hover:underline transition-colors"
-                              title={`Chat ${rsvp.user.name} di WhatsApp`}
-                            >
-                              <span className="material-symbols-outlined text-xs">phone</span>
-                              <span className="text-sm">{rsvp.user.phone_number}</span>
-                            </a>
-                          ) : (
-                            <span className="text-xs text-white/30">—</span>
-                          )}
                         </td>
 
                         <td className="px-5 py-4">
@@ -482,25 +491,18 @@ export default function EventShow({
                         </td>
 
                         <td className="px-5 py-4">
-                          <div className="flex flex-col gap-1.5">
-                            <Link
-                              href={`/god-mode/events/${event.id}/participants/${rsvp.id}`}
-                              className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-sm">visibility</span>
-                              Detail
-                            </Link>
+                          <div className="flex flex-wrap gap-2">
                             {isManualPending && tx && (
                               <>
                                 <button
-                                  onClick={() =>
+                                  onClick={() => {
                                     setModal({
                                       transactionId: tx.id,
                                       action: "approve",
                                       userName: rsvp.user?.name ?? "",
-                                    })
-                                  }
-                                  className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+                                    });
+                                  }}
+                                  className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10 px-2.5 py-1.5 rounded-lg transition-colors border border-emerald-400/30 hover:border-emerald-400/50"
                                 >
                                   <span className="material-symbols-outlined text-sm">
                                     check_circle
@@ -508,20 +510,31 @@ export default function EventShow({
                                   Setujui
                                 </button>
                                 <button
-                                  onClick={() =>
+                                  onClick={() => {
                                     setModal({
                                       transactionId: tx.id,
                                       action: "reject",
                                       userName: rsvp.user?.name ?? "",
-                                    })
-                                  }
-                                  className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors"
+                                    });
+                                  }}
+                                  className="inline-flex items-center gap-1 text-xs text-yellow-400 hover:text-yellow-300 hover:bg-yellow-400/10 px-2.5 py-1.5 rounded-lg transition-colors border border-yellow-400/30 hover:border-yellow-400/50"
                                 >
                                   <span className="material-symbols-outlined text-sm">cancel</span>
                                   Tolak
                                 </button>
                               </>
                             )}
+
+                            <button
+                              onClick={() => {
+                                handleDeleteRsvp(rsvp.id);
+                              }}
+                              disabled={deleteForm.processing}
+                              className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-400/10 px-2.5 py-1.5 rounded-lg transition-colors border border-red-400/30 hover:border-red-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <span className="material-symbols-outlined text-sm">delete</span>
+                              {deleteForm.processing ? "Hapus..." : "Hapus"}
+                            </button>
                           </div>
                         </td>
                       </tr>
