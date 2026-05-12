@@ -1,6 +1,7 @@
 import { Head, Link } from "@inertiajs/react";
 import { PageProps } from "@/types";
 import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 
 export interface Fund {
   id: number;
@@ -57,6 +58,7 @@ export default function Index(_props: PageProps) {
           </Link>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { PageProps, GontorEvent, Rsvp, CustomFormField } from "@/types";
 import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 import CurrencyInput from "@/Components/CurrencyInput";
 
 // ─── Local Types ─────────────────────────────────────────────────────────────
@@ -2011,6 +2012,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           </div>
         </div>
       )}
+      <Footer />
     </div>
   );
 }

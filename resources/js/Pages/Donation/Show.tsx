@@ -1,6 +1,7 @@
 import { Head, Link } from "@inertiajs/react";
 import { PageProps } from "@/types";
 import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 import { useTranslate } from "@/hooks/useTranslate";
 
 export default function DonationShow(_props: PageProps) {
@@ -38,6 +39,7 @@ export default function DonationShow(_props: PageProps) {
           </Link>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

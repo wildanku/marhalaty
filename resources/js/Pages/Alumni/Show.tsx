@@ -1,7 +1,7 @@
 import { Head, Link } from "@inertiajs/react";
 import { PageProps, User } from "@/types";
 import Header from "@/Components/Header";
-
+import Footer from "@/Components/Footer";
 interface ShowProps extends PageProps {
   alumni: User;
 }
@@ -212,6 +212,7 @@ export default function Show({ auth, alumni }: ShowProps) {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

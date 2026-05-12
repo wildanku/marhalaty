@@ -1,5 +1,6 @@
 import { Link, router } from "@inertiajs/react";
 import { ReactNode } from "react";
+import Footer from "@/Components/Footer";
 
 interface Admin {
   id: number;
@@ -39,13 +40,20 @@ export default function GodModeLayout({ admin, children, title }: GodModeLayoutP
         <div className="px-6 py-6 border-b border-white/5">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+              <span
+                className="material-symbols-outlined text-white text-base"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
                 bolt
               </span>
             </div>
             <div>
-              <p className="text-sm font-bold text-white font-headline tracking-tight leading-none">God Mode</p>
-              <p className="text-[10px] text-white/40 font-label uppercase tracking-wider">Admin Panel</p>
+              <p className="text-sm font-bold text-white font-headline tracking-tight leading-none">
+                God Mode
+              </p>
+              <p className="text-[10px] text-white/40 font-label uppercase tracking-wider">
+                Admin Panel
+              </p>
             </div>
           </div>
         </div>
@@ -53,7 +61,9 @@ export default function GodModeLayout({ admin, children, title }: GodModeLayoutP
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = currentPath === item.href || (item.href !== "/god-mode" && currentPath.startsWith(item.href));
+            const isActive =
+              currentPath === item.href ||
+              (item.href !== "/god-mode" && currentPath.startsWith(item.href));
             return (
               <Link
                 key={item.href}
@@ -122,9 +132,9 @@ export default function GodModeLayout({ admin, children, title }: GodModeLayoutP
           </Link>
         </header>
 
-        <main className="flex-1 p-6">
-          {children}
-        </main>
+        <main className="flex-1 p-6">{children}</main>
+
+        <Footer />
       </div>
     </div>
   );

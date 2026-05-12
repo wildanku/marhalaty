@@ -1,4 +1,6 @@
 import { Head, Link } from "@inertiajs/react";
+import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 import { useTranslate } from "@/hooks/useTranslate";
 
 export default function Login() {
@@ -146,10 +148,7 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="mt-16 text-xs text-on-surface-variant/50 font-body text-center">
-          © {new Date().getFullYear()} Dynamic Foundation · Powered by Marhalaty
-        </p>
+        <Footer />
       </div>
     </div>
   );

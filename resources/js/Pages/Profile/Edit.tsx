@@ -489,6 +489,7 @@ export default function Edit({ auth, user, campuses, professions, educations, st
           </form>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

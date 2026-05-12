@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 
 interface ConfirmationPageProps extends PageProps {
@@ -220,6 +221,7 @@ export default function ConfirmationPage({
             </div>
           )}
         </main>
+        <Footer />
       </div>
     </>
   );

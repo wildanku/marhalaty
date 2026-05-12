@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from "@inertiajs/react";
 import { PageProps, Rsvp } from "@/types";
 import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 import { useTranslate } from "@/hooks/useTranslate";
 
 export default function Dashboard() {
@@ -133,10 +134,15 @@ export default function Dashboard() {
                     className="relative bg-surface-container-lowest border border-surface-container-high rounded-2xl p-5 hover:border-primary/20 hover:shadow-md transition-all duration-300 flex flex-col gap-4 overflow-hidden"
                   >
                     {/* Status color indicator bar on left */}
-                    <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${
-                      rsvp.status === 'paid' ? 'bg-emerald-500' :
-                      rsvp.status === 'pending' ? 'bg-amber-500' : 'bg-red-500'
-                    }`} />
+                    <div
+                      className={`absolute top-0 bottom-0 left-0 w-1.5 ${
+                        rsvp.status === "paid"
+                          ? "bg-emerald-500"
+                          : rsvp.status === "pending"
+                            ? "bg-amber-500"
+                            : "bg-red-500"
+                      }`}
+                    />
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pl-2">
                       <div className="flex-1 min-w-0">
@@ -192,7 +198,9 @@ export default function Dashboard() {
                               {t("Merchandise")}
                             </p>
                             <p className="font-body text-sm text-on-surface font-medium flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[16px] text-secondary">shopping_bag</span>
+                              <span className="material-symbols-outlined text-[16px] text-secondary">
+                                shopping_bag
+                              </span>
                               {rsvp.add_ons_snapshot.length} item
                             </p>
                           </div>
@@ -214,20 +222,26 @@ export default function Dashboard() {
                       {/* Action buttons based on status & transaction */}
                       {paymentHash && (
                         <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
-                          {rsvp.status === 'pending' ? (
+                          {rsvp.status === "pending" ? (
                             <Link
                               href={`/payment/${paymentHash}`}
                               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:bg-primary/90 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 shadow-sm shadow-primary/10 hover:shadow-md"
                             >
-                              <span className="material-symbols-outlined text-[16px]">payments</span>
-                              {tx?.payment_provider === 'manual' ? t("Upload Bukti Transfer") : t("Bayar Sekarang")}
+                              <span className="material-symbols-outlined text-[16px]">
+                                payments
+                              </span>
+                              {tx?.payment_provider === "manual"
+                                ? t("Upload Bukti Transfer")
+                                : t("Bayar Sekarang")}
                             </Link>
                           ) : (
                             <Link
                               href={`/payment/${paymentHash}`}
                               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border border-surface-container-highest"
                             >
-                              <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                              <span className="material-symbols-outlined text-[16px]">
+                                receipt_long
+                              </span>
                               {t("Detail Pembayaran")}
                             </Link>
                           )}
@@ -241,6 +255,7 @@ export default function Dashboard() {
           )}
         </section>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { Head, Link, router } from "@inertiajs/react";
 import { PageProps, GontorEvent } from "@/types";
 import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 import { useTranslate } from "@/hooks/useTranslate";
 
 interface EventIndexProps extends PageProps {
@@ -22,7 +23,7 @@ function formatEventDate(dateStr: string) {
 
 function PaymentBadge({ event }: { event: GontorEvent }) {
   const hasPaidPackages = event.packages?.some((p) => parseFloat(p.price) > 0);
-  
+
   if (hasPaidPackages) {
     return (
       <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold font-label bg-amber-100 text-amber-700">
@@ -202,6 +203,7 @@ export default function Index({ events, currentScope }: EventIndexProps) {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

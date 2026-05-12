@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Head, useForm, Link } from "@inertiajs/react";
 import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 
 interface BankAccount {
@@ -424,6 +425,7 @@ export default function PaymentShow({
             </div>
           )}
         </main>
+        <Footer />
       </div>
     </>
   );

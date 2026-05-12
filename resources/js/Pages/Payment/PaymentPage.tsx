@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ReactElement } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -632,6 +633,7 @@ export default function PaymentPage({
           )}
         </main>
       </div>
+      <Footer />
     </>
   );
 }
