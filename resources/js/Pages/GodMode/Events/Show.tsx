@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Head, Link, useForm } from "@inertiajs/react";
+import { Head, Link, useForm, router } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
 import ImagePreviewModal from "@/Components/ImagePreviewModal";
 import { sanitizePhoneNumber, getWhatsAppUrl } from "@/utils/phoneHelper";
@@ -170,11 +170,19 @@ export default function EventShow({
     imagePath: string;
     fileName: string;
   } | null>(null);
-  const deleteForm = useForm({});
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   const handleDeleteRsvp = (rsvpId: number) => {
     if (confirm("Apakah Anda yakin ingin menghapus peserta ini?")) {
-      deleteForm.delete(`/god-mode/events/${event.id}/participants/${rsvpId}`);
+      setDeleting(rsvpId);
+      router.delete(`/god-mode/events/${event.id}/participants/${rsvpId}`, {
+        onSuccess: () => {
+          setDeleting(null);
+        },
+        onError: () => {
+          setDeleting(null);
+        },
+      });
     }
   };
 
@@ -529,11 +537,11 @@ export default function EventShow({
                               onClick={() => {
                                 handleDeleteRsvp(rsvp.id);
                               }}
-                              disabled={deleteForm.processing}
+                              disabled={deleting === rsvp.id}
                               className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-400/10 px-2.5 py-1.5 rounded-lg transition-colors border border-red-400/30 hover:border-red-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <span className="material-symbols-outlined text-sm">delete</span>
-                              {deleteForm.processing ? "Hapus..." : "Hapus"}
+                              {deleting === rsvp.id ? "Hapus..." : "Hapus"}
                             </button>
                           </div>
                         </td>
