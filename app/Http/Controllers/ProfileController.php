@@ -11,15 +11,17 @@ class ProfileController extends Controller
     public function edit(Request $request)
     {
         $user = $request->user();
-        $user->load(['city.province', 'profession', 'campus']);
+        $user->load(['city.province', 'profession', 'campus', 'pendidikanTerakhir']);
 
         $campuses = Option::where('key', 'campus')->get();
         $professions = Option::where('key', 'profession')->get();
+        $educations = Option::where('key', 'education')->get();
 
         return Inertia::render('Profile/Edit', [
             'user' => $user,
             'campuses' => $campuses,
             'professions' => $professions,
+            'educations' => $educations,
         ]);
     }
 
@@ -28,6 +30,8 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
+            'no_stambuk' => 'nullable|string|max:50',
+            'pendidikan_terakhir_id' => 'nullable|exists:options,id',
             'domisili' => 'required|in:indonesia,luar_negeri',
             'city_id' => 'required_if:domisili,indonesia|nullable|string|exists:indonesia_cities,id',
             'foreign_city' => 'required_if:domisili,luar_negeri|nullable|string',
@@ -42,6 +46,8 @@ class ProfileController extends Controller
         ]);
 
         $user->update([
+            'no_stambuk' => $validated['no_stambuk'] ?? null,
+            'pendidikan_terakhir_id' => $validated['pendidikan_terakhir_id'] ?? null,
             'phone_number' => $validated['whatsapp'],
             'country' => $validated['domisili'] === 'indonesia' ? 'Indonesia' : 'Luar Negeri',
             'city_id' => $validated['domisili'] === 'indonesia' ? $validated['city_id'] : null,

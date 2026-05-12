@@ -10,7 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
 
-#[Fillable(['name', 'email', 'google_id', 'avatar_url', 'marhalah_year', 'phone_number', 'is_verified', 'slug', 'country', 'city_id', 'foreign_city', 'profession_id', 'campus_id', 'social_media', 'metadata', 'privacy_setting', 'business_showcase_url'])]
+#[Fillable(['name', 'email', 'google_id', 'avatar_url', 'marhalah_year', 'no_stambuk', 'pendidikan_terakhir_id', 'phone_number', 'is_verified', 'slug', 'country', 'city_id', 'foreign_city', 'profession_id', 'campus_id', 'social_media', 'metadata', 'privacy_setting', 'business_showcase_url'])]
 #[Hidden(['remember_token'])]
 class User extends Authenticatable
 {
@@ -28,6 +28,8 @@ class User extends Authenticatable
         'google_id',
         'avatar_url',
         'marhalah_year',
+        'no_stambuk',
+        'pendidikan_terakhir_id',
         'phone_number',
         'is_verified',
         'slug',
@@ -70,6 +72,11 @@ class User extends Authenticatable
     public function campus()
     {
         return $this->belongsTo(Option::class, 'campus_id');
+    }
+
+    public function pendidikanTerakhir()
+    {
+        return $this->belongsTo(Option::class, 'pendidikan_terakhir_id');
     }
 
     /**

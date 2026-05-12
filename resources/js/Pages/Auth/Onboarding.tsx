@@ -25,6 +25,7 @@ interface OnboardingProps {
   targetMarhalah: TargetMarhalah;
   campuses: Option[];
   professions: Option[];
+  educations: Option[];
 }
 
 export default function Onboarding({
@@ -33,9 +34,12 @@ export default function Onboarding({
   targetMarhalah,
   campuses,
   professions,
+  educations,
 }: OnboardingProps) {
   const { data, setData, post, processing, errors } = useForm({
     marhalah: communityScope === "single" ? String(targetMarhalah.year) : "",
+    no_stambuk: "",
+    pendidikan_terakhir_id: "",
     domisili: "indonesia",
     city_id: "",
     foreign_city: "",
@@ -165,6 +169,62 @@ export default function Onboarding({
                   )}
                 </div>
                 {errors.marhalah && <p className="mt-2 text-xs text-error">{errors.marhalah}</p>}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="no_stambuk"
+                  className="block font-label text-sm font-medium text-on-surface mb-2"
+                >
+                  No Stambuk
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-primary">
+                    <span className="material-symbols-outlined">badge</span>
+                  </span>
+                  <input
+                    type="text"
+                    id="no_stambuk"
+                    value={data.no_stambuk}
+                    onChange={(e) => setData("no_stambuk", e.target.value)}
+                    placeholder="e.g., 2020001"
+                    className="block w-full pl-12 pr-4 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest"
+                  />
+                </div>
+                {errors.no_stambuk && <p className="mt-2 text-xs text-error">{errors.no_stambuk}</p>}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="pendidikan_terakhir_id"
+                  className="block font-label text-sm font-medium text-on-surface mb-2"
+                >
+                  Pendidikan Terakhir
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-primary">
+                    <span className="material-symbols-outlined">school</span>
+                  </span>
+                  <select
+                    id="pendidikan_terakhir_id"
+                    value={data.pendidikan_terakhir_id}
+                    onChange={(e) => setData("pendidikan_terakhir_id", e.target.value)}
+                    className="block w-full pl-12 pr-10 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest cursor-pointer appearance-none"
+                  >
+                    <option value="">Select Education Level</option>
+                    {educations.map((edu) => (
+                      <option key={edu.id} value={edu.id}>
+                        {edu.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-outline">
+                    <span className="material-symbols-outlined">expand_more</span>
+                  </span>
+                </div>
+                {errors.pendidikan_terakhir_id && (
+                  <p className="mt-2 text-xs text-error">{errors.pendidikan_terakhir_id}</p>
+                )}
               </div>
 
               <div>

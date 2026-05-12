@@ -5,6 +5,8 @@ export interface User {
   google_id: string;
   avatar_url: string | null;
   marhalah_year: number;
+  no_stambuk: string | null;
+  pendidikan_terakhir_id: number | null;
   phone_number: string | null;
   is_verified: boolean;
   slug: string;
@@ -16,6 +18,7 @@ export interface User {
   foreign_city: string | null;
   campus_id: number | null;
   campus: { id: number; name: string } | null;
+  pendidikanTerakhir?: { id: number; name: string } | null;
   social_media: { instagram?: string; tiktok?: string; linkedin?: string } | null;
   metadata: Record<string, unknown> | null;
   privacy_setting: "public" | "circle" | "private";

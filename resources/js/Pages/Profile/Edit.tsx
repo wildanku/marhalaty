@@ -8,11 +8,14 @@ interface EditProps extends PageProps {
   user: User;
   campuses: { id: number; name: string }[];
   professions: { id: number; name: string }[];
+  educations: { id: number; name: string }[];
   status?: string;
 }
 
-export default function Edit({ auth, user, campuses, professions, status }: EditProps) {
+export default function Edit({ auth, user, campuses, professions, educations, status }: EditProps) {
   const { data, setData, patch, processing, errors } = useForm({
+    no_stambuk: user.no_stambuk || "",
+    pendidikan_terakhir_id: user.pendidikan_terakhir_id || "",
     domisili: user.country === "Indonesia" ? "indonesia" : "luar_negeri",
     city_id: user.city_id || "",
     foreign_city: user.foreign_city || "",
@@ -150,6 +153,45 @@ export default function Edit({ auth, user, campuses, professions, status }: Edit
                   {errors.foreign_city && <p className="mt-2 text-xs text-error">{errors.foreign_city}</p>}
                 </div>
               )}
+
+              {/* No Stambuk & Pendidikan Terakhir */}
+              <div className="sm:col-span-1">
+                <label htmlFor="no_stambuk" className="block font-label text-sm font-medium text-on-surface mb-2">
+                  No Stambuk
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-primary">
+                    <span className="material-symbols-outlined">badge</span>
+                  </span>
+                  <input
+                    type="text"
+                    id="no_stambuk"
+                    value={data.no_stambuk}
+                    onChange={(e) => setData("no_stambuk", e.target.value)}
+                    placeholder="e.g., 2020001"
+                    className="block w-full pl-12 pr-4 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest"
+                  />
+                </div>
+                {errors.no_stambuk && <p className="mt-2 text-xs text-error">{errors.no_stambuk}</p>}
+              </div>
+
+              <div className="sm:col-span-1">
+                <label htmlFor="pendidikan_terakhir_id" className="block font-label text-sm font-medium text-on-surface mb-2">
+                  Pendidikan Terakhir
+                </label>
+                <select
+                  id="pendidikan_terakhir_id"
+                  value={data.pendidikan_terakhir_id}
+                  onChange={(e) => setData("pendidikan_terakhir_id", e.target.value)}
+                  className="block w-full py-3 px-4 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors"
+                >
+                  <option value="">Pilih Pendidikan</option>
+                  {educations.map(e => (
+                    <option key={e.id} value={e.id}>{e.name}</option>
+                  ))}
+                </select>
+                {errors.pendidikan_terakhir_id && <p className="mt-2 text-xs text-error">{errors.pendidikan_terakhir_id}</p>}
+              </div>
 
               {/* Campus */}
               <div className="sm:col-span-1">

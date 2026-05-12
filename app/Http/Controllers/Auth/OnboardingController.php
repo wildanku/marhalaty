@@ -20,6 +20,7 @@ class OnboardingController extends Controller
 
         $campuses = \App\Models\Option::where('key', 'campus')->get();
         $professions = \App\Models\Option::where('key', 'profession')->get();
+        $educations = \App\Models\Option::where('key', 'education')->get();
 
         return Inertia::render('Auth/Onboarding', [
             'googleUser' => $googleUser,
@@ -27,6 +28,7 @@ class OnboardingController extends Controller
             'targetMarhalah' => config('community.target_marhalah'),
             'campuses' => $campuses,
             'professions' => $professions,
+            'educations' => $educations,
         ]);
     }
 
@@ -40,6 +42,8 @@ class OnboardingController extends Controller
 
         $validated = $request->validate([
             'marhalah' => 'required|integer',
+            'no_stambuk' => 'nullable|string|max:50',
+            'pendidikan_terakhir_id' => 'nullable|exists:options,id',
             'domisili' => 'required|in:indonesia,luar_negeri',
             'city_id' => 'required_if:domisili,indonesia|nullable|string|exists:indonesia_cities,id',
             'foreign_city' => 'required_if:domisili,luar_negeri|nullable|string',
@@ -65,6 +69,8 @@ class OnboardingController extends Controller
             'google_id' => $googleUser['google_id'],
             'avatar_url' => $googleUser['avatar_url'],
             'marhalah_year' => $validated['marhalah'],
+            'no_stambuk' => $validated['no_stambuk'] ?? null,
+            'pendidikan_terakhir_id' => $validated['pendidikan_terakhir_id'] ?? null,
             'phone_number' => $validated['whatsapp'],
             'is_verified' => false,
             'country' => $validated['domisili'] === 'indonesia' ? 'Indonesia' : 'Luar Negeri',
