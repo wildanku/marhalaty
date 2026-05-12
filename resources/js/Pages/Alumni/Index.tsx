@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import { PageProps, User } from "@/types";
 import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 
 interface Pagination<T> {
   data: T[];
