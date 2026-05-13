@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import { PageProps, User } from "@/types";
 import Header from "@/Components/Header";
@@ -7,8 +7,10 @@ import AsyncSelect from "@/Components/AsyncSelect";
 
 interface Pagination<T> {
   data: T[];
-  next_page_url: string | null;
   current_page: number;
+  last_page: number;
+  total: number;
+  per_page: number;
 }
 
 interface IndexProps extends PageProps {
@@ -29,6 +31,8 @@ interface IndexProps extends PageProps {
 
 export default function Index({ auth, users, filters = {}, filterOptions }: IndexProps) {
   const [alumniList, setAlumniList] = useState<User[]>(users.data);
+  const [currentPage, setCurrentPage] = useState(users.current_page);
+  const [lastPage, setLastPage] = useState(users.last_page);
   const [searchQuery, setSearchQuery] = useState(filters.search || "");
   const [selectedCityId, setSelectedCityId] = useState(filters.city_id || "");
   const [selectedForeignCity, setSelectedForeignCity] = useState(filters.foreign_city || "");
@@ -37,11 +41,11 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
   const [locationScope, setLocationScope] = useState<"indonesia" | "luar_negeri">(
     filters.foreign_city ? "luar_negeri" : "indonesia"
   );
-  const [nextPageUrl, setNextPageUrl] = useState<string | null>(users.next_page_url);
 
   useEffect(() => {
     setAlumniList(users.data);
-    setNextPageUrl(users.next_page_url);
+    setCurrentPage(users.current_page);
+    setLastPage(users.last_page);
   }, [users]);
 
   const buildFilterPayload = (
@@ -84,19 +88,21 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
       foreign_city: string;
       profession_id: string;
       marhalah_year: string;
-    }>
+    }>,
+    page = 1
   ) => {
     router.get(
       "/directory",
-      { filter: buildFilterPayload(overrides) },
+      { ...buildFilterPayload(overrides), page },
       {
         preserveState: true,
-        preserveScroll: true,
         replace: true,
         onSuccess: (page) => {
           const newUsers = page.props.users as unknown as Pagination<User>;
           setAlumniList(newUsers.data);
-          setNextPageUrl(newUsers.next_page_url);
+          setCurrentPage(newUsers.current_page);
+          setLastPage(newUsers.last_page);
+          window.scrollTo({ top: 0, behavior: "smooth" });
         },
       }
     );
@@ -106,7 +112,7 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchQuery !== filters.search) {
-        applyFilters({ search: searchQuery });
+        applyFilters({ search: searchQuery }, 1);
       }
     }, 500);
     return () => clearTimeout(handler);
@@ -127,56 +133,21 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
     setSelectedForeignCity("");
     setSelectedProfessionId("");
     setSelectedMarhalahYear("");
-    applyFilters({
-      search: "",
-      city_id: "",
-      foreign_city: "",
-      profession_id: "",
-      marhalah_year: "",
-    });
+    applyFilters(
+      {
+        search: "",
+        city_id: "",
+        foreign_city: "",
+        profession_id: "",
+        marhalah_year: "",
+      },
+      1
+    );
   };
 
-  // Infinite Scroll Implementation
-  const observer = useRef<IntersectionObserver | null>(null);
-  const lastElementRef = useCallback(
-    (node: HTMLDivElement) => {
-      if (observer.current) observer.current.disconnect();
-
-      observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && nextPageUrl) {
-          router.get(
-            nextPageUrl,
-            { filter: buildFilterPayload() },
-            {
-              preserveState: true,
-              preserveScroll: true,
-              onSuccess: (page) => {
-                const newUsers = page.props.users as unknown as Pagination<User>;
-                setNextPageUrl(newUsers.next_page_url);
-                // Append uniquely
-                setAlumniList((prev) => {
-                  const newIds = newUsers.data.map((u) => u.id);
-                  const filteredPrev = prev.filter((p) => !newIds.includes(p.id));
-                  return [...filteredPrev, ...newUsers.data];
-                });
-              },
-            }
-          );
-        }
-      });
-
-      if (node) observer.current.observe(node);
-    },
-    [
-      nextPageUrl,
-      searchQuery,
-      selectedCityId,
-      selectedForeignCity,
-      selectedProfessionId,
-      selectedMarhalahYear,
-      locationScope,
-    ]
-  );
+  const goToPage = (page: number) => {
+    applyFilters({}, page);
+  };
 
   return (
     <div className="bg-background text-on-background font-body min-h-screen flex flex-col antialiased">
@@ -233,7 +204,7 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
                   onChange={(e) => {
                     const value = e.target.value;
                     setSelectedMarhalahYear(value);
-                    applyFilters({ marhalah_year: value });
+                    applyFilters({ marhalah_year: value }, 1);
                   }}
                   className="w-full bg-surface-container-high border border-surface-container-highest rounded-lg px-3 py-2 text-sm text-on-surface"
                 >
@@ -253,7 +224,7 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
                   onChange={(e) => {
                     const value = e.target.value;
                     setSelectedProfessionId(value);
-                    applyFilters({ profession_id: value });
+                    applyFilters({ profession_id: value }, 1);
                   }}
                   className="w-full bg-surface-container-high border border-surface-container-highest rounded-lg px-3 py-2 text-sm text-on-surface"
                 >
@@ -278,7 +249,7 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
                       onChange={() => {
                         setLocationScope("indonesia");
                         setSelectedForeignCity("");
-                        applyFilters({ foreign_city: "" });
+                        applyFilters({ foreign_city: "" }, 1);
                       }}
                       className="text-primary focus:ring-primary"
                     />
@@ -293,7 +264,7 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
                       onChange={() => {
                         setLocationScope("luar_negeri");
                         setSelectedCityId("");
-                        applyFilters({ city_id: "" });
+                        applyFilters({ city_id: "" }, 1);
                       }}
                       className="text-primary focus:ring-primary"
                     />
@@ -308,7 +279,7 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
                     onChange={(val) => {
                       const value = String(val);
                       setSelectedCityId(value);
-                      applyFilters({ city_id: value, foreign_city: "" });
+                      applyFilters({ city_id: value, foreign_city: "" }, 1);
                     }}
                     placeholder="Cari kota atau provinsi..."
                   />
@@ -319,7 +290,7 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
                     onChange={(val) => {
                       const value = String(val);
                       setSelectedForeignCity(value);
-                      applyFilters({ foreign_city: value, city_id: "" });
+                      applyFilters({ foreign_city: value, city_id: "" }, 1);
                     }}
                     placeholder="Cari kota luar negeri..."
                   />
@@ -329,13 +300,11 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
           </aside>
 
           {/* Cards Grid */}
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-max">
-            {alumniList.map((alumnus, index) => {
-              const isLast = index === alumniList.length - 1;
-              return (
+          <div className="flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
+              {alumniList.map((alumnus) => (
                 <div
                   key={alumnus.id}
-                  ref={isLast ? lastElementRef : null}
                   className="bg-surface-container-lowest rounded-xl p-6 flex flex-col items-center text-center group hover:bg-surface-container-low transition-colors duration-300 shadow-[0px_10px_40px_rgba(80,100,71,0.04)] hover:shadow-[0px_10px_40px_rgba(80,100,71,0.08)] relative overflow-hidden"
                 >
                   {alumnus.is_verified && (
@@ -388,8 +357,53 @@ export default function Index({ auth, users, filters = {}, filterOptions }: Inde
                     View Profile
                   </Link>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {lastPage > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8 pb-4">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 rounded-lg border border-surface-container-highest text-sm font-medium text-on-surface disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-container-high transition-colors"
+                >
+                  ← Prev
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: lastPage }, (_, i) => i + 1).map((page) => {
+                    const isCurrentPage = page === currentPage;
+                    const isNearby = Math.abs(page - currentPage) <= 1;
+                    const isEnd = page === 1 || page === lastPage;
+
+                    if (!isNearby && !isEnd) return null;
+
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => goToPage(page)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          isCurrentPage
+                            ? "bg-primary text-on-primary"
+                            : "border border-surface-container-highest text-on-surface hover:bg-surface-container-high"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === lastPage}
+                  className="px-3 py-2 rounded-lg border border-surface-container-highest text-sm font-medium text-on-surface disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-container-high transition-colors"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </main>
