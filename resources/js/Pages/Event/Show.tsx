@@ -263,6 +263,11 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
   };
 
   const goNext = () => {
+    // Validate custom form fields when on form step
+    if (currentStep?.key === "form" && !validateCustomForms()) {
+      return;
+    }
+
     // Validate package selection when on package step
     if (currentStep?.key === "package" && data.event_package_id === null) {
       return;
@@ -445,6 +450,20 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
       }
     }
 
+    return true;
+  };
+
+  // ── Validate custom form fields ───────────────────────────────────────────
+  const validateCustomForms = () => {
+    for (const field of customForms) {
+      if (field.required) {
+        const fieldKey = field.id ?? `field_${customForms.indexOf(field)}`;
+        const value = data.custom_form_data[fieldKey] ?? "";
+        if (!value.trim()) {
+          return false;
+        }
+      }
+    }
     return true;
   };
 
@@ -697,6 +716,19 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           Lengkapi informasi berikut untuk melanjutkan.
         </p>
       </div>
+      {currentStep?.key === "form" && !validateCustomForms() && (
+        <div className="rounded-2xl border border-error/30 bg-error/5 p-4 flex items-start gap-2.5">
+          <span className="material-symbols-outlined text-error text-[18px] mt-0.5">warning</span>
+          <div>
+            <p className="font-headline text-sm font-bold text-error">
+              Lengkapi Semua Field yang Wajib Diisi
+            </p>
+            <p className="font-body text-xs text-error/80 leading-relaxed mt-1">
+              Pastikan semua field yang ditandai dengan * sudah diisi sebelum melanjutkan.
+            </p>
+          </div>
+        </div>
+      )}
       {customForms.map((field, i) => {
         const fieldKey = field.id ?? `field_${i}`;
         const value = data.custom_form_data[fieldKey] ?? field.default ?? "";
@@ -1493,11 +1525,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
             Atau masukkan nominal lain
           </label>
           <CurrencyInput
-            value={
-              data.infak_amount !== "0" && !infakRules.options?.includes(Number(data.infak_amount))
-                ? data.infak_amount
-                : ""
-            }
+            value={data.infak_amount === "0" ? "" : data.infak_amount}
             onChange={(val) => setData("infak_amount", val || "0")}
             className=""
             placeholder={`Min. ${formatRupiah(infakRules.min_custom ?? 10000)}`}
@@ -1951,10 +1979,12 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
               type="button"
               onClick={goNext}
               disabled={
+                (currentStep?.key === "form" && !validateCustomForms()) ||
                 (currentStep?.key === "package" && data.event_package_id === null) ||
                 (currentStep?.key === "addons" && !validateAddonVariants())
               }
               className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full font-headline font-bold text-sm transition-all ${
+                (currentStep?.key === "form" && !validateCustomForms()) ||
                 (currentStep?.key === "package" && data.event_package_id === null) ||
                 (currentStep?.key === "addons" && !validateAddonVariants())
                   ? "bg-surface-container text-on-surface-variant cursor-not-allowed opacity-50"

@@ -98,7 +98,7 @@ class TelegramService
 
     /**
      * Notify admin channel about a newly uploaded payment proof.
-     * Sends the proof image as binary (not link) with full transaction details.
+     * Sends the proof image as binary (not link) with full transaction details including package and addons.
      */
     public function notifyPaymentProof(Transaction $transaction): void
     {
@@ -107,14 +107,41 @@ class TelegramService
             return;
         }
 
-        $transaction->loadMissing(['rsvp.event', 'user', 'proof']);
+        $transaction->loadMissing(['rsvp.event', 'rsvp.package', 'user', 'proof']);
 
         $user        = $transaction->user;
         $rsvp        = $transaction->rsvp;
         $event       = $rsvp?->event;
+        $package     = $rsvp?->package;
         $proof       = $transaction->proof;
         $amount      = number_format((float) $transaction->amount, 0, ',', '.');
         $notes       = $proof?->notes ? "\n📝 <b>Catatan:</b> {$proof->notes}" : '';
+
+        // Format package info
+        $packageInfo = '';
+        if ($package) {
+            $packagePrice = number_format((float) $package->price, 0, ',', '.');
+            $packageInfo = "\n\n🎁 <b>Paket:</b> " . e($package->name) . " (Rp " . $packagePrice . ")";
+        }
+
+        // Format add-ons info
+        $addonsInfo = '';
+        if ($rsvp?->add_ons_snapshot) {
+            $addons = is_array($rsvp->add_ons_snapshot) ? $rsvp->add_ons_snapshot : json_decode($rsvp->add_ons_snapshot, true);
+            if (! empty($addons) && is_array($addons)) {
+                $addonLines = ["🛍️ <b>Tambahan:</b>"];
+                foreach ($addons as $addon) {
+                    if (is_array($addon) && isset($addon['name'])) {
+                        $addonName  = e($addon['name'] ?? 'N/A');
+                        $quantity   = $addon['quantity'] ?? 0;
+                        $price      = isset($addon['price']) ? number_format((float) $addon['price'], 0, ',', '.') : '0';
+                        $totalPrice = isset($addon['price']) ? number_format((float) $addon['price'] * $quantity, 0, ',', '.') : '0';
+                        $addonLines[] = "  • {$addonName} x{$quantity} = Rp {$totalPrice}";
+                    }
+                }
+                $addonsInfo = "\n" . implode("\n", $addonLines);
+            }
+        }
 
         $caption = implode("\n", [
             "💳 <b>Bukti Pembayaran Masuk</b>",
@@ -122,6 +149,9 @@ class TelegramService
             "👤 <b>Pendaftar:</b> " . e($user?->name ?? 'N/A'),
             "📧 <b>Email:</b> " . e($user?->email ?? 'N/A'),
             "🎟 <b>Acara:</b> " . e($event?->title ?? 'N/A'),
+            $packageInfo,
+            $addonsInfo,
+            "",
             "💰 <b>Nominal:</b> Rp " . $amount,
             "🔖 <b>ID Transaksi:</b> <code>{$transaction->id}</code>",
             "⏰ <b>Waktu Upload:</b> " . now()->setTimezone('Asia/Jakarta')->format('d M Y, H:i') . " WIB",
