@@ -647,7 +647,7 @@ export default function EventShow({
                     </tr>
                   ) : (
                     addon_stats.map((addon) => (
-                      <tr key={addon.addon_id} className="hover:bg-white/[0.02]">
+                      <tr key={addon.addon_id} className="hover:bg-white/2">
                         <td className="px-5 py-4 font-semibold text-white">{addon.addon_name}</td>
                         <td className="px-5 py-4 text-right">{addon.count}</td>
                         <td className="px-5 py-4 text-right">{addon.total_qty}</td>
