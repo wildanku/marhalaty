@@ -1,8 +1,9 @@
-import { FormEventHandler, useState } from "react";
+import { FormEventHandler, useState, useRef, useEffect } from "react";
 import { Head, useForm, Link } from "@inertiajs/react";
 import { PageProps, User } from "@/types";
 import AsyncSelect from "@/Components/AsyncSelect";
 import Header from "@/Components/Header";
+import Footer from "@/Components/Footer";
 
 interface EditProps extends PageProps {
   user: User;
@@ -36,37 +37,71 @@ export default function Edit({ auth, user, campuses, professions, educations, st
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [validatedStambuk, setValidatedStambuk] = useState<string | null>(user.no_stambuk || null);
 
-  const validateStambuk = async () => {
-    if (!data.no_stambuk.trim()) {
-      setPhotoError("Masukkan nomor stambuk terlebih dahulu");
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const validateStambuk = async (stambukValue: string) => {
+    if (!stambukValue.trim()) {
+      setPhotoPreview(null);
+      setValidatedStambuk(null);
+      setPhotoError(null);
       return;
     }
 
+    // Cancel previous request if exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+
     setPhotoLoading(true);
-    setPhotoError(null);
 
     try {
-      const imageUrl = `https://storage.gontorian.com/src/${stambuk}.jpg`;
-      const response = await fetch(imageUrl, { method: "HEAD" });
+      const imageUrl = `https://storage.gontorian.com/src/${stambukValue}.jpg`;
+      const response = await fetch(imageUrl, {
+        method: "HEAD",
+        signal: abortControllerRef.current.signal,
+      });
 
       if (response.ok) {
         setPhotoPreview(imageUrl);
-        setValidatedStambuk(stambuk);
+        setValidatedStambuk(stambukValue);
+        setPhotoError(null);
       } else {
-        // Foto tidak ditemukan - jangan tampilkan error, cukup silent
         setPhotoPreview(null);
         setValidatedStambuk(null);
         setPhotoError(null);
       }
-    } catch (error) {
-      // Error saat fetch - jangan tampilkan error, cukup silent
-      setPhotoPreview(null);
-      setValidatedStambuk(null);
-      setPhotoError(null);
+    } catch (error: any) {
+      // Only set state if error is not from abort
+      if (error.name !== "AbortError") {
+        setPhotoPreview(null);
+        setValidatedStambuk(null);
+        setPhotoError(null);
+      }
     } finally {
       setPhotoLoading(false);
     }
   };
+
+  // Debounce stambuk validation
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      validateStambuk(data.no_stambuk);
+    }, 500); // 500ms debounce
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [data.no_stambuk]);
 
   const submit: FormEventHandler = (e) => {
     e.preventDefault();
@@ -205,7 +240,7 @@ export default function Edit({ auth, user, campuses, professions, educations, st
                 </div>
               )}
 
-              {/* No Stambuk & Pendidikan Terakhir */}
+              {/* No Stambuk */}
               <div className="sm:col-span-2">
                 <label
                   htmlFor="no_stambuk"
@@ -215,40 +250,18 @@ export default function Edit({ auth, user, campuses, professions, educations, st
                 </label>
                 <div className="flex gap-3 items-start">
                   <div className="flex-1">
-                    <div className="flex gap-2 items-end">
-                      <div className="flex-1 relative">
-                        <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-primary">
-                          <span className="material-symbols-outlined">badge</span>
-                        </span>
-                        <input
-                          type="text"
-                          id="no_stambuk"
-                          value={data.no_stambuk}
-                          onChange={(e) => {
-                            setData("no_stambuk", e.target.value);
-                            setPhotoPreview(null);
-                            setPhotoError(null);
-                          }}
-                          placeholder="e.g., 2020001"
-                          className="block w-full pl-12 pr-4 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={validateStambuk}
-                        disabled={!data.no_stambuk.trim() || photoLoading}
-                        className="px-4 py-3 bg-primary text-on-primary rounded-t-DEFAULT font-medium text-sm hover:bg-primary-container disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                      >
-                        {photoLoading ? (
-                          <span className="flex items-center gap-1">
-                            <span className="material-symbols-outlined animate-spin text-sm">
-                              refresh
-                            </span>
-                          </span>
-                        ) : (
-                          "Validasi"
-                        )}
-                      </button>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-primary">
+                        <span className="material-symbols-outlined">badge</span>
+                      </span>
+                      <input
+                        type="text"
+                        id="no_stambuk"
+                        value={data.no_stambuk}
+                        onChange={(e) => setData("no_stambuk", e.target.value)}
+                        placeholder="e.g., 2020001"
+                        className="block w-full pl-12 pr-4 py-3 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors hover:bg-surface-container-highest"
+                      />
                     </div>
                     {errors.no_stambuk && (
                       <p className="mt-2 text-xs text-error">{errors.no_stambuk}</p>
