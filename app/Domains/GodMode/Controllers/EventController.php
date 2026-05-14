@@ -124,7 +124,7 @@ class EventController extends Controller
         $userName = $rsvp->user?->name ?? 'Unknown';
         $rsvp->delete();
 
-        return redirect()->route('events.show', $eventId)
+        return redirect()->route('god-mode.events.show', $eventId)
             ->with('success', "Peserta $userName berhasil dihapus dari acara.");
     }
 
