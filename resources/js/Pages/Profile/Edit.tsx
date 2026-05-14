@@ -270,7 +270,7 @@ export default function Edit({ auth, user, campuses, professions, educations, st
 
                   {/* Compact Photo Preview */}
                   {photoPreview && (
-                    <div className="flex-shrink-0 animate-fade-in">
+                    <div className="shrink-0 animate-fade-in">
                       <div className="relative group">
                         <img
                           src={photoPreview}

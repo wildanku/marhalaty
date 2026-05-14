@@ -5,9 +5,11 @@ namespace App\Domains\GodMode\Controllers;
 use App\Http\Controllers\Controller;
 use App\Domains\Event\Models\Event;
 use App\Domains\Event\Models\Rsvp;
+use App\Domains\GodMode\Exports\EventParticipantsExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 class EventController extends Controller
 {
@@ -31,7 +33,7 @@ class EventController extends Controller
     {
         $event = Event::with(['addons', 'packages'])->findOrFail($id);
 
-        $rsvps = Rsvp::with(['user', 'package', 'latestTransaction.proof'])
+        $rsvps = Rsvp::with(['user', 'package.includedAddons', 'latestTransaction.proof'])
             ->where('event_id', $id)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -41,13 +43,17 @@ class EventController extends Controller
             return $tx && $tx->payment_provider === 'manual' && $tx->status === 'pending';
         })->count();
 
+        $paidRsvps = $rsvps->where('status', 'paid');
+
         $stats = [
             'total_registrants' => $rsvps->count(),
-            'paid_count'        => $rsvps->where('status', 'paid')->count(),
+            'paid_count'        => $paidRsvps->count(),
             'pending_count'     => $rsvps->where('status', 'pending')->count(),
             'failed_count'      => $rsvps->whereIn('status', ['failed', 'expired'])->count(),
-            'total_revenue'     => $rsvps->where('status', 'paid')->sum('total_amount'),
+            'total_revenue'     => $paidRsvps->sum('total_amount'),
             'manual_pending'    => $manualPendingCount,
+            'total_infak'       => $paidRsvps->sum('infak_amount'),
+            'infak_count'       => $paidRsvps->filter(fn($r) => (float) $r->infak_amount > 0)->count(),
         ];
 
         // Package statistics
@@ -64,14 +70,18 @@ class EventController extends Controller
                 ];
             })->values();
 
-        // Addon statistics from snapshots
+        // Addon statistics — only from PAID RSVPs, including bundled addons not in snapshot
         $addonStats = [];
-        foreach ($rsvps as $rsvp) {
+
+        foreach ($paidRsvps as $rsvp) {
+            $snapshotIds = collect($rsvp->add_ons_snapshot ?? [])->pluck('id')->map(fn($id) => (int) $id)->toArray();
+
+            // From snapshot (both purchased and included-with-variants)
             foreach (($rsvp->add_ons_snapshot ?? []) as $addon) {
-                $key = $addon['id'];
+                $key = (int) $addon['id'];
                 if (!isset($addonStats[$key])) {
                     $addonStats[$key] = [
-                        'addon_id'   => $addon['id'],
+                        'addon_id'   => $key,
                         'addon_name' => $addon['name'],
                         'count'      => 0,
                         'total_qty'  => 0,
@@ -80,7 +90,29 @@ class EventController extends Controller
                 }
                 $addonStats[$key]['count']++;
                 $addonStats[$key]['total_qty'] += (int) ($addon['quantity'] ?? 1);
-                $addonStats[$key]['revenue'] += $rsvp->status === 'paid' ? (float) ($addon['total'] ?? 0) : 0;
+                $addonStats[$key]['revenue']   += (float) ($addon['total'] ?? 0);
+            }
+
+            // Bundled addons from package NOT in snapshot (no variant selection needed)
+            if ($rsvp->event_package_id && $rsvp->package) {
+                foreach ($rsvp->package->includedAddons as $bundledAddon) {
+                    if (in_array($bundledAddon->id, $snapshotIds, true)) {
+                        continue; // already counted from snapshot
+                    }
+                    $key = (int) $bundledAddon->id;
+                    if (!isset($addonStats[$key])) {
+                        $addonStats[$key] = [
+                            'addon_id'   => $key,
+                            'addon_name' => $bundledAddon->name,
+                            'count'      => 0,
+                            'total_qty'  => 0,
+                            'revenue'    => 0,
+                        ];
+                    }
+                    $addonStats[$key]['count']++;
+                    $addonStats[$key]['total_qty'] += (int) ($bundledAddon->pivot->included_quantity ?? 1);
+                    // revenue stays 0 as it's bundled
+                }
             }
         }
 
@@ -129,87 +161,20 @@ class EventController extends Controller
     }
 
     /**
-     * Export participants to CSV.
+     * Export participants, addons, and infak to Excel (3 sheets).
      */
-    public function exportCsv($id)
+    public function exportExcel($id)
     {
-        $event = Event::findOrFail($id);
+        $event = Event::with(['addons', 'packages'])->findOrFail($id);
 
-        $rsvps = Rsvp::with(['user', 'package', 'latestTransaction.proof'])
+        $rsvps = Rsvp::with(['user', 'package.includedAddons', 'latestTransaction.proof'])
             ->where('event_id', $id)
             ->orderBy('created_at', 'asc')
             ->get();
 
-        $filename = 'peserta-' . Str::slug($event->title) . '-' . now()->format('Ymd') . '.csv';
+        $filename = 'peserta-' . Str::slug($event->title) . '-' . now()->format('Ymd') . '.xlsx';
 
-        $streamHeaders = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            'Cache-Control'       => 'no-store, no-cache',
-        ];
-
-        $customForms = $event->metadata['custom_forms'] ?? [];
-
-        $callback = function () use ($rsvps, $customForms) {
-            $handle = fopen('php://output', 'w');
-            // UTF-8 BOM for Excel
-            fputs($handle, "\xEF\xBB\xBF");
-
-            $headers = [
-                '#', 'Nama', 'Email', 'Marhalah', 'Tanggal Daftar',
-                'Paket', 'Harga Paket', 'Addon', 'Infak', 'Total',
-                'Status RSVP', 'Metode Bayar', 'Channel', 'Status Bayar',
-                'Tanggal Bayar', 'Bukti Upload',
-            ];
-            foreach ($customForms as $field) {
-                $headers[] = $field['label'] ?? 'Formulir';
-            }
-            fputcsv($handle, $headers);
-
-            foreach ($rsvps as $i => $rsvp) {
-                $tx = $rsvp->latestTransaction;
-
-                $addons = collect($rsvp->add_ons_snapshot ?? [])->map(function ($a) {
-                    $varStr = '';
-                    if (!empty($a['variants'])) {
-                        $varStr = ' (' . collect($a['variants'])
-                            ->map(fn($v, $k) => "{$k}: {$v}")
-                            ->implode(', ') . ')';
-                    }
-                    return "{$a['name']}{$varStr} x{$a['quantity']}";
-                })->implode(' | ');
-
-                $row = [
-                    $i + 1,
-                    optional($rsvp->user)->name ?? '-',
-                    optional($rsvp->user)->email ?? '-',
-                    optional($rsvp->user)->marhalah_year ?? '-',
-                    $rsvp->created_at->format('d/m/Y H:i'),
-                    optional($rsvp->package)->name ?? '-',
-                    number_format((float) $rsvp->package_amount, 0, ',', '.'),
-                    $addons,
-                    number_format((float) $rsvp->infak_amount, 0, ',', '.'),
-                    number_format((float) $rsvp->total_amount, 0, ',', '.'),
-                    $rsvp->status,
-                    $tx ? $tx->payment_provider : '-',
-                    $tx ? ($tx->payment_channel ?? '-') : '-',
-                    $tx ? $tx->status : '-',
-                    $tx && $tx->paid_at ? $tx->paid_at->format('d/m/Y H:i') : '-',
-                    ($tx && $tx->proof) ? 'Ya' : 'Tidak',
-                ];
-
-                foreach ($customForms as $field) {
-                    $fieldKey = $field['id'] ?? '';
-                    $row[] = $rsvp->custom_form_data[$fieldKey] ?? '';
-                }
-
-                fputcsv($handle, $row);
-            }
-
-            fclose($handle);
-        };
-
-        return response()->stream($callback, 200, $streamHeaders);
+        return Excel::download(new EventParticipantsExport($event, $rsvps), $filename);
     }
 
     public function edit($id)

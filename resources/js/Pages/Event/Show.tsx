@@ -200,6 +200,27 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     fetchChannels();
   }, []);
 
+  // ── Initialize Custom Forms with Default Values ────────────────────────────
+  useEffect(() => {
+    if (customForms.length > 0) {
+      const initialData: Record<string, string> = { ...data.custom_form_data };
+      let hasChanges = false;
+
+      customForms.forEach((field) => {
+        const fieldKey = field.id ?? `field_${customForms.indexOf(field)}`;
+        // If field has default value and not yet set in data, populate it
+        if (field.default && !initialData[fieldKey]) {
+          initialData[fieldKey] = field.default;
+          hasChanges = true;
+        }
+      });
+
+      if (hasChanges) {
+        setData("custom_form_data", initialData);
+      }
+    }
+  }, [customForms.length]);
+
   // ── Active Steps ──────────────────────────────────────────────────────────
   const activeSteps = useMemo(
     () =>
@@ -458,7 +479,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     for (const field of customForms) {
       if (field.required) {
         const fieldKey = field.id ?? `field_${customForms.indexOf(field)}`;
-        const value = data.custom_form_data[fieldKey] ?? "";
+        // Check data first, then fallback to default value
+        const value = data.custom_form_data[fieldKey] ?? field.default ?? "";
         if (!value.trim()) {
           return false;
         }
@@ -600,24 +622,96 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
               <p className="font-body text-sm text-on-surface-variant mb-4">
                 RSVP kamu untuk event ini sudah tercatat.
               </p>
-              <div className="bg-surface-container rounded-xl p-4 text-left space-y-2.5 mb-5">
-                <div className="flex justify-between items-center">
-                  <span className="font-body text-xs text-on-surface-variant">Status</span>
+
+              {/* Payment Details */}
+              <div className="bg-surface-container rounded-xl p-4 text-left space-y-3 mb-5">
+                {/* Status */}
+                <div className="flex justify-between items-center pb-3 border-b border-surface-container-high">
+                  <span className="font-body text-xs text-on-surface-variant uppercase tracking-wider">
+                    Status
+                  </span>
                   <span
                     className={`text-xs font-bold uppercase px-2 py-0.5 rounded-full ${statusBadge[existingRsvp.status] ?? ""}`}
                   >
                     {existingRsvp.status}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-body text-xs text-on-surface-variant">Total</span>
-                  <span className="font-body text-sm font-semibold text-on-surface">
+
+                {/* Package */}
+                {existingRsvp.event_package_id &&
+                  event.packages &&
+                  (() => {
+                    const pkg = event.packages.find((p) => p.id === existingRsvp.event_package_id);
+                    return pkg ? (
+                      <div className="space-y-1">
+                        <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider">
+                          Paket
+                        </p>
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="font-body text-sm text-on-surface font-semibold">
+                            {pkg.name}
+                          </span>
+                          <span className="font-body text-sm text-on-surface font-semibold text-right">
+                            {formatRupiah(parseFloat(existingRsvp.package_amount))}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+
+                {/* Addons */}
+                {existingRsvp.add_ons_snapshot && existingRsvp.add_ons_snapshot.length > 0 && (
+                  <div className="space-y-1.5 pt-2 border-t border-surface-container-high">
+                    <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider">
+                      Tambahan
+                    </p>
+                    {existingRsvp.add_ons_snapshot.map((addon) => (
+                      <div
+                        key={addon.id}
+                        className="flex justify-between items-start gap-2 text-sm"
+                      >
+                        <span className="font-body text-on-surface">
+                          {addon.name}
+                          <span className="text-on-surface-variant"> ×{addon.quantity}</span>
+                        </span>
+                        <span className="font-body text-on-surface font-semibold text-right">
+                          {formatRupiah(addon.total)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Infak */}
+                {parseFloat(existingRsvp.infak_amount) > 0 && (
+                  <div className="flex justify-between items-center pt-2 border-t border-surface-container-high">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="material-symbols-outlined text-[16px] text-secondary"
+                        style={{ fontVariationSettings: "'FILL' 1" }}
+                      >
+                        volunteer_activism
+                      </span>
+                      <span className="font-body text-sm text-on-surface">Infak</span>
+                    </div>
+                    <span className="font-body text-sm text-on-surface font-semibold">
+                      {formatRupiah(parseFloat(existingRsvp.infak_amount))}
+                    </span>
+                  </div>
+                )}
+
+                {/* Total */}
+                <div className="flex justify-between items-center pt-3 border-t border-surface-container-high">
+                  <span className="font-body text-sm text-on-surface font-semibold">Total</span>
+                  <span className="font-headline text-lg text-primary font-bold">
                     {formatRupiah(parseFloat(existingRsvp.total_amount))}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-body text-xs text-on-surface-variant">Tanggal Daftar</span>
-                  <span className="font-body text-xs text-on-surface">
+
+                {/* Registration Date */}
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-body text-on-surface-variant">Tanggal Daftar</span>
+                  <span className="font-body text-on-surface">
                     {new Date(existingRsvp.created_at).toLocaleDateString("id-ID")}
                   </span>
                 </div>
@@ -1487,7 +1581,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
   const stepInfak = (
     <div className="space-y-6">
       <div>
-        <h2 className="font-headline text-2xl font-bold text-on-surface mb-1">Infak / Wakaf</h2>
+        <h2 className="font-headline text-2xl font-bold text-on-surface mb-1">Infaq Kegiatan</h2>
         <p className="font-body text-sm text-on-surface-variant">
           {infakRules?.description ?? "Berikan infak terbaik Anda. Infak bersifat opsional."}
         </p>
@@ -1576,7 +1670,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
         {/* Selected package */}
         {selectedPackage && (
           <div className="p-4 border-b border-surface-container-high">
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start mb-3">
               <div>
                 <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider mb-0.5">
                   Paket
@@ -1589,25 +1683,83 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                 {formatRupiah(totals.pkg)}
               </span>
             </div>
+            {/* Included Addons */}
+            {selectedPackage.included_addons && selectedPackage.included_addons.length > 0 && (
+              <div className="space-y-2 pt-3 border-t border-surface-container-high">
+                <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider">
+                  Termasuk:
+                </p>
+                {selectedPackage.included_addons.map((ia) => {
+                  const variants = data.included_addon_variants[ia.id] ?? {};
+                  return (
+                    <div key={ia.id} className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary text-[14px]">
+                          check_small
+                        </span>
+                        <span className="font-body text-xs text-on-surface/80">
+                          {ia.name} ×{ia.pivot.included_quantity}
+                        </span>
+                      </div>
+                      {Object.keys(variants).length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 ml-5">
+                          {Object.entries(variants).map(([variantKey, variantValues]) => (
+                            <span
+                              key={variantKey}
+                              className="inline-flex items-center gap-1 bg-primary/5 text-primary text-[10px] font-medium px-2 py-1 rounded-lg"
+                            >
+                              <span className="material-symbols-outlined text-[11px]">
+                                check_small
+                              </span>
+                              {variantKey}:{" "}
+                              {Array.isArray(variantValues)
+                                ? variantValues.join(", ")
+                                : variantValues}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
         {/* Additional addons */}
         {data.addons.length > 0 && (
-          <div className="p-4 border-b border-surface-container-high space-y-2">
+          <div className="p-4 border-b border-surface-container-high space-y-3">
             <p className="font-body text-xs text-on-surface-variant uppercase tracking-wider">
               Tambahan
             </p>
             {data.addons.map((a) => {
               const addonInfo = event.addons?.find((ea) => ea.id === a.id);
+              const variants = data.purchased_addon_variants[a.id] ?? {};
               return (
-                <div key={a.id} className="flex justify-between items-center">
-                  <span className="font-body text-sm text-on-surface">
-                    {addonInfo?.name} ×{a.quantity}
-                  </span>
-                  <span className="font-body text-sm text-on-surface">
-                    {formatRupiah(a.price * a.quantity)}
-                  </span>
+                <div key={a.id} className="space-y-1">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="font-body text-sm text-on-surface font-medium">
+                      {addonInfo?.name} ×{a.quantity}
+                    </span>
+                    <span className="font-body text-sm font-semibold text-on-surface">
+                      {formatRupiah(a.price * a.quantity)}
+                    </span>
+                  </div>
+                  {Object.keys(variants).length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {Object.entries(variants).map(([variantKey, variantValues]) => (
+                        <span
+                          key={variantKey}
+                          className="inline-flex items-center gap-1 bg-primary/5 text-primary text-[11px] font-medium px-2 py-1 rounded-lg"
+                        >
+                          <span className="material-symbols-outlined text-[12px]">check_small</span>
+                          {variantKey}:{" "}
+                          {Array.isArray(variantValues) ? variantValues.join(", ") : variantValues}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -33,6 +33,44 @@ class PaymentController extends Controller
     }
 
     /**
+     * Cancel a pending transaction and remove RSVP registration.
+     */
+    public function cancel(Request $request, int $id)
+    {
+        $transaction = Transaction::with('rsvp')
+            ->where('user_id', $request->user()->id)
+            ->findOrFail($id);
+
+        // Only allow cancellation of pending transactions
+        if ($transaction->status !== 'pending') {
+            return redirect()->back()->with('error', 'Hanya transaksi pending yang dapat dibatalkan.');
+        }
+
+        $userId = $request->user()->id;
+        $eventSlug = $transaction->rsvp->event->slug;
+        $rsvpId = $transaction->rsvp->id;
+
+        DB::transaction(function () use ($transaction, $userId, $rsvpId) {
+            // Cancel transaction
+            $transaction->update(['status' => 'cancelled']);
+
+            // Delete RSVP registration
+            if ($transaction->rsvp) {
+                $transaction->rsvp->forceDelete();
+            }
+
+            Log::info('Payment cancelled and RSVP deleted', [
+                'transaction_id' => $transaction->id,
+                'rsvp_id'        => $rsvpId,
+                'user_id'        => $userId,
+            ]);
+        });
+
+        return redirect()->route('events.show', $eventSlug)
+            ->with('success', 'Pendaftaran dibatalkan. Anda dapat mendaftar kembali kapan saja.');
+    }
+
+    /**
      * Handle iPaymu payment webhook (POST).
      * Route is exempt from CSRF; called by iPaymu server.
      */

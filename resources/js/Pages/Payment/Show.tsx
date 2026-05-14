@@ -167,25 +167,134 @@ export default function PaymentShow({
               Ringkasan Transaksi
             </h2>
             <div className="space-y-2.5">
+              {/* Event */}
               <div className="flex justify-between items-center">
                 <span className="font-body text-sm text-on-surface-variant">Event</span>
                 <span className="font-body text-sm font-medium text-on-surface">{event.title}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="font-body text-sm text-on-surface-variant">Total</span>
-                <span className="font-headline font-bold text-primary text-lg">
-                  {formatRupiah(transaction.amount)}
+
+              {/* Package & Included Addons */}
+              {rsvp.event_package_id &&
+                event.packages &&
+                (() => {
+                  const pkg = event.packages.find((p) => p.id === rsvp.event_package_id);
+                  return pkg ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-body text-sm text-on-surface-variant">Paket</span>
+                        <div className="text-right">
+                          <span className="font-body text-sm font-medium text-on-surface">
+                            {pkg.name}
+                          </span>
+                          <span className="block font-body text-xs text-on-surface-variant">
+                            {formatRupiah(parseFloat(rsvp.package_amount))}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Included Addons from Package */}
+                      {pkg.included_addons && pkg.included_addons.length > 0 && (
+                        <div className="ml-2 space-y-2 text-sm">
+                          <p className="font-body text-xs text-on-surface-variant/70 uppercase tracking-wide">
+                            Termasuk:
+                          </p>
+                          {pkg.included_addons.map((ia) => (
+                            <div key={ia.id} className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary text-[14px]">
+                                  check_small
+                                </span>
+                                <span className="font-body text-xs text-on-surface/80">
+                                  {ia.name} ×{ia.pivot.included_quantity}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : null;
+                })()}
+
+              {/* Addons */}
+              {rsvp.add_ons_snapshot && rsvp.add_ons_snapshot.length > 0 && (
+                <div className="pt-2 border-t border-surface-container-high space-y-3">
+                  <div className="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">
+                    Tambahan
+                  </div>
+                  {rsvp.add_ons_snapshot.map((addon) => (
+                    <div key={addon.id} className="space-y-1.5">
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="font-body text-sm text-on-surface font-medium">
+                          {addon.name} ×{addon.quantity}
+                        </span>
+                        <span className="font-body text-sm font-semibold text-on-surface text-right">
+                          {formatRupiah(addon.total)}
+                        </span>
+                      </div>
+                      {/* Addon Variants */}
+                      {addon.variants &&
+                        typeof addon.variants === "object" &&
+                        Object.keys(addon.variants).length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {Object.entries(addon.variants).map(([variantKey, variantValue]) => (
+                              <span
+                                key={variantKey}
+                                className="inline-flex items-center gap-1 bg-primary/5 text-primary text-[10px] font-medium px-2 py-1 rounded-lg"
+                              >
+                                <span className="material-symbols-outlined text-[11px]">
+                                  check_small
+                                </span>
+                                {variantKey}: {String(variantValue)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Infak */}
+              {parseFloat(rsvp.infak_amount) > 0 && (
+                <div className="flex justify-between items-center pt-2 border-t border-surface-container-high">
+                  <span className="font-body text-sm text-on-surface-variant">Infak</span>
+                  <span className="font-body text-sm font-medium text-on-surface">
+                    {formatRupiah(parseFloat(rsvp.infak_amount))}
+                  </span>
+                </div>
+              )}
+
+              {/* Total */}
+              <div className="flex justify-between items-center pt-3 border-t border-surface-container-high">
+                <span className="font-body text-sm font-medium text-on-surface">Subtotal</span>
+                <span className="font-headline font-bold text-on-surface">
+                  {formatRupiah(
+                    parseFloat(rsvp.package_amount) +
+                      (rsvp.add_ons_snapshot?.reduce((s, a) => s + a.total, 0) ?? 0) +
+                      parseFloat(rsvp.infak_amount)
+                  )}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
+
+              {/* Grand Total */}
+              <div className="flex justify-between items-center pt-2">
                 <span className="font-body text-sm text-on-surface-variant">Metode</span>
                 <span className="font-body text-sm font-medium text-on-surface capitalize">
                   {transaction.payment_provider === "ipaymu" ? "iPaymu" : "Transfer Manual"}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="font-body text-sm text-on-surface-variant">Tanggal</span>
-                <span className="font-body text-xs text-on-surface">
+
+              <div className="flex justify-between items-center bg-primary/5 -mx-6 px-6 py-3 rounded-lg">
+                <span className="font-headline font-bold text-on-surface">Total Bayar</span>
+                <span className="font-headline font-bold text-primary text-lg">
+                  {formatRupiah(transaction.amount)}
+                </span>
+              </div>
+
+              {/* Transaction Date */}
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-body text-on-surface-variant">Tanggal</span>
+                <span className="font-body text-on-surface">
                   {new Date(transaction.created_at).toLocaleDateString("id-ID", {
                     day: "numeric",
                     month: "long",
@@ -195,10 +304,11 @@ export default function PaymentShow({
                   })}
                 </span>
               </div>
+
               {transaction.paid_at && (
-                <div className="flex justify-between items-center">
-                  <span className="font-body text-sm text-on-surface-variant">Dibayar pada</span>
-                  <span className="font-body text-xs text-on-surface">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-body text-on-surface-variant">Dibayar pada</span>
+                  <span className="font-body text-on-surface">
                     {new Date(transaction.paid_at).toLocaleDateString("id-ID", {
                       day: "numeric",
                       month: "long",

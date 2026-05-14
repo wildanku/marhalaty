@@ -63,6 +63,7 @@ Route::middleware('auth')->group(function () {
     // Payment routes (authenticated user)
     Route::get('/payments/{id}', [PaymentController::class, 'show'])->name('payments.show');
     Route::post('/payments/{id}/proof', [PaymentProofController::class, 'store'])->name('payments.proof.store');
+    Route::post('/payments/{id}/cancel', [PaymentController::class, 'cancel'])->name('payments.cancel');
     Route::get('/payments/proof/{id}', [PaymentProofController::class, 'show'])->name('payments.proof.show');
     Route::get('/payments/proof/{id}/download', [PaymentProofController::class, 'download'])->name('payments.proof.download');
 
@@ -141,7 +142,7 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         Route::put('/events/{id}', [App\Domains\GodMode\Controllers\EventController::class, 'update'])->name('events.update');
         Route::get('/events/{id}/participants/{rsvp_id}', [App\Domains\GodMode\Controllers\EventController::class, 'participantShow'])->name('events.participants.show');
         Route::delete('/events/{id}/participants/{rsvp_id}', [App\Domains\GodMode\Controllers\EventController::class, 'participantDestroy'])->name('events.participants.destroy');
-        Route::get('/events/{id}/export-csv', [App\Domains\GodMode\Controllers\EventController::class, 'exportCsv'])->name('events.export-csv');
+        Route::get('/events/{id}/export-excel', [App\Domains\GodMode\Controllers\EventController::class, 'exportExcel'])->name('events.export-excel');
 
         // Event Packages
         Route::get('/events/{event}/packages', [EventPackageController::class, 'index'])->name('events.packages.index');

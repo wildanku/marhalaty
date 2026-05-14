@@ -12,6 +12,8 @@ interface EventStats {
   failed_count: number;
   total_revenue: string;
   manual_pending: number;
+  total_infak: string;
+  infak_count: number;
 }
 
 interface PackageStat {
@@ -158,7 +160,7 @@ export default function EventShow({
   package_stats,
   addon_stats,
 }: EventShowProps) {
-  const [activeTab, setActiveTab] = useState<"peserta" | "statistik">("peserta");
+  const [activeTab, setActiveTab] = useState<"peserta" | "paket" | "addon" | "infak">("peserta");
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [modal, setModal] = useState<{
@@ -227,11 +229,11 @@ export default function EventShow({
         </Link>
         <div className="flex flex-wrap gap-3">
           <a
-            href={`/god-mode/events/${event.id}/export-csv`}
+            href={`/god-mode/events/${event.id}/export-excel`}
             className="inline-flex items-center gap-2 text-sm bg-teal-500/10 text-teal-400 hover:bg-teal-500/20 px-4 py-2 rounded-lg font-semibold transition-colors"
           >
             <span className="material-symbols-outlined text-base">download</span>
-            Export CSV
+            Export Excel
           </a>
           <Link
             href={`/god-mode/events/${event.id}/addons`}
@@ -258,7 +260,7 @@ export default function EventShow({
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
         <div className="bg-[#161b22] border border-white/5 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
@@ -302,24 +304,37 @@ export default function EventShow({
           <p className="text-3xl font-bold text-red-400 font-headline">{stats.failed_count}</p>
         </div>
 
-        <div className="col-span-2 lg:col-span-1 bg-[#161b22] border border-white/5 rounded-2xl p-5">
+        <div className="bg-[#161b22] border border-white/5 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
               Pendapatan
             </p>
             <span className="material-symbols-outlined text-emerald-400 text-[18px]">payments</span>
           </div>
-          <p className="text-xl font-bold text-white font-headline">
+          <p className="text-lg font-bold text-white font-headline">
             {formatRp(stats.total_revenue)}
           </p>
+        </div>
+
+        <div className="bg-[#161b22] border border-white/5 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">Infak</p>
+            <span className="material-symbols-outlined text-teal-400 text-[18px]">
+              volunteer_activism
+            </span>
+          </div>
+          <p className="text-lg font-bold text-teal-400 font-headline">
+            {formatRp(stats.total_infak)}
+          </p>
+          <p className="text-xs text-white/40 mt-1">{stats.infak_count} peserta</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-white/5 rounded-xl p-1 mb-6 w-fit">
+      <div className="flex gap-1 bg-white/5 rounded-xl p-1 mb-6 w-fit overflow-x-auto">
         <button
           onClick={() => setActiveTab("peserta")}
-          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "peserta" ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70"}`}
+          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "peserta" ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70"}`}
         >
           <span className="inline-flex items-center gap-2">
             <span className="material-symbols-outlined text-base">group</span>
@@ -327,12 +342,30 @@ export default function EventShow({
           </span>
         </button>
         <button
-          onClick={() => setActiveTab("statistik")}
-          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "statistik" ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70"}`}
+          onClick={() => setActiveTab("paket")}
+          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "paket" ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70"}`}
         >
           <span className="inline-flex items-center gap-2">
-            <span className="material-symbols-outlined text-base">bar_chart</span>
-            Statistik &amp; Laporan
+            <span className="material-symbols-outlined text-base">inventory_2</span>
+            Paket
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab("addon")}
+          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "addon" ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70"}`}
+        >
+          <span className="inline-flex items-center gap-2">
+            <span className="material-symbols-outlined text-base">category</span>
+            Addon
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab("infak")}
+          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === "infak" ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70"}`}
+        >
+          <span className="inline-flex items-center gap-2">
+            <span className="material-symbols-outlined text-base">volunteer_activism</span>
+            Infak
           </span>
         </button>
       </div>
@@ -555,127 +588,202 @@ export default function EventShow({
         </div>
       )}
 
-      {/* ─── Statistik Tab ───────────────────────────────────────────────── */}
-      {activeTab === "statistik" && (
-        <div className="space-y-6">
-          {/* Package Stats */}
-          <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
-            <div className="p-5 border-b border-white/5">
-              <h3 className="font-bold text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-blue-400 text-[18px]">
-                  inventory_2
-                </span>
-                Statistik Paket
-              </h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left text-white/70">
-                <thead className="bg-white/5 text-xs uppercase text-white/40 border-b border-white/5">
-                  <tr>
-                    <th className="px-5 py-3 font-semibold">Nama Paket</th>
-                    <th className="px-5 py-3 font-semibold text-right">Total Pemesan</th>
-                    <th className="px-5 py-3 font-semibold text-right">Sudah Bayar</th>
-                    <th className="px-5 py-3 font-semibold text-right">Pendapatan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {package_stats.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-5 py-8 text-center text-white/30">
-                        Belum ada data paket.
-                      </td>
-                    </tr>
-                  ) : (
-                    package_stats.map((pkg) => (
-                      <tr key={pkg.package_id} className="hover:bg-white/2">
-                        <td className="px-5 py-4 font-semibold text-white">{pkg.package_name}</td>
-                        <td className="px-5 py-4 text-right">{pkg.count}</td>
-                        <td className="px-5 py-4 text-right text-emerald-400">{pkg.paid_count}</td>
-                        <td className="px-5 py-4 text-right font-semibold text-white">
-                          {formatRp(pkg.revenue)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                  {package_stats.length > 0 && (
-                    <tr className="bg-white/5 font-bold">
-                      <td className="px-5 py-3 text-white/60 text-xs uppercase tracking-wider">
-                        Total
-                      </td>
-                      <td className="px-5 py-3 text-right text-white">
-                        {package_stats.reduce((s, p) => s + p.count, 0)}
-                      </td>
-                      <td className="px-5 py-3 text-right text-emerald-400">
-                        {package_stats.reduce((s, p) => s + p.paid_count, 0)}
-                      </td>
-                      <td className="px-5 py-3 text-right text-white">
-                        {formatRp(package_stats.reduce((s, p) => s + p.revenue, 0))}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+      {/* ─── Paket Tab ──────────────────────────────────────────────────── */}
+      {activeTab === "paket" && (
+        <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
+          <div className="p-5 border-b border-white/5">
+            <h3 className="font-bold text-white flex items-center gap-2">
+              <span className="material-symbols-outlined text-blue-400 text-[18px]">
+                inventory_2
+              </span>
+              Statistik Paket
+            </h3>
           </div>
-
-          {/* Addon Stats */}
-          <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
-            <div className="p-5 border-b border-white/5">
-              <h3 className="font-bold text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-purple-400 text-[18px]">
-                  category
-                </span>
-                Statistik Addon
-              </h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left text-white/70">
-                <thead className="bg-white/5 text-xs uppercase text-white/40 border-b border-white/5">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left text-white/70">
+              <thead className="bg-white/5 text-xs uppercase text-white/40 border-b border-white/5">
+                <tr>
+                  <th className="px-5 py-3 font-semibold">Nama Paket</th>
+                  <th className="px-5 py-3 font-semibold text-right">Total Pemesan</th>
+                  <th className="px-5 py-3 font-semibold text-right">Sudah Bayar</th>
+                  <th className="px-5 py-3 font-semibold text-right">Pendapatan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {package_stats.length === 0 ? (
                   <tr>
-                    <th className="px-5 py-3 font-semibold">Nama Addon</th>
-                    <th className="px-5 py-3 font-semibold text-right">Pemesan</th>
-                    <th className="px-5 py-3 font-semibold text-right">Total Qty</th>
-                    <th className="px-5 py-3 font-semibold text-right">Pendapatan (Lunas)</th>
+                    <td colSpan={4} className="px-5 py-8 text-center text-white/30">
+                      Belum ada data paket.
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {addon_stats.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-5 py-8 text-center text-white/30">
-                        Belum ada addon yang dipesan.
+                ) : (
+                  package_stats.map((pkg) => (
+                    <tr key={pkg.package_id} className="hover:bg-white/2">
+                      <td className="px-5 py-4 font-semibold text-white">{pkg.package_name}</td>
+                      <td className="px-5 py-4 text-right">{pkg.count}</td>
+                      <td className="px-5 py-4 text-right text-emerald-400">{pkg.paid_count}</td>
+                      <td className="px-5 py-4 text-right font-semibold text-white">
+                        {formatRp(pkg.revenue)}
                       </td>
                     </tr>
-                  ) : (
-                    addon_stats.map((addon) => (
-                      <tr key={addon.addon_id} className="hover:bg-white/2">
-                        <td className="px-5 py-4 font-semibold text-white">{addon.addon_name}</td>
-                        <td className="px-5 py-4 text-right">{addon.count}</td>
-                        <td className="px-5 py-4 text-right">{addon.total_qty}</td>
-                        <td className="px-5 py-4 text-right font-semibold text-white">
-                          {formatRp(addon.revenue)}
+                  ))
+                )}
+                {package_stats.length > 0 && (
+                  <tr className="bg-white/5 font-bold">
+                    <td className="px-5 py-3 text-white/60 text-xs uppercase tracking-wider">
+                      Total
+                    </td>
+                    <td className="px-5 py-3 text-right text-white">
+                      {package_stats.reduce((s, p) => s + p.count, 0)}
+                    </td>
+                    <td className="px-5 py-3 text-right text-emerald-400">
+                      {package_stats.reduce((s, p) => s + p.paid_count, 0)}
+                    </td>
+                    <td className="px-5 py-3 text-right text-white">
+                      {formatRp(package_stats.reduce((s, p) => s + p.revenue, 0))}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Addon Tab ───────────────────────────────────────────────────── */}
+      {activeTab === "addon" && (
+        <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
+          <div className="p-5 border-b border-white/5">
+            <h3 className="font-bold text-white flex items-center gap-2">
+              <span className="material-symbols-outlined text-purple-400 text-[18px]">
+                category
+              </span>
+              Statistik Addon
+              <span className="text-xs text-white/40 font-normal">(hanya peserta lunas)</span>
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left text-white/70">
+              <thead className="bg-white/5 text-xs uppercase text-white/40 border-b border-white/5">
+                <tr>
+                  <th className="px-5 py-3 font-semibold">Nama Addon</th>
+                  <th className="px-5 py-3 font-semibold text-right">Pemesan (Lunas)</th>
+                  <th className="px-5 py-3 font-semibold text-right">Total Qty</th>
+                  <th className="px-5 py-3 font-semibold text-right">Pendapatan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {addon_stats.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-8 text-center text-white/30">
+                      Belum ada addon dari peserta lunas.
+                    </td>
+                  </tr>
+                ) : (
+                  addon_stats.map((addon) => (
+                    <tr key={addon.addon_id} className="hover:bg-white/2">
+                      <td className="px-5 py-4 font-semibold text-white">{addon.addon_name}</td>
+                      <td className="px-5 py-4 text-right">{addon.count}</td>
+                      <td className="px-5 py-4 text-right">{addon.total_qty}</td>
+                      <td className="px-5 py-4 text-right font-semibold text-white">
+                        {formatRp(addon.revenue)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+                {addon_stats.length > 0 && (
+                  <tr className="bg-white/5 font-bold">
+                    <td className="px-5 py-3 text-white/60 text-xs uppercase tracking-wider">
+                      Total
+                    </td>
+                    <td className="px-5 py-3 text-right text-white">
+                      {addon_stats.reduce((s, a) => s + a.count, 0)}
+                    </td>
+                    <td className="px-5 py-3 text-right text-white">
+                      {addon_stats.reduce((s, a) => s + a.total_qty, 0)}
+                    </td>
+                    <td className="px-5 py-3 text-right text-white">
+                      {formatRp(addon_stats.reduce((s, a) => s + a.revenue, 0))}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Infak Tab ───────────────────────────────────────────────────── */}
+      {activeTab === "infak" && (
+        <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
+          <div className="p-5 border-b border-white/5">
+            <h3 className="font-bold text-white flex items-center gap-2">
+              <span className="material-symbols-outlined text-teal-400 text-[18px]">
+                volunteer_activism
+              </span>
+              Rekap Donasi Infak
+              <span className="text-xs text-white/40 font-normal">(hanya peserta lunas)</span>
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left text-white/70">
+              <thead className="bg-white/5 text-xs uppercase text-white/40 border-b border-white/5">
+                <tr>
+                  <th className="px-5 py-3 font-semibold">Nama Peserta</th>
+                  <th className="px-5 py-3 font-semibold">Paket</th>
+                  <th className="px-5 py-3 font-semibold text-right">Jumlah Infak</th>
+                  <th className="px-5 py-3 font-semibold">Tanggal Bayar</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {rsvps.filter((r) => r.status === "paid" && parseFloat(r.infak_amount) > 0)
+                  .length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-8 text-center text-white/30">
+                      Belum ada donasi infak.
+                    </td>
+                  </tr>
+                ) : (
+                  rsvps
+                    .filter((r) => r.status === "paid" && parseFloat(r.infak_amount) > 0)
+                    .map((rsvp) => (
+                      <tr key={rsvp.id} className="hover:bg-white/2">
+                        <td className="px-5 py-4 font-semibold text-white">
+                          {rsvp.user?.name ?? "—"}
+                        </td>
+                        <td className="px-5 py-4 text-white/60">{rsvp.package?.name ?? "—"}</td>
+                        <td className="px-5 py-4 text-right font-semibold text-teal-400">
+                          {formatRp(rsvp.infak_amount)}
+                        </td>
+                        <td className="px-5 py-4 text-white/60 text-xs">
+                          {rsvp.latest_transaction?.paid_at
+                            ? new Date(rsvp.latest_transaction.paid_at).toLocaleString("id-ID")
+                            : "—"}
                         </td>
                       </tr>
                     ))
-                  )}
-                  {addon_stats.length > 0 && (
-                    <tr className="bg-white/5 font-bold">
-                      <td className="px-5 py-3 text-white/60 text-xs uppercase tracking-wider">
-                        Total
-                      </td>
-                      <td className="px-5 py-3 text-right text-white">
-                        {addon_stats.reduce((s, a) => s + a.count, 0)}
-                      </td>
-                      <td className="px-5 py-3 text-right text-white">
-                        {addon_stats.reduce((s, a) => s + a.total_qty, 0)}
-                      </td>
-                      <td className="px-5 py-3 text-right text-white">
-                        {formatRp(addon_stats.reduce((s, a) => s + a.revenue, 0))}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                )}
+                {rsvps.filter((r) => r.status === "paid" && parseFloat(r.infak_amount) > 0).length >
+                  0 && (
+                  <tr className="bg-white/5 font-bold">
+                    <td
+                      colSpan={2}
+                      className="px-5 py-3 text-white/60 text-xs uppercase tracking-wider"
+                    >
+                      Total Infak
+                    </td>
+                    <td className="px-5 py-3 text-right text-teal-400">
+                      {formatRp(
+                        rsvps
+                          .filter((r) => r.status === "paid" && parseFloat(r.infak_amount) > 0)
+                          .reduce((s, r) => s + parseFloat(r.infak_amount), 0)
+                      )}
+                    </td>
+                    <td />
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

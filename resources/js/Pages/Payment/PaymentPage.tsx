@@ -168,6 +168,19 @@ export default function PaymentPage({
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [copiedVa, setCopiedVa] = useState(false);
   const [fileValidationError, setFileValidationError] = useState<string | null>(null);
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+
+  const cancelForm = useForm();
+
+  const handleCancel = () => {
+    if (
+      confirm(
+        "Apakah Anda yakin ingin membatalkan pembayaran dan menghapus pendaftaran? Tindakan ini tidak dapat dibatalkan."
+      )
+    ) {
+      cancelForm.post(`/payments/${transaction.id}/cancel`);
+    }
+  };
 
   const status = statusConfig[transaction.status] ?? statusConfig.pending;
   const isManual = transaction.payment_provider === "manual";
@@ -237,7 +250,7 @@ export default function PaymentPage({
             >
               {status.icon}
             </span>
-            <div>
+            <div className="flex-1">
               <p className={`font-headline font-bold text-base ${status.color}`}>{status.label}</p>
               {isPending && isManual && (
                 <p className="text-xs text-on-surface-variant mt-0.5 font-body">
@@ -250,6 +263,17 @@ export default function PaymentPage({
                 </p>
               )}
             </div>
+            {isPending && (
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={cancelForm.processing}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-xs font-medium hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink-0"
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+                Batalkan
+              </button>
+            )}
           </div>
 
           {/* Transaction Summary */}
@@ -257,26 +281,113 @@ export default function PaymentPage({
             <h2 className="font-headline font-bold text-on-surface mb-4 text-sm uppercase tracking-wider">
               Ringkasan Transaksi
             </h2>
-            <div className="space-y-2.5">
+            <div className="space-y-3">
+              {/* Event */}
               <div className="flex justify-between">
                 <span className="text-sm text-on-surface-variant font-body">Event</span>
                 <span className="text-sm font-medium text-on-surface font-body text-right max-w-[60%]">
                   {event.title}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-on-surface-variant font-body">Total</span>
-                <span className="font-headline font-bold text-primary text-xl">
-                  {formatRupiah(transaction.amount)}
-                </span>
-              </div>
-              <div className="flex justify-between">
+
+              {/* Package & Included Addons */}
+              {rsvp.event_package_id &&
+                event.packages &&
+                (() => {
+                  const pkg = event.packages.find((p) => p.id === rsvp.event_package_id);
+                  return pkg ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm text-on-surface-variant font-body">Paket</span>
+                        <div className="text-right">
+                          <span className="text-sm font-medium text-on-surface font-body">
+                            {pkg.name}
+                          </span>
+                          <span className="block text-xs text-on-surface-variant font-body">
+                            {formatRupiah(parseFloat(rsvp.package_amount))}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Included Addons */}
+                      {pkg.included_addons && pkg.included_addons.length > 0 && (
+                        <div className="ml-2 space-y-1">
+                          <p className="text-xs text-on-surface-variant/70 uppercase tracking-wide font-body">
+                            Termasuk:
+                          </p>
+                          {pkg.included_addons.map((ia) => (
+                            <div key={ia.id} className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-primary text-[12px]">
+                                check_small
+                              </span>
+                              <span className="text-xs text-on-surface/80 font-body">
+                                {ia.name} ×{ia.pivot.included_quantity}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : null;
+                })()}
+
+              {/* Purchased Addons */}
+              {rsvp.add_ons_snapshot && rsvp.add_ons_snapshot.length > 0 && (
+                <div className="pt-2 border-t border-surface-container space-y-2">
+                  <p className="text-xs text-on-surface-variant uppercase tracking-wider font-body">
+                    Tambahan
+                  </p>
+                  {rsvp.add_ons_snapshot.map((addon) => (
+                    <div key={addon.id} className="space-y-1">
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-xs text-on-surface font-medium font-body">
+                          {addon.name} ×{addon.quantity}
+                        </span>
+                        <span className="text-xs font-semibold text-on-surface text-right font-body">
+                          {formatRupiah(addon.total)}
+                        </span>
+                      </div>
+                      {/* Addon Variants */}
+                      {addon.variants &&
+                        typeof addon.variants === "object" &&
+                        Object.keys(addon.variants).length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {Object.entries(addon.variants).map(([variantKey, variantValue]) => (
+                              <span
+                                key={variantKey}
+                                className="inline-flex items-center gap-0.5 bg-primary/5 text-primary text-[9px] font-medium px-1.5 py-0.5 rounded"
+                              >
+                                <span className="material-symbols-outlined text-[10px]">
+                                  check_small
+                                </span>
+                                {variantKey}: {String(variantValue)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Infak */}
+              {parseFloat(rsvp.infak_amount) > 0 && (
+                <div className="flex justify-between items-center pt-2 border-t border-surface-container">
+                  <span className="text-sm text-on-surface-variant font-body">Infak</span>
+                  <span className="text-sm font-medium text-on-surface font-body">
+                    {formatRupiah(parseFloat(rsvp.infak_amount))}
+                  </span>
+                </div>
+              )}
+
+              {/* Total */}
+              <div className="flex justify-between items-center pt-2 border-t border-surface-container">
                 <span className="text-sm text-on-surface-variant font-body">Metode</span>
                 <span className="text-sm font-medium text-on-surface font-body">
                   {isManual ? "Transfer Manual" : channelName}
                 </span>
               </div>
-              <div className="flex justify-between">
+
+              <div className="flex justify-between items-center">
                 <span className="text-sm text-on-surface-variant font-body">Tanggal</span>
                 <span className="text-xs text-on-surface font-body">
                   {new Date(transaction.created_at).toLocaleDateString("id-ID", {
@@ -302,6 +413,13 @@ export default function PaymentPage({
                   </span>
                 </div>
               )}
+
+              <div className="flex justify-between items-center bg-primary/5 -mx-5 px-5 py-3 -mb-5 rounded-b-2xl border-t border-surface-container">
+                <span className="font-headline font-bold text-on-surface text-sm">Total Bayar</span>
+                <span className="font-headline font-bold text-primary text-lg">
+                  {formatRupiah(transaction.amount)}
+                </span>
+              </div>
             </div>
           </div>
 
