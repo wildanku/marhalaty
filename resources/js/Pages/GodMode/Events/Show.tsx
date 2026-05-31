@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Head, Link, useForm, router } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
 import ImagePreviewModal from "@/Components/ImagePreviewModal";
-import { sanitizePhoneNumber, getWhatsAppUrl } from "@/utils/phoneHelper";
+import { getWhatsAppUrl } from "@/utils/phoneHelper";
 import { Rsvp, Transaction } from "@/types";
 
 interface EventStats {
@@ -47,7 +47,14 @@ interface EventShowProps {
       name: string;
       email: string;
       marhalah_year: number;
-      phone_number: string;
+      phone_number: string | null;
+      country: string | null;
+      foreign_city: string | null;
+      city: {
+        id: string;
+        name: string;
+        province?: { name: string } | null;
+      } | null;
     } | null;
     package: { id: number; name: string } | null;
     latest_transaction: Transaction | null;
@@ -59,6 +66,29 @@ interface EventShowProps {
 
 const formatRp = (val: string | number) =>
   "Rp " + parseInt(String(val) || "0").toLocaleString("id-ID");
+
+const getParticipantDomicile = (user: EventShowProps["rsvps"][number]["user"]) => {
+  if (!user) {
+    return "—";
+  }
+
+  const cityName = user.city?.name;
+  const provinceName = user.city?.province?.name;
+
+  if (cityName && provinceName) {
+    return `${cityName}, ${provinceName}`;
+  }
+
+  if (cityName) {
+    return cityName;
+  }
+
+  if (user.foreign_city && user.country) {
+    return `${user.foreign_city}, ${user.country}`;
+  }
+
+  return user.foreign_city || user.country || "—";
+};
 
 const providerLabel: Record<string, { label: string; color: string }> = {
   manual: { label: "Manual", color: "bg-blue-900/30 text-blue-300 border border-blue-700/40" },
@@ -429,6 +459,7 @@ export default function EventShow({
                     const isManualPending =
                       tx?.payment_provider === "manual" && tx?.status === "pending";
                     const providerInfo = tx ? (providerLabel[tx.payment_provider] ?? null) : null;
+                    const domicile = getParticipantDomicile(rsvp.user);
 
                     return (
                       <tr key={rsvp.id} className="hover:bg-white/2 transition-colors">
@@ -454,6 +485,7 @@ export default function EventShow({
                               <span className="text-xs text-white/30">—</span>
                             )}
                           </div>
+                          <div className="text-xs text-white/40 mt-0.5">{domicile}</div>
                           <div className="text-xs text-white/30 mt-0.5">
                             {new Date(rsvp.created_at).toLocaleString("id-ID", {
                               dateStyle: "long",

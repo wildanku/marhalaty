@@ -33,7 +33,7 @@ class EventController extends Controller
     {
         $event = Event::with(['addons', 'packages'])->findOrFail($id);
 
-        $rsvps = Rsvp::with(['user', 'package.includedAddons', 'latestTransaction.proof'])
+        $rsvps = Rsvp::with(['user.city.province', 'package.includedAddons', 'latestTransaction.proof'])
             ->where('event_id', $id)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -133,7 +133,7 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($eventId);
 
-        $rsvp = Rsvp::with(['user', 'package', 'latestTransaction.proof'])
+        $rsvp = Rsvp::with(['user.city.province', 'package', 'latestTransaction.proof'])
             ->where('event_id', $eventId)
             ->findOrFail($rsvpId);
 
@@ -167,7 +167,7 @@ class EventController extends Controller
     {
         $event = Event::with(['addons', 'packages'])->findOrFail($id);
 
-        $rsvps = Rsvp::with(['user', 'package.includedAddons', 'latestTransaction.proof'])
+        $rsvps = Rsvp::with(['user.city.province', 'package.includedAddons', 'latestTransaction.proof'])
             ->where('event_id', $id)
             ->orderBy('created_at', 'asc')
             ->get();

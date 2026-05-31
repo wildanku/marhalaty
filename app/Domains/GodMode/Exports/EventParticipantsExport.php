@@ -36,6 +36,31 @@ class ParticipantsSheet implements FromCollection, WithHeadings, WithTitle, With
 {
     public function __construct(private Event $event, private Collection $rsvps) {}
 
+    private function resolveParticipantDomicile(Rsvp $rsvp): string
+    {
+        $user = $rsvp->user;
+        $cityName = $user?->city?->name;
+        $provinceName = $user?->city?->province?->name;
+
+        if ($cityName && $provinceName) {
+            return $cityName . ', ' . $provinceName;
+        }
+
+        if ($cityName) {
+            return $cityName;
+        }
+
+        if ($user?->foreign_city && $user?->country) {
+            return $user->foreign_city . ', ' . $user->country;
+        }
+
+        if ($user?->foreign_city) {
+            return $user->foreign_city;
+        }
+
+        return $user?->country ?? '-';
+    }
+
     public function title(): string
     {
         return 'List Peserta';
@@ -45,7 +70,7 @@ class ParticipantsSheet implements FromCollection, WithHeadings, WithTitle, With
     {
         $customForms = $this->event->metadata['custom_forms'] ?? [];
         $base = [
-            '#', 'Nama', 'Email', 'No. HP', 'Marhalah', 'Tanggal Daftar',
+            '#', 'Nama', 'Email', 'No. HP', 'Domisili', 'Marhalah', 'Tanggal Daftar',
             'Paket', 'Harga Paket', 'Total Addon', 'Infak', 'Total Bayar',
             'Status RSVP', 'Metode Bayar', 'Channel', 'Status Bayar',
             'Tanggal Bayar', 'Bukti Upload',
@@ -72,6 +97,7 @@ class ParticipantsSheet implements FromCollection, WithHeadings, WithTitle, With
                 optional($rsvp->user)->name ?? '-',
                 optional($rsvp->user)->email ?? '-',
                 optional($rsvp->user)->phone_number ?? '-',
+                $this->resolveParticipantDomicile($rsvp),
                 optional($rsvp->user)->marhalah_year ?? '-',
                 $rsvp->created_at->format('d/m/Y H:i'),
                 optional($rsvp->package)->name ?? '-',
@@ -112,6 +138,31 @@ class AddonsSheet implements FromCollection, WithHeadings, WithTitle, WithStyles
 {
     public function __construct(private Event $event, private Collection $rsvps) {}
 
+    private function resolveParticipantDomicile(Rsvp $rsvp): string
+    {
+        $user = $rsvp->user;
+        $cityName = $user?->city?->name;
+        $provinceName = $user?->city?->province?->name;
+
+        if ($cityName && $provinceName) {
+            return $cityName . ', ' . $provinceName;
+        }
+
+        if ($cityName) {
+            return $cityName;
+        }
+
+        if ($user?->foreign_city && $user?->country) {
+            return $user->foreign_city . ', ' . $user->country;
+        }
+
+        if ($user?->foreign_city) {
+            return $user->foreign_city;
+        }
+
+        return $user?->country ?? '-';
+    }
+
     public function title(): string
     {
         return 'List Addon';
@@ -120,7 +171,7 @@ class AddonsSheet implements FromCollection, WithHeadings, WithTitle, WithStyles
     public function headings(): array
     {
         return [
-            '#', 'Nama Peserta', 'Email', 'Paket', 'Nama Addon', 'Qty',
+            '#', 'Nama Peserta', 'Email', 'Domisili', 'Paket', 'Nama Addon', 'Qty',
             'Harga Satuan', 'Total', 'Tipe', 'Varian', 'Status RSVP',
         ];
     }
@@ -161,6 +212,7 @@ class AddonsSheet implements FromCollection, WithHeadings, WithTitle, WithStyles
                     $idx++,
                     optional($rsvp->user)->name ?? '-',
                     optional($rsvp->user)->email ?? '-',
+                    $this->resolveParticipantDomicile($rsvp),
                     optional($rsvp->package)->name ?? '-',
                     $addon['name'] ?? '-',
                     (int) ($addon['quantity'] ?? 1),
@@ -183,6 +235,7 @@ class AddonsSheet implements FromCollection, WithHeadings, WithTitle, WithStyles
                         $idx++,
                         optional($rsvp->user)->name ?? '-',
                         optional($rsvp->user)->email ?? '-',
+                        $this->resolveParticipantDomicile($rsvp),
                         optional($rsvp->package)->name ?? '-',
                         $bundledAddon->name,
                         (int) ($bundledAddon->pivot->included_quantity ?? 1),
@@ -213,6 +266,31 @@ class InfakSheet implements FromCollection, WithHeadings, WithTitle, WithStyles,
 {
     public function __construct(private Event $event, private Collection $rsvps) {}
 
+    private function resolveParticipantDomicile(Rsvp $rsvp): string
+    {
+        $user = $rsvp->user;
+        $cityName = $user?->city?->name;
+        $provinceName = $user?->city?->province?->name;
+
+        if ($cityName && $provinceName) {
+            return $cityName . ', ' . $provinceName;
+        }
+
+        if ($cityName) {
+            return $cityName;
+        }
+
+        if ($user?->foreign_city && $user?->country) {
+            return $user->foreign_city . ', ' . $user->country;
+        }
+
+        if ($user?->foreign_city) {
+            return $user->foreign_city;
+        }
+
+        return $user?->country ?? '-';
+    }
+
     public function title(): string
     {
         return 'List Donasi Infak';
@@ -221,7 +299,7 @@ class InfakSheet implements FromCollection, WithHeadings, WithTitle, WithStyles,
     public function headings(): array
     {
         return [
-            '#', 'Nama Peserta', 'Email', 'No. HP', 'Marhalah',
+            '#', 'Nama Peserta', 'Email', 'No. HP', 'Domisili', 'Marhalah',
             'Paket', 'Jumlah Infak', 'Status RSVP', 'Tanggal Bayar',
         ];
     }
@@ -243,6 +321,7 @@ class InfakSheet implements FromCollection, WithHeadings, WithTitle, WithStyles,
                 optional($rsvp->user)->name ?? '-',
                 optional($rsvp->user)->email ?? '-',
                 optional($rsvp->user)->phone_number ?? '-',
+                $this->resolveParticipantDomicile($rsvp),
                 optional($rsvp->user)->marhalah_year ?? '-',
                 optional($rsvp->package)->name ?? '-',
                 (float) $rsvp->infak_amount,
