@@ -372,11 +372,31 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
                     <div key={i} className="flex items-start justify-between gap-4">
                       <div>
                         <span className="text-white/80 text-sm">{addon.name}</span>
+                        {/* Variants (Included) */}
                         {addon.variants && Object.keys(addon.variants).length > 0 && (
                           <div className="text-xs text-white/40 mt-0.5">
                             {Object.entries(addon.variants)
-                              .map(([k, v]) => `${k}: ${v}`)
+                              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
                               .join(", ")}
+                          </div>
+                        )}
+                        {/* Variants (Purchased) */}
+                        {(addon as any).variant_slots && Object.keys((addon as any).variant_slots).length > 0 && (
+                          <div className="text-xs text-white/40 mt-0.5">
+                            {Object.entries((addon as any).variant_slots)
+                              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+                              .join(", ")}
+                          </div>
+                        )}
+                        {/* Custom Forms */}
+                        {(addon as any).form && Object.keys((addon as any).form).length > 0 && (
+                          <div className="text-xs text-white/40 mt-0.5">
+                            {Object.entries((addon as any).form).map(([k, v]) => {
+                              if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+                                return `[Item #${parseInt(k)+1}: ${Object.entries(v).map(([sk, sv]) => `${sk} = ${sv}`).join(', ')}]`;
+                              }
+                              return `${k}: ${v}`;
+                            }).join(" ")}
                           </div>
                         )}
                         <span className="text-xs text-white/40">x{addon.quantity}</span>
