@@ -6,12 +6,12 @@ use App\Domains\Event\Models\Event;
 use App\Domains\Event\Models\Rsvp;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Exportable;
-use Maatwebsite\Excel\Concerns\WithMultipleSheets;
-use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class EventParticipantsExport implements WithMultipleSheets
@@ -32,7 +32,7 @@ class EventParticipantsExport implements WithMultipleSheets
 
 // ─── Sheet 1: Peserta ────────────────────────────────────────────────────────
 
-class ParticipantsSheet implements FromCollection, WithHeadings, WithTitle, WithStyles, ShouldAutoSize
+class ParticipantsSheet implements FromCollection, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
 {
     public function __construct(private Event $event, private Collection $rsvps) {}
 
@@ -43,7 +43,7 @@ class ParticipantsSheet implements FromCollection, WithHeadings, WithTitle, With
         $provinceName = $user?->city?->province?->name;
 
         if ($cityName && $provinceName) {
-            return $cityName . ', ' . $provinceName;
+            return $cityName.', '.$provinceName;
         }
 
         if ($cityName) {
@@ -51,7 +51,7 @@ class ParticipantsSheet implements FromCollection, WithHeadings, WithTitle, With
         }
 
         if ($user?->foreign_city && $user?->country) {
-            return $user->foreign_city . ', ' . $user->country;
+            return $user->foreign_city.', '.$user->country;
         }
 
         if ($user?->foreign_city) {
@@ -78,6 +78,7 @@ class ParticipantsSheet implements FromCollection, WithHeadings, WithTitle, With
         foreach ($customForms as $field) {
             $base[] = $field['label'] ?? 'Formulir';
         }
+
         return $base;
     }
 
@@ -90,7 +91,7 @@ class ParticipantsSheet implements FromCollection, WithHeadings, WithTitle, With
             $tx = $rsvp->latestTransaction;
 
             $addonTotal = collect($rsvp->add_ons_snapshot ?? [])
-                ->sum(fn($a) => (float) ($a['total'] ?? 0));
+                ->sum(fn ($a) => (float) ($a['total'] ?? 0));
 
             $row = [
                 $i + 1,
@@ -134,7 +135,7 @@ class ParticipantsSheet implements FromCollection, WithHeadings, WithTitle, With
 
 // ─── Sheet 2: Addon ──────────────────────────────────────────────────────────
 
-class AddonsSheet implements FromCollection, WithHeadings, WithTitle, WithStyles, ShouldAutoSize
+class AddonsSheet implements FromCollection, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
 {
     public function __construct(private Event $event, private Collection $rsvps) {}
 
@@ -145,7 +146,7 @@ class AddonsSheet implements FromCollection, WithHeadings, WithTitle, WithStyles
         $provinceName = $user?->city?->province?->name;
 
         if ($cityName && $provinceName) {
-            return $cityName . ', ' . $provinceName;
+            return $cityName.', '.$provinceName;
         }
 
         if ($cityName) {
@@ -153,7 +154,7 @@ class AddonsSheet implements FromCollection, WithHeadings, WithTitle, WithStyles
         }
 
         if ($user?->foreign_city && $user?->country) {
-            return $user->foreign_city . ', ' . $user->country;
+            return $user->foreign_city.', '.$user->country;
         }
 
         if ($user?->foreign_city) {
@@ -184,26 +185,32 @@ class AddonsSheet implements FromCollection, WithHeadings, WithTitle, WithStyles
         // Load all packages with their includedAddons for bundled addon detection
         $packageIncludedAddons = [];
         foreach ($paidRsvps as $rsvp) {
-            if ($rsvp->package && !isset($packageIncludedAddons[$rsvp->event_package_id])) {
+            if ($rsvp->package && ! isset($packageIncludedAddons[$rsvp->event_package_id])) {
                 $pkg = $rsvp->package->loadMissing('includedAddons');
                 $packageIncludedAddons[$rsvp->event_package_id] = $pkg->includedAddons ?? collect();
             }
         }
 
         $rows = [];
-        $idx  = 1;
+        $idx = 1;
 
         foreach ($paidRsvps as $rsvp) {
-            $snapshot      = collect($rsvp->add_ons_snapshot ?? []);
-            $snapshotIds   = $snapshot->pluck('id')->map(fn($id) => (int) $id)->toArray();
+            $snapshot = collect($rsvp->add_ons_snapshot ?? []);
+            $snapshotIds = $snapshot->pluck('id')->map(fn ($id) => (int) $id)->toArray();
 
             // Addons from snapshot
             foreach ($snapshot as $addon) {
+                $combinedVars = array_merge(
+                    $addon['variants'] ?? [],
+                    $addon['variant_slots'] ?? [],
+                    $addon['form'] ?? []
+                );
+
                 $varStr = '';
-                if (!empty($addon['variants'])) {
-                    $varStr = collect($addon['variants'])
-                        ->flatMap(fn($v, $k) => is_array($v)
-                            ? collect($v)->map(fn($vv, $kk) => "{$kk}: {$vv}")
+                if (! empty($combinedVars)) {
+                    $varStr = collect($combinedVars)
+                        ->flatMap(fn ($v, $k) => is_array($v)
+                            ? collect($v)->map(fn ($vv, $kk) => "{$kk}: {$vv}")
                             : ["{$k}: {$v}"]
                         )
                         ->implode(', ');
@@ -262,7 +269,7 @@ class AddonsSheet implements FromCollection, WithHeadings, WithTitle, WithStyles
 
 // ─── Sheet 3: Infak ──────────────────────────────────────────────────────────
 
-class InfakSheet implements FromCollection, WithHeadings, WithTitle, WithStyles, ShouldAutoSize
+class InfakSheet implements FromCollection, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
 {
     public function __construct(private Event $event, private Collection $rsvps) {}
 
@@ -273,7 +280,7 @@ class InfakSheet implements FromCollection, WithHeadings, WithTitle, WithStyles,
         $provinceName = $user?->city?->province?->name;
 
         if ($cityName && $provinceName) {
-            return $cityName . ', ' . $provinceName;
+            return $cityName.', '.$provinceName;
         }
 
         if ($cityName) {
@@ -281,7 +288,7 @@ class InfakSheet implements FromCollection, WithHeadings, WithTitle, WithStyles,
         }
 
         if ($user?->foreign_city && $user?->country) {
-            return $user->foreign_city . ', ' . $user->country;
+            return $user->foreign_city.', '.$user->country;
         }
 
         if ($user?->foreign_city) {
@@ -309,10 +316,10 @@ class InfakSheet implements FromCollection, WithHeadings, WithTitle, WithStyles,
         // Only paid RSVPs with infak > 0
         $infakRsvps = $this->rsvps
             ->where('status', 'paid')
-            ->filter(fn($r) => (float) $r->infak_amount > 0);
+            ->filter(fn ($r) => (float) $r->infak_amount > 0);
 
         $rows = [];
-        $idx  = 1;
+        $idx = 1;
 
         foreach ($infakRsvps as $rsvp) {
             $tx = $rsvp->latestTransaction;

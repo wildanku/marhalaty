@@ -220,33 +220,42 @@ export default function Dashboard() {
                       </div>
 
                       {/* Action buttons based on status & transaction */}
-                      {paymentHash && (
-                        <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
-                          {rsvp.status === "pending" ? (
-                            <Link
-                              href={`/payment/${paymentHash}`}
-                              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:bg-primary/90 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 shadow-sm shadow-primary/10 hover:shadow-md"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">
-                                payments
-                              </span>
-                              {tx?.payment_provider === "manual"
-                                ? t("Upload Bukti Transfer")
-                                : t("Bayar Sekarang")}
-                            </Link>
-                          ) : (
-                            <Link
-                              href={`/payment/${paymentHash}`}
-                              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border border-surface-container-highest"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">
-                                receipt_long
-                              </span>
-                              {t("Detail Pembayaran")}
-                            </Link>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0 flex-wrap justify-end">
+                        <Link
+                          href={`/rsvps/${rsvp.id}/edit`}
+                          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border border-surface-container-highest"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                          {t("Edit Data")}
+                        </Link>
+                        {paymentHash && (
+                          <>
+                            {rsvp.status === "pending" ? (
+                              <Link
+                                href={`/payment/${paymentHash}`}
+                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:bg-primary/90 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 shadow-sm shadow-primary/10 hover:shadow-md"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">
+                                  payments
+                                </span>
+                                {tx?.payment_provider === "manual"
+                                  ? t("Upload Bukti Transfer")
+                                  : t("Bayar Sekarang")}
+                              </Link>
+                            ) : (
+                              <Link
+                                href={`/payment/${paymentHash}`}
+                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border border-surface-container-highest"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">
+                                  receipt_long
+                                </span>
+                                {t("Detail Pembayaran")}
+                              </Link>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

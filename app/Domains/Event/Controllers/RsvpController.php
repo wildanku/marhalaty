@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class RsvpController extends Controller
 {
@@ -41,6 +42,14 @@ class RsvpController extends Controller
             'purchased_addon_variants.*'          => 'nullable|array',
             'purchased_addon_variants.*.*'        => 'nullable|array',
             'purchased_addon_variants.*.*.*'      => 'nullable|string|max:100',
+            'included_addon_forms'                => 'nullable|array',
+            'included_addon_forms.*'              => 'nullable|array',
+            'included_addon_forms.*.*'            => 'nullable|array',
+            'included_addon_forms.*.*.*'          => 'nullable|string|max:255',
+            'purchased_addon_forms'               => 'nullable|array',
+            'purchased_addon_forms.*'             => 'nullable|array',
+            'purchased_addon_forms.*.*'           => 'nullable|array',
+            'purchased_addon_forms.*.*.*'         => 'nullable|string|max:255',
         ]);
 
         $infakAmount = $validated['infak_amount'] ?? 0;
@@ -88,6 +97,7 @@ class RsvpController extends Controller
             // Handle Addons
             if (!empty($validated['addons'])) {
                 $purchasedAddonVariants = $validated['purchased_addon_variants'] ?? [];
+                $purchasedAddonForms = $validated['purchased_addon_forms'] ?? [];
 
                 foreach ($validated['addons'] as $purchasedAddon) {
                     $addon = EventAddon::where('id', $purchasedAddon['id'])
@@ -109,6 +119,7 @@ class RsvpController extends Controller
                         'price'          => $addon->price,
                         'quantity'       => $purchasedAddon['quantity'],
                         'variant_slots'  => $purchasedAddonVariants[$purchasedAddon['id']] ?? null,
+                        'form'           => $purchasedAddonForms[$purchasedAddon['id']] ?? null,
                         'total'          => $itemTotal,
                     ];
                 }
@@ -116,11 +127,14 @@ class RsvpController extends Controller
 
             // Handle included addon variant selections (no charge, no stock decrement)
             $includedAddonVariants = $validated['included_addon_variants'] ?? [];
-            if (!empty($includedAddonVariants) && !empty($validated['event_package_id'])) {
+            $includedAddonForms = $validated['included_addon_forms'] ?? [];
+            $includedAddonIds = array_unique(array_merge(array_keys($includedAddonVariants), array_keys($includedAddonForms)));
+
+            if (!empty($includedAddonIds) && !empty($validated['event_package_id'])) {
                 $package = \App\Domains\Event\Models\EventPackage::with('includedAddons')
                     ->find($validated['event_package_id']);
 
-                foreach ($includedAddonVariants as $addonId => $variantSelections) {
+                foreach ($includedAddonIds as $addonId) {
                     $includedAddon = $package?->includedAddons?->firstWhere('id', $addonId);
                     if (!$includedAddon) continue;
 
@@ -129,7 +143,8 @@ class RsvpController extends Controller
                         'name'        => $includedAddon->name,
                         'price'       => 0,
                         'quantity'    => $includedAddon->pivot->included_quantity,
-                        'variants'    => $variantSelections,
+                        'variants'    => $includedAddonVariants[$addonId] ?? null,
+                        'form'        => $includedAddonForms[$addonId] ?? null,
                         'total'       => 0,
                         'is_included' => true,
                     ];
@@ -217,4 +232,71 @@ class RsvpController extends Controller
                 ->with('success', 'RSVP berhasil! Silakan selesaikan pembayaran.');
         });
     }
+
+    public function edit(Request $request, $id)
+    {
+        $rsvp = Rsvp::with([
+            'event.addons',
+            'event.packages.includedAddons'
+        ])
+        ->where('user_id', $request->user()->id)
+        ->findOrFail($id);
+
+        return Inertia::render('Rsvp/Edit', [
+            'rsvp' => $rsvp,
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $rsvp = Rsvp::where('user_id', $request->user()->id)
+                    ->findOrFail($id);
+
+        $validated = $request->validate([
+            'custom_form_data'                    => 'nullable|array',
+            'custom_form_data.*'                  => 'nullable|string|max:1000',
+            'included_addon_variants'             => 'nullable|array',
+            'included_addon_variants.*'           => 'nullable|array',
+            'included_addon_variants.*.*'         => 'nullable|array',
+            'included_addon_variants.*.*.*'       => 'nullable|string|max:100',
+            'purchased_addon_variants'            => 'nullable|array',
+            'purchased_addon_variants.*'          => 'nullable|array',
+            'purchased_addon_variants.*.*'        => 'nullable|array',
+            'purchased_addon_variants.*.*.*'      => 'nullable|string|max:100',
+            'included_addon_forms'                => 'nullable|array',
+            'included_addon_forms.*'              => 'nullable|array',
+            'included_addon_forms.*.*'            => 'nullable|array',
+            'included_addon_forms.*.*.*'          => 'nullable|string|max:255',
+            'purchased_addon_forms'               => 'nullable|array',
+            'purchased_addon_forms.*'             => 'nullable|array',
+            'purchased_addon_forms.*.*'           => 'nullable|array',
+            'purchased_addon_forms.*.*.*'         => 'nullable|string|max:255',
+        ]);
+
+        $snapshot = $rsvp->add_ons_snapshot ?? [];
+
+        $purchasedAddonVariants = $validated['purchased_addon_variants'] ?? [];
+        $purchasedAddonForms = $validated['purchased_addon_forms'] ?? [];
+        $includedAddonVariants = $validated['included_addon_variants'] ?? [];
+        $includedAddonForms = $validated['included_addon_forms'] ?? [];
+
+        foreach ($snapshot as &$addon) {
+            $addonId = $addon['id'];
+            if (isset($addon['is_included']) && $addon['is_included']) {
+                $addon['variants'] = $includedAddonVariants[$addonId] ?? null;
+                $addon['form'] = $includedAddonForms[$addonId] ?? null;
+            } else {
+                $addon['variant_slots'] = $purchasedAddonVariants[$addonId] ?? null;
+                $addon['form'] = $purchasedAddonForms[$addonId] ?? null;
+            }
+        }
+
+        $rsvp->update([
+            'custom_form_data' => $validated['custom_form_data'] ?? null,
+            'add_ons_snapshot' => empty($snapshot) ? null : $snapshot,
+        ]);
+
+        return redirect()->route('dashboard')->with('success', 'RSVP details updated successfully.');
+    }
 }
+

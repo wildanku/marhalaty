@@ -59,6 +59,8 @@ Route::middleware('auth')->group(function () {
     // Events routes
     Route::get('/events', [EventController::class, 'index'])->name('events.index');
     Route::post('/events/{slug}/rsvp', [RsvpController::class, 'store'])->name('events.rsvp');
+    Route::get('/rsvps/{id}/edit', [RsvpController::class, 'edit'])->name('rsvps.edit');
+    Route::put('/rsvps/{id}', [RsvpController::class, 'update'])->name('rsvps.update');
 
     // Payment routes (authenticated user)
     Route::get('/payments/{id}', [PaymentController::class, 'show'])->name('payments.show');
