@@ -140,6 +140,7 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         // Events
         Route::get('/events', [App\Domains\GodMode\Controllers\EventController::class, 'index'])->name('events.index');
         Route::get('/events/{id}', [App\Domains\GodMode\Controllers\EventController::class, 'show'])->name('events.show');
+        Route::get('/events/{id}/api-rsvps', [App\Domains\GodMode\Controllers\EventController::class, 'apiRsvps'])->name('events.api-rsvps');
         Route::get('/events/{id}/edit', [App\Domains\GodMode\Controllers\EventController::class, 'edit'])->name('events.edit');
         Route::put('/events/{id}', [App\Domains\GodMode\Controllers\EventController::class, 'update'])->name('events.update');
         Route::get('/events/{id}/participants/{rsvp_id}', [App\Domains\GodMode\Controllers\EventController::class, 'participantShow'])->name('events.participants.show');

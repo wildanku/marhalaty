@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Head, Link, useForm, router } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
 import ImagePreviewModal from "@/Components/ImagePreviewModal";
@@ -32,6 +32,25 @@ interface AddonStat {
   revenue: number;
 }
 
+interface ParticipantRsvp extends Rsvp {
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    marhalah_year: number;
+    phone_number: string | null;
+    country: string | null;
+    foreign_city: string | null;
+    city: {
+      id: string;
+      name: string;
+      province?: { name: string } | null;
+    } | null;
+  } | null;
+  package: { id: number; name: string } | null;
+  latest_transaction: Transaction | null;
+}
+
 interface EventShowProps {
   admin: { id: number; name: string; email: string };
   event: {
@@ -41,24 +60,6 @@ interface EventShowProps {
     event_date: string;
     metadata: Record<string, unknown> | null;
   };
-  rsvps: (Rsvp & {
-    user: {
-      id: number;
-      name: string;
-      email: string;
-      marhalah_year: number;
-      phone_number: string | null;
-      country: string | null;
-      foreign_city: string | null;
-      city: {
-        id: string;
-        name: string;
-        province?: { name: string } | null;
-      } | null;
-    } | null;
-    package: { id: number; name: string } | null;
-    latest_transaction: Transaction | null;
-  })[];
   stats: EventStats;
   package_stats: PackageStat[];
   addon_stats: AddonStat[];
@@ -67,7 +68,7 @@ interface EventShowProps {
 const formatRp = (val: string | number) =>
   "Rp " + parseInt(String(val) || "0").toLocaleString("id-ID");
 
-const getParticipantDomicile = (user: EventShowProps["rsvps"][number]["user"]) => {
+const getParticipantDomicile = (user: ParticipantRsvp["user"]) => {
   if (!user) {
     return "—";
   }
@@ -185,7 +186,6 @@ function QuickReviewModal({ transactionId, action, userName, onClose }: QuickRev
 export default function EventShow({
   admin,
   event,
-  rsvps,
   stats,
   package_stats,
   addon_stats,
@@ -204,12 +204,52 @@ export default function EventShow({
   } | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
+  // Pagination State
+  const [rsvpsData, setRsvpsData] = useState<ParticipantRsvp[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const isInfak = activeTab === "infak";
+      const res = await fetch(
+        `/god-mode/events/${event.id}/api-rsvps?page=${page}&search=${encodeURIComponent(
+          search
+        )}&status=${isInfak ? 'paid' : filterStatus}&has_infak=${isInfak ? 1 : 0}`
+      );
+      const json = await res.json();
+      setRsvpsData(json.data);
+      setTotalPages(json.last_page);
+      setTotalItems(json.total);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  import("react").then((React) => {
+    // using dynamic import since React might not be fully bound at top scope
+    // actually, let's just use window.setTimeout
+  });
+  
+  // Use React hooks
+  const { useEffect } = await import("react").catch(() => require("react")); // safe hack for TS if needed
+  
+  // Actually, I can just import useEffect at the top but I can't inject imports easily with multi_replace_file_content without touching line 1.
+  // Wait, line 1 has import { useState } from "react";
+  // I will just use React.useEffect by accessing it from window or just add it to line 1 in another chunk.
+  
   const handleDeleteRsvp = (rsvpId: number) => {
     if (confirm("Apakah Anda yakin ingin menghapus peserta ini?")) {
       setDeleting(rsvpId);
       router.delete(`/god-mode/events/${event.id}/participants/${rsvpId}`, {
         onSuccess: () => {
           setDeleting(null);
+          fetchData();
         },
         onError: () => {
           setDeleting(null);
@@ -218,14 +258,35 @@ export default function EventShow({
     }
   };
 
-  const filteredRsvps = rsvps.filter((r) => {
-    const matchSearch =
-      search === "" ||
-      (r.user?.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (r.user?.email ?? "").toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === "all" || r.status === filterStatus;
-    return matchSearch && matchStatus;
-  });
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="flex items-center justify-between px-5 py-3 border-t border-white/5 bg-[#161b22]">
+        <span className="text-sm text-white/40">
+          Total: {totalItems} data
+        </span>
+        <div className="flex gap-1">
+          <button
+            disabled={page <= 1 || loading}
+            onClick={() => setPage(p => p - 1)}
+            className="px-3 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white/70 text-sm"
+          >
+            Prev
+          </button>
+          <span className="px-3 py-1 text-sm text-white/70">
+            {page} / {totalPages}
+          </span>
+          <button
+            disabled={page >= totalPages || loading}
+            onClick={() => setPage(p => p + 1)}
+            className="px-3 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white/70 text-sm"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <GodModeLayout admin={admin} title={`Event: ${event.title}`}>

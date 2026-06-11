@@ -33,7 +33,7 @@ class EventController extends Controller
     {
         $event = Event::with(['addons', 'packages'])->findOrFail($id);
 
-        $rsvps = Rsvp::with(['user.city.province', 'package.includedAddons', 'latestTransaction.proof'])
+        $rsvps = Rsvp::with(['package.includedAddons', 'latestTransaction'])
             ->where('event_id', $id)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -119,11 +119,42 @@ class EventController extends Controller
         return Inertia::render('GodMode/Events/Show', [
             'admin'         => auth('admin')->user(),
             'event'         => $event,
-            'rsvps'         => $rsvps,
             'stats'         => $stats,
             'package_stats' => $packageStats,
             'addon_stats'   => array_values($addonStats),
         ]);
+    }
+
+    /**
+     * API for paginated RSVPs list.
+     */
+    public function apiRsvps(Request $request, $id)
+    {
+        $query = Rsvp::with(['user.city.province', 'package.includedAddons', 'latestTransaction.proof'])
+            ->where('event_id', $id)
+            ->orderBy('created_at', 'desc');
+
+        if ($request->filled('search')) {
+            $search = strtolower($request->search);
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
+            });
+        }
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->boolean('has_infak')) {
+            $query->where('status', 'paid')
+                  ->where('infak_amount', '>', 0);
+        }
+
+        $perPage = $request->input('per_page', 20);
+        $paginator = $query->paginate($perPage);
+
+        return response()->json($paginator);
     }
 
     /**
