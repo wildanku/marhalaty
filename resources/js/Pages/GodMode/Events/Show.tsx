@@ -231,17 +231,16 @@ export default function EventShow({
     }
   };
 
-  import("react").then((React) => {
-    // using dynamic import since React might not be fully bound at top scope
-    // actually, let's just use window.setTimeout
-  });
-  
-  // Use React hooks
-  const { useEffect } = await import("react").catch(() => require("react")); // safe hack for TS if needed
-  
-  // Actually, I can just import useEffect at the top but I can't inject imports easily with multi_replace_file_content without touching line 1.
-  // Wait, line 1 has import { useState } from "react";
-  // I will just use React.useEffect by accessing it from window or just add it to line 1 in another chunk.
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterStatus, activeTab]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search, filterStatus, activeTab, page]);
   
   const handleDeleteRsvp = (rsvpId: number) => {
     if (confirm("Apakah Anda yakin ingin menghapus peserta ini?")) {
@@ -297,7 +296,7 @@ export default function EventShow({
           transactionId={modal.transactionId}
           action={modal.action}
           userName={modal.userName}
-          onClose={() => setModal(null)}
+          onClose={() => { setModal(null); fetchData(); }}
         />
       )}
 
@@ -468,7 +467,7 @@ export default function EventShow({
             <h3 className="text-base font-bold text-white">
               Daftar Peserta
               <span className="ml-2 text-white/40 font-normal text-sm">
-                ({filteredRsvps.length} dari {rsvps.length})
+                ({totalItems} total)
               </span>
             </h3>
             <div className="flex gap-3">
@@ -508,14 +507,20 @@ export default function EventShow({
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredRsvps.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="px-5 py-10 text-center text-white/30">
+                      Memuat data...
+                    </td>
+                  </tr>
+                ) : rsvpsData.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-5 py-10 text-center text-white/30">
                       Tidak ada peserta ditemukan.
                     </td>
                   </tr>
                 ) : (
-                  filteredRsvps.map((rsvp) => {
+                  rsvpsData.map((rsvp) => {
                     const tx = rsvp.latest_transaction;
                     const isManualPending =
                       tx?.payment_provider === "manual" && tx?.status === "pending";
@@ -678,6 +683,7 @@ export default function EventShow({
               </tbody>
             </table>
           </div>
+          {renderPagination()}
         </div>
       )}
 
@@ -829,17 +835,20 @@ export default function EventShow({
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {rsvps.filter((r) => r.status === "paid" && parseFloat(r.infak_amount) > 0)
-                  .length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-8 text-center text-white/30">
+                      Memuat data...
+                    </td>
+                  </tr>
+                ) : rsvpsData.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-5 py-8 text-center text-white/30">
                       Belum ada donasi infak.
                     </td>
                   </tr>
                 ) : (
-                  rsvps
-                    .filter((r) => r.status === "paid" && parseFloat(r.infak_amount) > 0)
-                    .map((rsvp) => (
+                  rsvpsData.map((rsvp) => (
                       <tr key={rsvp.id} className="hover:bg-white/2">
                         <td className="px-5 py-4 font-semibold text-white">
                           {rsvp.user?.name ?? "—"}
@@ -856,8 +865,7 @@ export default function EventShow({
                       </tr>
                     ))
                 )}
-                {rsvps.filter((r) => r.status === "paid" && parseFloat(r.infak_amount) > 0).length >
-                  0 && (
+                {stats.total_infak && parseFloat(stats.total_infak) > 0 && (
                   <tr className="bg-white/5 font-bold">
                     <td
                       colSpan={2}
@@ -866,11 +874,7 @@ export default function EventShow({
                       Total Infak
                     </td>
                     <td className="px-5 py-3 text-right text-teal-400">
-                      {formatRp(
-                        rsvps
-                          .filter((r) => r.status === "paid" && parseFloat(r.infak_amount) > 0)
-                          .reduce((s, r) => s + parseFloat(r.infak_amount), 0)
-                      )}
+                      {formatRp(stats.total_infak)}
                     </td>
                     <td />
                   </tr>
@@ -878,6 +882,7 @@ export default function EventShow({
               </tbody>
             </table>
           </div>
+          {renderPagination()}
         </div>
       )}
     </GodModeLayout>
