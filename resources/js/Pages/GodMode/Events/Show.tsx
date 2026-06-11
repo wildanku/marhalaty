@@ -203,6 +203,7 @@ export default function EventShow({
     fileName: string;
   } | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   // Pagination State
   const [rsvpsData, setRsvpsData] = useState<ParticipantRsvp[]>([]);
@@ -318,13 +319,60 @@ export default function EventShow({
           Back to Events
         </Link>
         <div className="flex flex-wrap gap-3">
-          <a
-            href={`/god-mode/events/${event.id}/export-excel`}
-            className="inline-flex items-center gap-2 text-sm bg-teal-500/10 text-teal-400 hover:bg-teal-500/20 px-4 py-2 rounded-lg font-semibold transition-colors"
-          >
-            <span className="material-symbols-outlined text-base">download</span>
-            Export Excel
-          </a>
+          <div className="relative">
+            <button
+              onClick={() => setIsExportOpen(!isExportOpen)}
+              className="inline-flex items-center gap-2 text-sm bg-teal-500/10 text-teal-400 hover:bg-teal-500/20 px-4 py-2 rounded-lg font-semibold transition-colors focus:outline-none"
+            >
+              <span className="material-symbols-outlined text-base">download</span>
+              Export
+              <span className="material-symbols-outlined text-sm">{isExportOpen ? 'expand_less' : 'expand_more'}</span>
+            </button>
+            
+            {isExportOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsExportOpen(false)}
+                ></div>
+                <div className="absolute right-0 mt-2 w-52 bg-[#161b22] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 py-1">
+                  <a
+                    href={`/god-mode/events/${event.id}/export-excel`}
+                    onClick={() => setIsExportOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-teal-400 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">table_chart</span>
+                    Excel (All Data)
+                  </a>
+                  <div className="my-1 border-t border-white/5"></div>
+                  <a
+                    href={`/god-mode/events/${event.id}/export-csv/peserta`}
+                    onClick={() => setIsExportOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-teal-400 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">group</span>
+                    CSV - Peserta
+                  </a>
+                  <a
+                    href={`/god-mode/events/${event.id}/export-csv/addon`}
+                    onClick={() => setIsExportOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-teal-400 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">category</span>
+                    CSV - Addon
+                  </a>
+                  <a
+                    href={`/god-mode/events/${event.id}/export-csv/infak`}
+                    onClick={() => setIsExportOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-teal-400 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">volunteer_activism</span>
+                    CSV - Infak
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
           <Link
             href={`/god-mode/events/${event.id}/addons`}
             className="inline-flex items-center gap-2 text-sm bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 px-4 py-2 rounded-lg font-semibold transition-colors"

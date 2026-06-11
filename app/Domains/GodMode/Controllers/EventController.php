@@ -208,6 +208,34 @@ class EventController extends Controller
         return Excel::download(new EventParticipantsExport($event, $rsvps), $filename);
     }
 
+    /**
+     * Export participants, addons, or infak to CSV.
+     */
+    public function exportCsv($id, $type)
+    {
+        // Force autoload of the file containing the sheet classes
+        class_exists(\App\Domains\GodMode\Exports\EventParticipantsExport::class);
+
+        $event = Event::with(['addons', 'packages'])->findOrFail($id);
+
+        $rsvps = Rsvp::with(['user.city.province', 'package.includedAddons', 'latestTransaction.proof'])
+            ->where('event_id', $id)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $filename = 'peserta-' . Str::slug($event->title) . '-' . $type . '-' . now()->format('Ymd') . '.csv';
+
+        if ($type === 'peserta') {
+            return Excel::download(new \App\Domains\GodMode\Exports\ParticipantsSheet($event, $rsvps), $filename, \Maatwebsite\Excel\Excel::CSV);
+        } elseif ($type === 'addon') {
+            return Excel::download(new \App\Domains\GodMode\Exports\AddonsSheet($event, $rsvps), $filename, \Maatwebsite\Excel\Excel::CSV);
+        } elseif ($type === 'infak') {
+            return Excel::download(new \App\Domains\GodMode\Exports\InfakSheet($event, $rsvps), $filename, \Maatwebsite\Excel\Excel::CSV);
+        }
+
+        abort(404);
+    }
+
     public function edit($id)
     {
         $event = Event::findOrFail($id);

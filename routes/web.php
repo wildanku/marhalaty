@@ -146,6 +146,7 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         Route::get('/events/{id}/participants/{rsvp_id}', [App\Domains\GodMode\Controllers\EventController::class, 'participantShow'])->name('events.participants.show');
         Route::delete('/events/{id}/participants/{rsvp_id}', [App\Domains\GodMode\Controllers\EventController::class, 'participantDestroy'])->name('events.participants.destroy');
         Route::get('/events/{id}/export-excel', [App\Domains\GodMode\Controllers\EventController::class, 'exportExcel'])->name('events.export-excel');
+        Route::get('/events/{id}/export-csv/{type}', [App\Domains\GodMode\Controllers\EventController::class, 'exportCsv'])->name('events.export-csv');
 
         // Event Packages
         Route::get('/events/{event}/packages', [EventPackageController::class, 'index'])->name('events.packages.index');
