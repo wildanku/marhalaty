@@ -23,6 +23,10 @@ class RsvpController extends Controller
     {
         $event = Event::where('slug', $slug)->firstOrFail();
 
+        if (!$event->is_registration_enabled) {
+            return redirect()->back()->withErrors(['error' => 'Maaf, pendaftaran untuk event ini sudah ditutup. Jika ada pertanyaan atau butuh bantuan, silakan hubungi Admin melalui WhatsApp ya! 😊']);
+        }
+
         $validated = $request->validate([
             'payment_provider'                    => 'required|in:manual,ipaymu',
             'payment_channel'                     => 'nullable|string|max:30',

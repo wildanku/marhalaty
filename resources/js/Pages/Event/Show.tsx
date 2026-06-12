@@ -746,18 +746,31 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                 {event.packages?.length ?? 0} paket tersedia
               </p>
 
-              <button
-                onClick={startRegistration}
-                className="w-full bg-primary text-on-primary py-4 px-6 rounded-full font-headline font-bold text-base transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
-                Daftar Sekarang
-              </button>
+              {event.is_registration_enabled !== false ? (
+                <>
+                  <button
+                    onClick={startRegistration}
+                    className="w-full bg-primary text-on-primary py-4 px-6 rounded-full font-headline font-bold text-base transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
+                    Daftar Sekarang
+                  </button>
 
-              {!user && (
-                <p className="text-xs text-on-surface-variant text-center mt-3 font-body">
-                  Kamu akan diminta login dengan Google
-                </p>
+                  {!user && (
+                    <p className="text-xs text-on-surface-variant text-center mt-3 font-body">
+                      Kamu akan diminta login dengan Google
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="bg-amber-100 text-amber-800 p-4 rounded-xl text-center">
+                  <span className="material-symbols-outlined text-3xl mb-2 text-amber-600 block">
+                    event_busy
+                  </span>
+                  <p className="font-body text-sm font-medium">
+                    Maaf, pendaftaran untuk event ini sudah ditutup. Jika ada pertanyaan atau butuh bantuan, silakan hubungi Admin melalui WhatsApp ya! 😊
+                  </p>
+                </div>
               )}
 
               <div className="mt-5 pt-5 border-t border-surface-container space-y-2">
@@ -780,7 +793,7 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
       </div>
 
       {/* ── Mobile Sticky CTA ── */}
-      {!existingRsvp && (
+      {!existingRsvp && event.is_registration_enabled !== false && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface-container-lowest border-t border-surface-container-high p-4 z-50">
           <button
             onClick={startRegistration}

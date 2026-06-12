@@ -20,6 +20,7 @@ export default function EventEdit({ admin, event, current_image_url }: EventEdit
     visibility_scope: event.visibility_scope || "global",
     infak_rules: event.infak_rules ? JSON.stringify(event.infak_rules, null, 2) : "",
     metadata: event.metadata ? JSON.stringify(event.metadata, null, 2) : "",
+    is_registration_enabled: event.is_registration_enabled ?? true,
     image: null as File | null,
   });
 
@@ -120,6 +121,24 @@ export default function EventEdit({ admin, event, current_image_url }: EventEdit
               </select>
               {errors.visibility_scope && (
                 <div className="text-red-400 text-sm mt-1">{errors.visibility_scope}</div>
+              )}
+            </div>
+
+            {/* Registration Status */}
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Registration Status
+              </label>
+              <select
+                value={data.is_registration_enabled ? "enabled" : "disabled"}
+                onChange={(e) => setData("is_registration_enabled", e.target.value === "enabled")}
+                className="w-full bg-[#0d1117] border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+              >
+                <option value="enabled">Enabled (Users can register)</option>
+                <option value="disabled">Disabled (Registration Closed)</option>
+              </select>
+              {errors.is_registration_enabled && (
+                <div className="text-red-400 text-sm mt-1">{errors.is_registration_enabled}</div>
               )}
             </div>
 

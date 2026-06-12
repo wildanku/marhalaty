@@ -261,6 +261,7 @@ class EventController extends Controller
             'infak_rules' => 'nullable|string',
             'metadata' => 'nullable|string',
             'image' => 'nullable|image|max:2048',
+            'is_registration_enabled' => 'boolean',
         ]);
 
         // Normalize slug: lowercase, replace spaces with hyphens, remove special chars
@@ -288,6 +289,7 @@ class EventController extends Controller
             'visibility_scope' => $validated['visibility_scope'],
             'infak_rules' => $infakRules,
             'metadata' => $metadata,
+            'is_registration_enabled' => $validated['is_registration_enabled'] ?? true,
         ]);
 
         if ($request->hasFile('image')) {

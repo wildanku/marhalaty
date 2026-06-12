@@ -22,12 +22,14 @@ class Event extends Model implements HasMedia
         'infak_rules',
         'visibility_scope',
         'metadata',
+        'is_registration_enabled',
     ];
 
     protected $casts = [
         'event_date' => 'datetime',
         'infak_rules' => 'json',
         'metadata' => 'json',
+        'is_registration_enabled' => 'boolean',
     ];
 
     public function getSlugOptions(): SlugOptions

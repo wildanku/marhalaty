@@ -90,6 +90,7 @@ export interface GontorEvent {
   description: string;
   location: string;
   event_date: string;
+  is_registration_enabled?: boolean;
   infak_rules: InfakRules | null;
   visibility_scope: string | null;
   metadata: {
