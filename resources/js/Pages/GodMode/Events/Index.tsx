@@ -1,5 +1,6 @@
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
+import ToggleSwitch from "@/Components/ToggleSwitch";
 
 interface Event {
   id: number;
@@ -9,6 +10,7 @@ interface Event {
   visibility_scope: string | null;
   rsvps_count: number;
   total_revenue: string | null;
+  is_registration_enabled?: boolean;
   infak_rules?: { enabled: boolean; [key: string]: any } | null;
   packages?: any[];
 }
@@ -19,6 +21,14 @@ interface EventsIndexProps {
 }
 
 export default function EventsIndex({ admin, events }: EventsIndexProps) {
+  const handleToggleRegistration = (eventId: number, currentStatus: boolean) => {
+    router.patch(
+      `/god-mode/events/${eventId}/toggle-registration`,
+      { is_registration_enabled: !currentStatus },
+      { preserveScroll: true }
+    );
+  };
+
   return (
     <GodModeLayout admin={admin} title="Event Management">
       <Head title="God Mode - Events" />
@@ -42,6 +52,7 @@ export default function EventsIndex({ admin, events }: EventsIndexProps) {
                 <th className="px-6 py-4 font-semibold">Event Name</th>
                 <th className="px-6 py-4 font-semibold">Date</th>
                 <th className="px-6 py-4 font-semibold">Scope</th>
+                <th className="px-6 py-4 font-semibold text-center">Status</th>
                 <th className="px-6 py-4 font-semibold text-center">RSVPs</th>
                 <th className="px-6 py-4 font-semibold text-right">Revenue</th>
                 <th className="px-6 py-4 font-semibold text-right">Actions</th>
@@ -80,6 +91,17 @@ export default function EventsIndex({ admin, events }: EventsIndexProps) {
                           Global
                         </span>
                       )}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-col items-center justify-center gap-1">
+                        <ToggleSwitch
+                          checked={event.is_registration_enabled ?? true}
+                          onChange={() => handleToggleRegistration(event.id, event.is_registration_enabled ?? true)}
+                        />
+                        <span className={`text-[10px] font-semibold uppercase ${event.is_registration_enabled !== false ? 'text-emerald-400' : 'text-white/40'}`}>
+                          {event.is_registration_enabled !== false ? 'Open' : 'Closed'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/5 font-semibold text-white">

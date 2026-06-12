@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Head, Link, useForm, router } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
 import ImagePreviewModal from "@/Components/ImagePreviewModal";
+import ToggleSwitch from "@/Components/ToggleSwitch";
 import { getWhatsAppUrl } from "@/utils/phoneHelper";
 import { Rsvp, Transaction } from "@/types";
 
@@ -58,6 +59,7 @@ interface EventShowProps {
     title: string;
     location: string;
     event_date: string;
+    is_registration_enabled?: boolean;
     metadata: Record<string, unknown> | null;
   };
   stats: EventStats;
@@ -318,7 +320,23 @@ export default function EventShow({
           <span className="material-symbols-outlined text-base">arrow_back</span>
           Back to Events
         </Link>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-[#161b22] border border-white/5 px-4 py-2 rounded-lg mr-2">
+            <span className="text-sm font-semibold text-white/70">Registration:</span>
+            <ToggleSwitch
+              checked={event.is_registration_enabled ?? true}
+              onChange={(checked) => {
+                router.patch(
+                  `/god-mode/events/${event.id}/toggle-registration`,
+                  { is_registration_enabled: checked },
+                  { preserveScroll: true }
+                );
+              }}
+            />
+            <span className={`text-xs font-bold uppercase ${event.is_registration_enabled !== false ? 'text-emerald-400' : 'text-white/40'}`}>
+              {event.is_registration_enabled !== false ? 'Open' : 'Closed'}
+            </span>
+          </div>
           <div className="relative">
             <button
               onClick={() => setIsExportOpen(!isExportOpen)}

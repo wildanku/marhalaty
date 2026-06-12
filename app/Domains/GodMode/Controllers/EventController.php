@@ -300,6 +300,20 @@ class EventController extends Controller
         // Flash message for successful update
         $request->session()->flash('success', 'Event updated successfully.');
 
-        return redirect()->route('god-mode.events.show', $event->id);
+    }
+
+    public function toggleRegistration(Request $request, $id)
+    {
+        $event = Event::findOrFail($id);
+        
+        $validated = $request->validate([
+            'is_registration_enabled' => 'required|boolean',
+        ]);
+
+        $event->update([
+            'is_registration_enabled' => $validated['is_registration_enabled'],
+        ]);
+
+        return back()->with('success', 'Status pendaftaran event berhasil diubah.');
     }
 }
