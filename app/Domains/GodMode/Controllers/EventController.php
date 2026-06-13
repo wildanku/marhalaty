@@ -214,6 +214,8 @@ class EventController extends Controller
             'add_ons' => 'nullable|array',
             'add_ons.*.id' => 'required|exists:event_addons,id',
             'add_ons.*.quantity' => 'required|integer|min:1',
+            'add_ons.*.variant_slots' => 'nullable|array',
+            'add_ons.*.form' => 'nullable|array',
             'manual_entry_note' => 'nullable|string',
         ]);
 
@@ -233,9 +235,15 @@ class EventController extends Controller
                         'name' => $addon->name,
                         'price' => $addon->price,
                         'quantity' => $qty,
+                        'variant_slots' => $addonReq['variant_slots'] ?? null,
+                        'form' => $addonReq['form'] ?? null,
                         'total' => $amount,
                     ];
                     $totalAddOnsAmount += $amount;
+                    
+                    if ($addon->stock_quantity >= $qty) {
+                        $addon->decrement('stock_quantity', $qty);
+                    }
                 }
             }
         }

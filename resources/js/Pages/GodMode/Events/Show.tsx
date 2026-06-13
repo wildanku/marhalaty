@@ -57,6 +57,14 @@ interface ParticipantRsvp extends Rsvp {
   manual_entry_note?: string | null;
 }
 
+interface EventAddon {
+  id: number;
+  name: string;
+  price: string;
+  stock_quantity?: number;
+  variants?: Record<string, any> | null;
+}
+
 interface EventShowProps {
   admin: { id: number; name: string; email: string };
   event: {
@@ -66,7 +74,7 @@ interface EventShowProps {
     event_date: string;
     is_registration_enabled?: boolean;
     metadata: Record<string, unknown> | null;
-    addons?: { id: number; name: string; price: string }[];
+    addons?: EventAddon[];
   };
   packages: { id: number; name: string; price: string }[];
   stats: EventStats;
@@ -195,7 +203,7 @@ function QuickReviewModal({ transactionId, action, userName, onClose }: QuickRev
 interface ManualRegisterModalProps {
   eventId: number;
   packages: { id: number; name: string; price: string }[];
-  addons?: { id: number; name: string; price: string }[];
+  addons?: EventAddon[];
   onClose: () => void;
 }
 
@@ -205,7 +213,7 @@ function ManualRegisterModal({ eventId, packages, addons, onClose }: ManualRegis
     guest_email: "",
     guest_phone: "",
     event_package_id: "",
-    add_ons: [] as { id: number; quantity: number }[],
+    add_ons: [] as { id: number; quantity: number; variant_slots?: Record<string, string[]> }[],
     manual_entry_note: "",
   });
 
@@ -221,6 +229,25 @@ function ManualRegisterModal({ eventId, packages, addons, onClose }: ManualRegis
     } else {
       setData("add_ons", [...data.add_ons, { id: addonId, quantity: 1 }]);
     }
+  };
+
+  const handleAddonQtyChange = (addonId: number, quantity: number) => {
+    const addon = addons?.find(a => a.id === addonId);
+    const max = addon?.stock_quantity || 1;
+    const validQty = Math.max(1, Math.min(quantity, max));
+    setData("add_ons", data.add_ons.map(a => a.id === addonId ? { ...a, quantity: validQty } : a));
+  };
+
+  const handleAddonVariantChange = (addonId: number, variantKey: string, slotIndex: number, value: string) => {
+    setData("add_ons", data.add_ons.map(a => {
+      if (a.id === addonId) {
+        const variant_slots = { ...(a.variant_slots || {}) };
+        if (!variant_slots[variantKey]) variant_slots[variantKey] = [];
+        variant_slots[variantKey][slotIndex] = value;
+        return { ...a, variant_slots };
+      }
+      return a;
+    }));
   };
 
   return (
@@ -292,21 +319,90 @@ function ManualRegisterModal({ eventId, packages, addons, onClose }: ManualRegis
             {addons && addons.length > 0 && (
               <div>
                 <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">Addons (Opsional)</label>
-                <div className="space-y-2 max-h-32 overflow-y-auto pr-2">
+                <div className="space-y-3 max-h-52 overflow-y-auto pr-2">
                   {addons.map((addon) => {
-                    const isSelected = data.add_ons.some((a) => a.id === addon.id);
+                    const selectedAddon = data.add_ons.find((a) => a.id === addon.id);
+                    const isSelected = !!selectedAddon;
+                    
+                    const variantKeys = addon.variants ? Object.keys(addon.variants).filter(k => k !== "forms") : [];
+                    const maxStock = addon.stock_quantity ?? 0;
+                    
                     return (
-                      <div key={addon.id} className="flex items-center justify-between bg-white/5 p-2 rounded-lg">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleAddonToggle(addon.id)}
-                            className="rounded bg-[#0d1117] border-white/10 text-emerald-500 focus:ring-emerald-500"
-                          />
-                          <span className="text-sm text-white/80">{addon.name}</span>
-                          <span className="text-xs text-emerald-400 ml-1">{formatRp(addon.price)}</span>
-                        </label>
+                      <div key={addon.id} className="bg-white/5 p-3 rounded-lg border border-white/5">
+                        <div className="flex items-center justify-between">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleAddonToggle(addon.id)}
+                              className="rounded bg-[#0d1117] border-white/10 text-emerald-500 focus:ring-emerald-500"
+                            />
+                            <div>
+                              <span className="text-sm text-white/80 block">{addon.name}</span>
+                              <span className="text-xs text-emerald-400">{formatRp(addon.price)}</span>
+                              {maxStock > 0 && <span className="text-xs text-white/40 ml-2">Stok: {maxStock}</span>}
+                            </div>
+                          </label>
+                          
+                          {isSelected && (
+                            <div className="flex items-center gap-2 bg-[#0d1117] rounded-lg border border-white/10">
+                              <button
+                                type="button"
+                                onClick={() => handleAddonQtyChange(addon.id, (selectedAddon?.quantity || 1) - 1)}
+                                className="px-2 py-1 text-white/50 hover:text-white"
+                              >
+                                -
+                              </button>
+                              <span className="text-sm text-white min-w-[20px] text-center">
+                                {selectedAddon?.quantity || 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleAddonQtyChange(addon.id, (selectedAddon?.quantity || 1) + 1)}
+                                className="px-2 py-1 text-white/50 hover:text-white"
+                                disabled={(selectedAddon?.quantity || 1) >= maxStock}
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {isSelected && variantKeys.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-white/10 space-y-3">
+                            {Array.from({ length: selectedAddon.quantity || 1 }).map((_, slotIndex) => (
+                              <div key={slotIndex} className="bg-black/20 p-2 rounded-lg border border-white/5">
+                                <span className="text-xs text-white/50 block mb-2 font-semibold">
+                                  Pesanan #{slotIndex + 1}
+                                </span>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {variantKeys.map((vKey) => {
+                                    const options = (addon.variants as any)[vKey] as string[];
+                                    const currentVal = selectedAddon.variant_slots?.[vKey]?.[slotIndex] || "";
+                                    return (
+                                      <div key={vKey}>
+                                        <label className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">
+                                          {vKey}
+                                        </label>
+                                        <select
+                                          required
+                                          value={currentVal}
+                                          onChange={(e) => handleAddonVariantChange(addon.id, vKey, slotIndex, e.target.value)}
+                                          className="w-full bg-[#0d1117] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:ring-1 focus:ring-emerald-500"
+                                        >
+                                          <option value="">-- Pilih --</option>
+                                          {options.map((opt) => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
