@@ -144,6 +144,7 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         Route::get('/events/{id}/edit', [App\Domains\GodMode\Controllers\EventController::class, 'edit'])->name('events.edit');
         Route::put('/events/{id}', [App\Domains\GodMode\Controllers\EventController::class, 'update'])->name('events.update');
         Route::patch('/events/{id}/toggle-registration', [App\Domains\GodMode\Controllers\EventController::class, 'toggleRegistration'])->name('events.toggle-registration');
+        Route::post('/events/{id}/manual-register', [App\Domains\GodMode\Controllers\EventController::class, 'manualRegister'])->name('events.manual-register');
         Route::get('/events/{id}/participants/{rsvp_id}', [App\Domains\GodMode\Controllers\EventController::class, 'participantShow'])->name('events.participants.show');
         Route::delete('/events/{id}/participants/{rsvp_id}', [App\Domains\GodMode\Controllers\EventController::class, 'participantDestroy'])->name('events.participants.destroy');
         Route::get('/events/{id}/export-excel', [App\Domains\GodMode\Controllers\EventController::class, 'exportExcel'])->name('events.export-excel');

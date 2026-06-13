@@ -20,6 +20,12 @@ class Rsvp extends Model
         'add_ons_snapshot',
         'qr_code_path',
         'custom_form_data',
+        'is_manual_entry',
+        'guest_name',
+        'guest_email',
+        'guest_phone',
+        'manual_entry_note',
+        'admin_id',
     ];
 
     protected $casts = [
@@ -28,6 +34,7 @@ class Rsvp extends Model
         'total_amount' => 'decimal:2',
         'add_ons_snapshot' => 'json',
         'custom_form_data' => 'json',
+        'is_manual_entry' => 'boolean',
     ];
 
     public function package()
@@ -53,5 +60,20 @@ class Rsvp extends Model
     public function latestTransaction(): HasOne
     {
         return $this->hasOne(Transaction::class)->latestOfMany();
+    }
+
+    public function admin()
+    {
+        return $this->belongsTo(\App\Models\Admin::class);
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->guest_name ?? optional($this->user)->name ?? '—';
+    }
+
+    public function getDisplayPhoneAttribute(): ?string
+    {
+        return $this->guest_phone ?? optional($this->user)->phone_number;
     }
 }
