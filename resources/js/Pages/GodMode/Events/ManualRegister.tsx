@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { Head, useForm, Link } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
-import { formatRp } from "@/utils/format";
+
+const formatRp = (val: string | number) =>
+  "Rp " + parseInt(String(val) || "0").toLocaleString("id-ID");
 
 interface EventPackage {
   id: number;
@@ -152,7 +154,7 @@ export default function ManualRegister({ admin, event }: ManualRegisterProps) {
   return (
     <GodModeLayout
       admin={admin}
-      header={<h2 className="font-semibold text-xl text-white leading-tight">Daftar Manual - {event.title}</h2>}
+      title={`Daftar Manual - ${event.title}`}
     >
       <Head title={`Daftar Manual - ${event.title}`} />
       
