@@ -200,6 +200,20 @@ class EventController extends Controller
     }
 
     /**
+     * Show manual registration page for God Mode.
+     */
+    public function createManualRegister($id)
+    {
+        $event = Event::with(['addons', 'packages.includedAddons'])->findOrFail($id);
+
+        return Inertia::render('GodMode/Events/ManualRegister', [
+            'admin' => auth('admin')->user(),
+            'event' => $event,
+            'image_url' => $event->getFirstMediaUrl('event-images'),
+        ]);
+    }
+
+    /**
      * Manual registration for events via God Mode.
      */
     public function manualRegister(Request $request, $id)
@@ -214,8 +228,24 @@ class EventController extends Controller
             'add_ons' => 'nullable|array',
             'add_ons.*.id' => 'required|exists:event_addons,id',
             'add_ons.*.quantity' => 'required|integer|min:1',
-            'add_ons.*.variant_slots' => 'nullable|array',
-            'add_ons.*.form' => 'nullable|array',
+            'custom_form_data' => 'nullable|array',
+            'custom_form_data.*' => 'nullable|string|max:1000',
+            'included_addon_variants' => 'nullable|array',
+            'included_addon_variants.*' => 'nullable|array',
+            'included_addon_variants.*.*' => 'nullable|array',
+            'included_addon_variants.*.*.*' => 'nullable|string|max:100',
+            'purchased_addon_variants' => 'nullable|array',
+            'purchased_addon_variants.*' => 'nullable|array',
+            'purchased_addon_variants.*.*' => 'nullable|array',
+            'purchased_addon_variants.*.*.*' => 'nullable|string|max:100',
+            'included_addon_forms' => 'nullable|array',
+            'included_addon_forms.*' => 'nullable|array',
+            'included_addon_forms.*.*' => 'nullable|array',
+            'included_addon_forms.*.*.*' => 'nullable|string|max:255',
+            'purchased_addon_forms' => 'nullable|array',
+            'purchased_addon_forms.*' => 'nullable|array',
+            'purchased_addon_forms.*.*' => 'nullable|array',
+            'purchased_addon_forms.*.*.*' => 'nullable|string|max:255',
             'manual_entry_note' => 'nullable|string',
         ]);
 
@@ -225,26 +255,57 @@ class EventController extends Controller
         $totalAddOnsAmount = 0;
 
         if (!empty($validated['add_ons'])) {
+            $purchasedAddonVariants = $validated['purchased_addon_variants'] ?? [];
+            $purchasedAddonForms = $validated['purchased_addon_forms'] ?? [];
+
             foreach ($validated['add_ons'] as $addonReq) {
                 $addon = $event->addons()->find($addonReq['id']);
                 if ($addon) {
                     $qty = (int) $addonReq['quantity'];
                     $amount = $addon->price * $qty;
+                    
+                    if ($addon->stock_quantity < $qty) {
+                        return redirect()->back()->withErrors(['add_ons' => "Not enough stock for {$addon->name}."])->withInput();
+                    }
+                    
                     $addOnsSnapshot[] = [
                         'id' => $addon->id,
                         'name' => $addon->name,
                         'price' => $addon->price,
                         'quantity' => $qty,
-                        'variant_slots' => $addonReq['variant_slots'] ?? null,
-                        'form' => $addonReq['form'] ?? null,
+                        'variant_slots' => $purchasedAddonVariants[$addon->id] ?? null,
+                        'form' => $purchasedAddonForms[$addon->id] ?? null,
                         'total' => $amount,
                     ];
                     $totalAddOnsAmount += $amount;
                     
-                    if ($addon->stock_quantity >= $qty) {
-                        $addon->decrement('stock_quantity', $qty);
-                    }
+                    $addon->decrement('stock_quantity', $qty);
                 }
+            }
+        }
+
+        // Handle included addon variant selections (no charge, no stock decrement)
+        $includedAddonVariants = $validated['included_addon_variants'] ?? [];
+        $includedAddonForms = $validated['included_addon_forms'] ?? [];
+        $includedAddonIds = array_unique(array_merge(array_keys($includedAddonVariants), array_keys($includedAddonForms)));
+
+        if (!empty($includedAddonIds) && !empty($validated['event_package_id'])) {
+            $packageWithAddons = $event->packages()->with('includedAddons')->find($validated['event_package_id']);
+
+            foreach ($includedAddonIds as $addonId) {
+                $includedAddon = $packageWithAddons?->includedAddons?->firstWhere('id', $addonId);
+                if (!$includedAddon) continue;
+
+                $addOnsSnapshot[] = [
+                    'id'          => (int) $addonId,
+                    'name'        => $includedAddon->name,
+                    'price'       => 0,
+                    'quantity'    => $includedAddon->pivot->included_quantity,
+                    'variants'    => $includedAddonVariants[$addonId] ?? null,
+                    'form'        => $includedAddonForms[$addonId] ?? null,
+                    'total'       => 0,
+                    'is_included' => true,
+                ];
             }
         }
 
@@ -260,7 +321,8 @@ class EventController extends Controller
                 'infak_amount' => 0,
                 'total_amount' => $totalAmount,
                 'status' => 'paid', // Immediately paid
-                'add_ons_snapshot' => $addOnsSnapshot,
+                'add_ons_snapshot' => empty($addOnsSnapshot) ? null : $addOnsSnapshot,
+                'custom_form_data' => $validated['custom_form_data'] ?? null,
                 'is_manual_entry' => true,
                 'guest_name' => $validated['guest_name'],
                 'guest_email' => $validated['guest_email'] ?? null,

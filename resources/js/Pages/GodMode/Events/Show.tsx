@@ -200,249 +200,7 @@ function QuickReviewModal({ transactionId, action, userName, onClose }: QuickRev
   );
 }
 
-interface ManualRegisterModalProps {
-  eventId: number;
-  packages: { id: number; name: string; price: string }[];
-  addons?: EventAddon[];
-  onClose: () => void;
-}
 
-function ManualRegisterModal({ eventId, packages, addons, onClose }: ManualRegisterModalProps) {
-  const { data, setData, post, processing, errors } = useForm({
-    guest_name: "",
-    guest_email: "",
-    guest_phone: "",
-    event_package_id: "",
-    add_ons: [] as { id: number; quantity: number; variant_slots?: Record<string, string[]> }[],
-    manual_entry_note: "",
-  });
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    post(`/god-mode/events/${eventId}/manual-register`, { onSuccess: onClose });
-  };
-
-  const handleAddonToggle = (addonId: number) => {
-    const exists = data.add_ons.find((a) => a.id === addonId);
-    if (exists) {
-      setData("add_ons", data.add_ons.filter((a) => a.id !== addonId));
-    } else {
-      setData("add_ons", [...data.add_ons, { id: addonId, quantity: 1 }]);
-    }
-  };
-
-  const handleAddonQtyChange = (addonId: number, quantity: number) => {
-    const addon = addons?.find(a => a.id === addonId);
-    const max = addon?.stock_quantity || 1;
-    const validQty = Math.max(1, Math.min(quantity, max));
-    setData("add_ons", data.add_ons.map(a => a.id === addonId ? { ...a, quantity: validQty } : a));
-  };
-
-  const handleAddonVariantChange = (addonId: number, variantKey: string, slotIndex: number, value: string) => {
-    setData("add_ons", data.add_ons.map(a => {
-      if (a.id === addonId) {
-        const variant_slots = { ...(a.variant_slots || {}) };
-        if (!variant_slots[variantKey]) variant_slots[variantKey] = [];
-        variant_slots[variantKey][slotIndex] = value;
-        return { ...a, variant_slots };
-      }
-      return a;
-    }));
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="bg-[#161b22] border border-white/10 rounded-2xl p-6 w-full max-w-lg shadow-2xl my-auto">
-        <div className="flex justify-between items-center mb-5">
-          <h3 className="font-headline font-bold text-white text-xl">Daftar Manual</h3>
-          <button onClick={onClose} className="text-white/50 hover:text-white">
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
-        
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">Nama Peserta *</label>
-              <input
-                type="text"
-                required
-                value={data.guest_name}
-                onChange={(e) => setData("guest_name", e.target.value)}
-                className="w-full bg-[#0d1117] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-1 focus:ring-emerald-500"
-              />
-              {errors.guest_name && <p className="text-red-400 text-xs mt-1">{errors.guest_name}</p>}
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">Email (Opsional)</label>
-                <input
-                  type="email"
-                  value={data.guest_email}
-                  onChange={(e) => setData("guest_email", e.target.value)}
-                  className="w-full bg-[#0d1117] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-1 focus:ring-emerald-500"
-                />
-                {errors.guest_email && <p className="text-red-400 text-xs mt-1">{errors.guest_email}</p>}
-              </div>
-              <div>
-                <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">No HP (Opsional)</label>
-                <input
-                  type="text"
-                  value={data.guest_phone}
-                  onChange={(e) => setData("guest_phone", e.target.value)}
-                  className="w-full bg-[#0d1117] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-1 focus:ring-emerald-500"
-                />
-                {errors.guest_phone && <p className="text-red-400 text-xs mt-1">{errors.guest_phone}</p>}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">Pilih Paket *</label>
-              <select
-                required
-                value={data.event_package_id}
-                onChange={(e) => setData("event_package_id", e.target.value)}
-                className="w-full bg-[#0d1117] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-1 focus:ring-emerald-500"
-              >
-                <option value="">-- Pilih Paket --</option>
-                {packages.map((pkg) => (
-                  <option key={pkg.id} value={pkg.id}>{pkg.name} - {formatRp(pkg.price)}</option>
-                ))}
-              </select>
-              {errors.event_package_id && <p className="text-red-400 text-xs mt-1">{errors.event_package_id}</p>}
-            </div>
-
-            {addons && addons.length > 0 && (
-              <div>
-                <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">Addons (Opsional)</label>
-                <div className="space-y-3 max-h-52 overflow-y-auto pr-2">
-                  {addons.map((addon) => {
-                    const selectedAddon = data.add_ons.find((a) => a.id === addon.id);
-                    const isSelected = !!selectedAddon;
-                    
-                    const variantKeys = addon.variants ? Object.keys(addon.variants).filter(k => k !== "forms") : [];
-                    const maxStock = addon.stock_quantity ?? 0;
-                    
-                    return (
-                      <div key={addon.id} className="bg-white/5 p-3 rounded-lg border border-white/5">
-                        <div className="flex items-center justify-between">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleAddonToggle(addon.id)}
-                              className="rounded bg-[#0d1117] border-white/10 text-emerald-500 focus:ring-emerald-500"
-                            />
-                            <div>
-                              <span className="text-sm text-white/80 block">{addon.name}</span>
-                              <span className="text-xs text-emerald-400">{formatRp(addon.price)}</span>
-                              {maxStock > 0 && <span className="text-xs text-white/40 ml-2">Stok: {maxStock}</span>}
-                            </div>
-                          </label>
-                          
-                          {isSelected && (
-                            <div className="flex items-center gap-2 bg-[#0d1117] rounded-lg border border-white/10">
-                              <button
-                                type="button"
-                                onClick={() => handleAddonQtyChange(addon.id, (selectedAddon?.quantity || 1) - 1)}
-                                className="px-2 py-1 text-white/50 hover:text-white"
-                              >
-                                -
-                              </button>
-                              <span className="text-sm text-white min-w-[20px] text-center">
-                                {selectedAddon?.quantity || 1}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleAddonQtyChange(addon.id, (selectedAddon?.quantity || 1) + 1)}
-                                className="px-2 py-1 text-white/50 hover:text-white"
-                                disabled={(selectedAddon?.quantity || 1) >= maxStock}
-                              >
-                                +
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {isSelected && variantKeys.length > 0 && (
-                          <div className="mt-3 pt-3 border-t border-white/10 space-y-3">
-                            {Array.from({ length: selectedAddon.quantity || 1 }).map((_, slotIndex) => (
-                              <div key={slotIndex} className="bg-black/20 p-2 rounded-lg border border-white/5">
-                                <span className="text-xs text-white/50 block mb-2 font-semibold">
-                                  Pesanan #{slotIndex + 1}
-                                </span>
-                                <div className="grid grid-cols-2 gap-2">
-                                  {variantKeys.map((vKey) => {
-                                    const options = (addon.variants as any)[vKey] as string[];
-                                    const currentVal = selectedAddon.variant_slots?.[vKey]?.[slotIndex] || "";
-                                    return (
-                                      <div key={vKey}>
-                                        <label className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">
-                                          {vKey}
-                                        </label>
-                                        <select
-                                          required
-                                          value={currentVal}
-                                          onChange={(e) => handleAddonVariantChange(addon.id, vKey, slotIndex, e.target.value)}
-                                          className="w-full bg-[#0d1117] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:ring-1 focus:ring-emerald-500"
-                                        >
-                                          <option value="">-- Pilih --</option>
-                                          {options.map((opt) => (
-                                            <option key={opt} value={opt}>{opt}</option>
-                                          ))}
-                                        </select>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">Catatan Admin</label>
-              <textarea
-                value={data.manual_entry_note}
-                onChange={(e) => setData("manual_entry_note", e.target.value)}
-                rows={2}
-                placeholder="Misal: Sudah bayar cash ke admin X"
-                className="w-full bg-[#0d1117] border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:ring-1 focus:ring-emerald-500 resize-none"
-              />
-            </div>
-          </div>
-          
-          <div className="flex gap-3 pt-3 mt-4 border-t border-white/10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-white/5 hover:bg-white/10 text-white/70 py-2.5 rounded-xl font-medium text-sm"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={processing}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-sm disabled:opacity-50"
-            >
-              {processing ? "Memproses..." : "Daftarkan"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 export default function EventShow({
   admin,
@@ -466,7 +224,6 @@ export default function EventShow({
   } | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [isExportOpen, setIsExportOpen] = useState(false);
-  const [isManualRegisterOpen, setIsManualRegisterOpen] = useState(false);
 
   // Pagination State
   const [rsvpsData, setRsvpsData] = useState<ParticipantRsvp[]>([]);
@@ -572,14 +329,7 @@ export default function EventShow({
         />
       )}
 
-      {isManualRegisterOpen && (
-        <ManualRegisterModal
-          eventId={event.id}
-          packages={packages}
-          addons={event.addons}
-          onClose={() => { setIsManualRegisterOpen(false); fetchData(); }}
-        />
-      )}
+
 
       {/* Top bar */}
       <div className="mb-6 flex flex-wrap justify-between items-center gap-3">
@@ -825,13 +575,13 @@ export default function EventShow({
                 <option value="failed">Gagal</option>
                 <option value="expired">Kadaluarsa</option>
               </select>
-              <button
-                onClick={() => setIsManualRegisterOpen(true)}
+              <Link
+                href={`/god-mode/events/${event.id}/manual-register`}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors inline-flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-sm">add_circle</span>
                 Daftar Manual
-              </button>
+              </Link>
             </div>
           </div>
 
