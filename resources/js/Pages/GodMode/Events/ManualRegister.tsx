@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Head, useForm, Link } from "@inertiajs/react";
+import AsyncSelect from "@/Components/AsyncSelect";
 import GodModeLayout from "@/Layouts/GodModeLayout";
 
 const formatRp = (val: string | number) =>
@@ -59,6 +60,9 @@ export default function ManualRegister({ admin, event }: ManualRegisterProps) {
     guest_name: "",
     guest_email: "",
     guest_phone: "",
+    guest_country: "Indonesia",
+    guest_city_id: "",
+    guest_foreign_city: "",
     manual_entry_note: "",
     event_package_id: null as number | null,
     infak_amount: "0",
@@ -200,6 +204,66 @@ export default function ManualRegister({ admin, event }: ManualRegisterProps) {
                     />
                   </div>
                 </div>
+
+                <div className="mt-4">
+                  <label className="text-xs text-white/60 uppercase tracking-wider block mb-2">Domisili Peserta</label>
+                  <div className="flex gap-6 mb-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="guest_country"
+                        value="Indonesia"
+                        checked={data.guest_country === "Indonesia"}
+                        onChange={(e) => {
+                          setData("guest_country", e.target.value);
+                          setData("guest_foreign_city", "");
+                        }}
+                        className="text-emerald-500 focus:ring-emerald-500 w-4 h-4 bg-[#0d1117] border-white/10"
+                      />
+                      <span className="text-white text-sm">Indonesia</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="guest_country"
+                        value="Luar Negeri"
+                        checked={data.guest_country === "Luar Negeri"}
+                        onChange={(e) => {
+                          setData("guest_country", e.target.value);
+                          setData("guest_city_id", "");
+                        }}
+                        className="text-emerald-500 focus:ring-emerald-500 w-4 h-4 bg-[#0d1117] border-white/10"
+                      />
+                      <span className="text-white text-sm">Luar Negeri</span>
+                    </label>
+                  </div>
+
+                  {data.guest_country === "Indonesia" ? (
+                    <div>
+                      <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">Kota Domisili (Indonesia)</label>
+                      <AsyncSelect
+                        endpoint="/api/locations/cities"
+                        value={data.guest_city_id}
+                        onChange={(val) => setData("guest_city_id", String(val))}
+                        placeholder="Ketik untuk mencari kota..."
+                      />
+                      {errors.guest_city_id && <p className="text-red-400 text-xs mt-1">{errors.guest_city_id}</p>}
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">Nama Kota (Luar Negeri)</label>
+                      <input
+                        type="text"
+                        value={data.guest_foreign_city}
+                        onChange={(e) => setData("guest_foreign_city", e.target.value)}
+                        className="w-full bg-[#0d1117] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-1 focus:ring-emerald-500"
+                        placeholder="Contoh: Cairo, London, Sydney"
+                      />
+                      {errors.guest_foreign_city && <p className="text-red-400 text-xs mt-1">{errors.guest_foreign_city}</p>}
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">Catatan Admin</label>
                   <textarea

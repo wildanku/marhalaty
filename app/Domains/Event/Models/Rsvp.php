@@ -24,6 +24,9 @@ class Rsvp extends Model
         'guest_name',
         'guest_email',
         'guest_phone',
+        'guest_country',
+        'guest_city_id',
+        'guest_foreign_city',
         'manual_entry_note',
         'admin_id',
     ];
@@ -40,6 +43,11 @@ class Rsvp extends Model
     public function package()
     {
         return $this->belongsTo(EventPackage::class, 'event_package_id');
+    }
+
+    public function guestCity()
+    {
+        return $this->belongsTo(\App\Domains\Shared\Models\IndonesiaCity::class, 'guest_city_id');
     }
 
     public function event()
