@@ -146,7 +146,7 @@ class EventController extends Controller
                     $uq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
                         ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"]);
                 })->orWhereRaw('LOWER(guest_name) LIKE ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(guest_email) LIKE ?', ["%{$search}%"]);
+                    ->orWhereRaw('LOWER(guest_email) LIKE ?', ["%{$search}%"]);
             });
         }
 
@@ -254,7 +254,7 @@ class EventController extends Controller
         ]);
 
         $package = $event->packages()->findOrFail($validated['event_package_id']);
-        
+
         $addOnsSnapshot = [];
         $totalAddOnsAmount = 0;
 
@@ -267,11 +267,11 @@ class EventController extends Controller
                 if ($addon) {
                     $qty = (int) $addonReq['quantity'];
                     $amount = $addon->price * $qty;
-                    
+
                     if ($addon->stock_quantity < $qty) {
                         return redirect()->back()->withErrors(['addons' => "Not enough stock for {$addon->name}."])->withInput();
                     }
-                    
+
                     $addOnsSnapshot[] = [
                         'id' => $addon->id,
                         'name' => $addon->name,
@@ -282,7 +282,7 @@ class EventController extends Controller
                         'total' => $amount,
                     ];
                     $totalAddOnsAmount += $amount;
-                    
+
                     $addon->decrement('stock_quantity', $qty);
                 }
             }
@@ -298,16 +298,17 @@ class EventController extends Controller
 
             foreach ($includedAddonIds as $addonId) {
                 $includedAddon = $packageWithAddons?->includedAddons?->firstWhere('id', $addonId);
-                if (!$includedAddon) continue;
+                if (!$includedAddon)
+                    continue;
 
                 $addOnsSnapshot[] = [
-                    'id'          => (int) $addonId,
-                    'name'        => $includedAddon->name,
-                    'price'       => 0,
-                    'quantity'    => $includedAddon->pivot->included_quantity,
-                    'variants'    => $includedAddonVariants[$addonId] ?? null,
-                    'form'        => $includedAddonForms[$addonId] ?? null,
-                    'total'       => 0,
+                    'id' => (int) $addonId,
+                    'name' => $includedAddon->name,
+                    'price' => 0,
+                    'quantity' => $includedAddon->pivot->included_quantity,
+                    'variants' => $includedAddonVariants[$addonId] ?? null,
+                    'form' => $includedAddonForms[$addonId] ?? null,
+                    'total' => 0,
                     'is_included' => true,
                 ];
             }
