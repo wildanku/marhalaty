@@ -48,6 +48,7 @@ interface ManualRegisterProps {
     packages: EventPackage[];
     addons: EventAddon[];
     metadata: Record<string, any> | null;
+    infak_rules?: Record<string, any> | null;
   };
 }
 
@@ -579,11 +580,11 @@ export default function ManualRegister({ admin, event }: ManualRegisterProps) {
             </div>
 
             {/* Infak Section */}
-            {event.metadata?.infak_rules?.enabled && (
+            {event.infak_rules?.enabled && (
               <div className="bg-[#161b22] border border-white/10 rounded-2xl p-6 shadow-2xl">
                 <h3 className="font-headline font-bold text-white text-xl mb-2">Infaq Kegiatan</h3>
                 <p className="text-sm text-white/60 mb-4">
-                  {event.metadata.infak_rules.description ?? "Berikan infak terbaik Anda. Infak bersifat opsional."}
+                  {event.infak_rules.description ?? "Berikan infak terbaik Anda. Infak bersifat opsional."}
                 </p>
                 <div>
                   <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">Nominal Infaq</label>
