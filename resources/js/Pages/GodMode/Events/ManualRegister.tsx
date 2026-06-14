@@ -61,6 +61,7 @@ export default function ManualRegister({ admin, event }: ManualRegisterProps) {
     guest_phone: "",
     manual_entry_note: "",
     event_package_id: null as number | null,
+    infak_amount: "0",
     custom_form_data: {} as Record<string, string>,
     addons: [] as { id: number; quantity: number; price: number }[],
     included_addon_variants: {} as IncludedAddonVariants,
@@ -77,12 +78,14 @@ export default function ManualRegister({ admin, event }: ManualRegisterProps) {
   const totals = useMemo(() => {
     const pkgPrice = parseFloat(selectedPackage?.price ?? "0");
     const addonsPrice = data.addons.reduce((s, a) => s + a.price * a.quantity, 0);
+    const infakPrice = parseFloat(data.infak_amount) || 0;
     return {
       package: pkgPrice,
       addons: addonsPrice,
-      total: pkgPrice + addonsPrice,
+      infak: infakPrice,
+      total: pkgPrice + addonsPrice + infakPrice,
     };
-  }, [selectedPackage, data.addons]);
+  }, [selectedPackage, data.addons, data.infak_amount]);
 
   // Handlers
   const handleAddonQty = (addonId: number, priceStr: string, qty: number) => {
@@ -510,6 +513,27 @@ export default function ManualRegister({ admin, event }: ManualRegisterProps) {
                 </div>
               )}
             </div>
+
+            {/* Infak Section */}
+            {event.metadata?.infak_rules?.enabled && (
+              <div className="bg-[#161b22] border border-white/10 rounded-2xl p-6 shadow-2xl">
+                <h3 className="font-headline font-bold text-white text-xl mb-2">Infaq Kegiatan</h3>
+                <p className="text-sm text-white/60 mb-4">
+                  {event.metadata.infak_rules.description ?? "Berikan infak terbaik Anda. Infak bersifat opsional."}
+                </p>
+                <div>
+                  <label className="text-xs text-white/60 uppercase tracking-wider block mb-1">Nominal Infaq</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={data.infak_amount}
+                    onChange={(e) => setData("infak_amount", e.target.value)}
+                    placeholder="Contoh: 50000"
+                    className="w-full bg-[#0d1117] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Total and Submit */}
             <div className="bg-[#161b22] border border-emerald-500/30 rounded-2xl p-6 shadow-2xl flex items-center justify-between sticky bottom-6 z-10">

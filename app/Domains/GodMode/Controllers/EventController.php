@@ -246,6 +246,7 @@ class EventController extends Controller
             'purchased_addon_forms.*' => 'nullable|array',
             'purchased_addon_forms.*.*' => 'nullable|array',
             'purchased_addon_forms.*.*.*' => 'nullable|string|max:255',
+            'infak_amount' => 'nullable|numeric|min:0',
             'manual_entry_note' => 'nullable|string',
         ]);
 
@@ -310,15 +311,16 @@ class EventController extends Controller
         }
 
         $baseAmount = $package->price;
-        $totalAmount = $baseAmount + $totalAddOnsAmount;
+        $infakAmount = $validated['infak_amount'] ?? 0;
+        $totalAmount = $baseAmount + $totalAddOnsAmount + $infakAmount;
 
-        DB::transaction(function () use ($event, $package, $validated, $baseAmount, $totalAmount, $addOnsSnapshot) {
+        DB::transaction(function () use ($event, $package, $validated, $baseAmount, $infakAmount, $totalAmount, $addOnsSnapshot) {
             $rsvp = Rsvp::create([
                 'event_id' => $event->id,
                 'user_id' => null, // Manual entry has no user account
                 'event_package_id' => $package->id,
                 'package_amount' => $baseAmount,
-                'infak_amount' => 0,
+                'infak_amount' => $infakAmount,
                 'total_amount' => $totalAmount,
                 'status' => 'paid', // Immediately paid
                 'add_ons_snapshot' => empty($addOnsSnapshot) ? null : $addOnsSnapshot,
