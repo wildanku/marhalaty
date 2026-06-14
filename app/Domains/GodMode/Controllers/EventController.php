@@ -135,7 +135,7 @@ class EventController extends Controller
      */
     public function apiRsvps(Request $request, $id)
     {
-        $query = Rsvp::with(['user.city.province', 'package.includedAddons', 'latestTransaction.proof'])
+        $query = Rsvp::with(['user.city.province', 'guestCity.province', 'package.includedAddons', 'latestTransaction.proof'])
             ->where('event_id', $id)
             ->orderBy('created_at', 'desc');
 
@@ -172,7 +172,7 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($eventId);
 
-        $rsvp = Rsvp::with(['user.city.province', 'package', 'latestTransaction.proof'])
+        $rsvp = Rsvp::with(['user.city.province', 'guestCity.province', 'package', 'latestTransaction.proof'])
             ->where('event_id', $eventId)
             ->findOrFail($rsvpId);
 
@@ -228,9 +228,9 @@ class EventController extends Controller
             'guest_city_id' => 'nullable|required_if:guest_country,Indonesia|exists:indonesia_cities,id',
             'guest_foreign_city' => 'nullable|required_if:guest_country,Luar Negeri|string|max:255',
             'event_package_id' => 'required|exists:event_packages,id',
-            'add_ons' => 'nullable|array',
-            'add_ons.*.id' => 'required|exists:event_addons,id',
-            'add_ons.*.quantity' => 'required|integer|min:1',
+            'addons' => 'nullable|array',
+            'addons.*.id' => 'required|exists:event_addons,id',
+            'addons.*.quantity' => 'required|integer|min:1',
             'custom_form_data' => 'nullable|array',
             'custom_form_data.*' => 'nullable|string|max:1000',
             'included_addon_variants' => 'nullable|array',
@@ -258,18 +258,18 @@ class EventController extends Controller
         $addOnsSnapshot = [];
         $totalAddOnsAmount = 0;
 
-        if (!empty($validated['add_ons'])) {
+        if (!empty($validated['addons'])) {
             $purchasedAddonVariants = $validated['purchased_addon_variants'] ?? [];
             $purchasedAddonForms = $validated['purchased_addon_forms'] ?? [];
 
-            foreach ($validated['add_ons'] as $addonReq) {
+            foreach ($validated['addons'] as $addonReq) {
                 $addon = $event->addons()->find($addonReq['id']);
                 if ($addon) {
                     $qty = (int) $addonReq['quantity'];
                     $amount = $addon->price * $qty;
                     
                     if ($addon->stock_quantity < $qty) {
-                        return redirect()->back()->withErrors(['add_ons' => "Not enough stock for {$addon->name}."])->withInput();
+                        return redirect()->back()->withErrors(['addons' => "Not enough stock for {$addon->name}."])->withInput();
                     }
                     
                     $addOnsSnapshot[] = [
@@ -362,7 +362,7 @@ class EventController extends Controller
     {
         $event = Event::with(['addons', 'packages'])->findOrFail($id);
 
-        $rsvps = Rsvp::with(['user.city.province', 'package.includedAddons', 'latestTransaction.proof'])
+        $rsvps = Rsvp::with(['user.city.province', 'guestCity.province', 'package.includedAddons', 'latestTransaction.proof'])
             ->where('event_id', $id)
             ->orderBy('created_at', 'asc')
             ->get();
@@ -382,7 +382,7 @@ class EventController extends Controller
 
         $event = Event::with(['addons', 'packages'])->findOrFail($id);
 
-        $rsvps = Rsvp::with(['user.city.province', 'package.includedAddons', 'latestTransaction.proof'])
+        $rsvps = Rsvp::with(['user.city.province', 'guestCity.province', 'package.includedAddons', 'latestTransaction.proof'])
             ->where('event_id', $id)
             ->orderBy('created_at', 'asc')
             ->get();

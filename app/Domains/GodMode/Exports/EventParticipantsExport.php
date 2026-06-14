@@ -38,6 +38,29 @@ class ParticipantsSheet implements FromCollection, ShouldAutoSize, WithHeadings,
 
     private function resolveParticipantDomicile(Rsvp $rsvp): string
     {
+        if ($rsvp->is_manual_entry) {
+            $cityName = $rsvp->guestCity?->name;
+            $provinceName = $rsvp->guestCity?->province?->name;
+
+            if ($cityName && $provinceName) {
+                return $cityName.', '.$provinceName;
+            }
+
+            if ($cityName) {
+                return $cityName;
+            }
+
+            if ($rsvp->guest_foreign_city && $rsvp->guest_country) {
+                return $rsvp->guest_foreign_city.', '.$rsvp->guest_country;
+            }
+
+            if ($rsvp->guest_foreign_city) {
+                return $rsvp->guest_foreign_city;
+            }
+
+            return $rsvp->guest_country ?? '-';
+        }
+
         $user = $rsvp->user;
         $cityName = $user?->city?->name;
         $provinceName = $user?->city?->province?->name;
@@ -95,11 +118,11 @@ class ParticipantsSheet implements FromCollection, ShouldAutoSize, WithHeadings,
 
             $row = [
                 $i + 1,
-                optional($rsvp->user)->name ?? '-',
-                optional($rsvp->user)->email ?? '-',
-                optional($rsvp->user)->phone_number ?? '-',
+                $rsvp->is_manual_entry ? $rsvp->guest_name : (optional($rsvp->user)->name ?? '-'),
+                $rsvp->is_manual_entry ? ($rsvp->guest_email ?? '-') : (optional($rsvp->user)->email ?? '-'),
+                $rsvp->is_manual_entry ? ($rsvp->guest_phone ?? '-') : (optional($rsvp->user)->phone_number ?? '-'),
                 $this->resolveParticipantDomicile($rsvp),
-                optional($rsvp->user)->marhalah_year ?? '-',
+                $rsvp->is_manual_entry ? 'Manual' : (optional($rsvp->user)->marhalah_year ?? '-'),
                 $rsvp->created_at->format('d/m/Y H:i'),
                 optional($rsvp->package)->name ?? '-',
                 (float) $rsvp->package_amount,
@@ -141,6 +164,29 @@ class AddonsSheet implements FromCollection, ShouldAutoSize, WithHeadings, WithS
 
     private function resolveParticipantDomicile(Rsvp $rsvp): string
     {
+        if ($rsvp->is_manual_entry) {
+            $cityName = $rsvp->guestCity?->name;
+            $provinceName = $rsvp->guestCity?->province?->name;
+
+            if ($cityName && $provinceName) {
+                return $cityName.', '.$provinceName;
+            }
+
+            if ($cityName) {
+                return $cityName;
+            }
+
+            if ($rsvp->guest_foreign_city && $rsvp->guest_country) {
+                return $rsvp->guest_foreign_city.', '.$rsvp->guest_country;
+            }
+
+            if ($rsvp->guest_foreign_city) {
+                return $rsvp->guest_foreign_city;
+            }
+
+            return $rsvp->guest_country ?? '-';
+        }
+
         $user = $rsvp->user;
         $cityName = $user?->city?->name;
         $provinceName = $user?->city?->province?->name;
@@ -217,8 +263,8 @@ class AddonsSheet implements FromCollection, ShouldAutoSize, WithHeadings, WithS
                 }
                 $rows[] = [
                     $idx++,
-                    optional($rsvp->user)->name ?? '-',
-                    optional($rsvp->user)->email ?? '-',
+                    $rsvp->is_manual_entry ? $rsvp->guest_name : (optional($rsvp->user)->name ?? '-'),
+                    $rsvp->is_manual_entry ? ($rsvp->guest_email ?? '-') : (optional($rsvp->user)->email ?? '-'),
                     $this->resolveParticipantDomicile($rsvp),
                     optional($rsvp->package)->name ?? '-',
                     $addon['name'] ?? '-',
@@ -240,8 +286,8 @@ class AddonsSheet implements FromCollection, ShouldAutoSize, WithHeadings, WithS
                     }
                     $rows[] = [
                         $idx++,
-                        optional($rsvp->user)->name ?? '-',
-                        optional($rsvp->user)->email ?? '-',
+                        $rsvp->is_manual_entry ? $rsvp->guest_name : (optional($rsvp->user)->name ?? '-'),
+                        $rsvp->is_manual_entry ? ($rsvp->guest_email ?? '-') : (optional($rsvp->user)->email ?? '-'),
                         $this->resolveParticipantDomicile($rsvp),
                         optional($rsvp->package)->name ?? '-',
                         $bundledAddon->name,
@@ -325,11 +371,11 @@ class InfakSheet implements FromCollection, ShouldAutoSize, WithHeadings, WithSt
             $tx = $rsvp->latestTransaction;
             $rows[] = [
                 $idx++,
-                optional($rsvp->user)->name ?? '-',
-                optional($rsvp->user)->email ?? '-',
-                optional($rsvp->user)->phone_number ?? '-',
+                $rsvp->is_manual_entry ? $rsvp->guest_name : (optional($rsvp->user)->name ?? '-'),
+                $rsvp->is_manual_entry ? ($rsvp->guest_email ?? '-') : (optional($rsvp->user)->email ?? '-'),
+                $rsvp->is_manual_entry ? ($rsvp->guest_phone ?? '-') : (optional($rsvp->user)->phone_number ?? '-'),
                 $this->resolveParticipantDomicile($rsvp),
-                optional($rsvp->user)->marhalah_year ?? '-',
+                $rsvp->is_manual_entry ? 'Manual' : (optional($rsvp->user)->marhalah_year ?? '-'),
                 optional($rsvp->package)->name ?? '-',
                 (float) $rsvp->infak_amount,
                 $rsvp->status,

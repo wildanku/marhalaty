@@ -109,13 +109,15 @@ export interface RsvpAddonSnapshot {
   price: number;
   quantity: number;
   variants: Record<string, string> | null;
+  variant_slots?: Record<string, string | string[]> | null;
+  form?: Record<string, any> | null;
   total: number;
 }
 
 export interface Rsvp {
   id: number;
   event_id: number;
-  user_id: number;
+  user_id: number | null;
   event_package_id: number | null;
   package_amount: string;
   infak_amount: string;
@@ -124,6 +126,14 @@ export interface Rsvp {
   add_ons_snapshot: RsvpAddonSnapshot[] | null;
   custom_form_data: Record<string, string> | null;
   qr_code_path: string | null;
+  is_manual_entry?: boolean;
+  guest_name?: string | null;
+  guest_email?: string | null;
+  guest_phone?: string | null;
+  guest_country?: string | null;
+  guest_city_id?: string | null;
+  guest_foreign_city?: string | null;
+  manual_entry_note?: string | null;
   created_at: string;
   updated_at: string;
   event?: GontorEvent;

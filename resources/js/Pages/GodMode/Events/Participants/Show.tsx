@@ -14,6 +14,7 @@ interface ParticipantRsvp extends Rsvp {
     city: string | { name: string } | null;
     country: string | null;
   } | null;
+  guestCity: { name: string } | null;
   package: { id: number; name: string; price: string } | null;
   latest_transaction: (Transaction & { proof: PaymentProof | null }) | null;
 }
@@ -110,13 +111,17 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
   const customForms = event.metadata?.custom_forms ?? [];
 
   const cityName = (() => {
+    if (rsvp.is_manual_entry) {
+      if (!rsvp.guestCity) return rsvp.guest_foreign_city;
+      return rsvp.guestCity.name;
+    }
     if (!rsvp.user?.city) return null;
     if (typeof rsvp.user.city === "string") return rsvp.user.city;
     return rsvp.user.city.name;
   })();
 
   return (
-    <GodModeLayout admin={admin} title={`Peserta: ${rsvp.user?.name ?? "—"}`}>
+    <GodModeLayout admin={admin} title={`Peserta: ${rsvp.is_manual_entry ? rsvp.guest_name : (rsvp.user?.name ?? "—")}`}>
       <Head title={`God Mode - Detail Peserta`} />
 
       {imagePreview && (
@@ -150,19 +155,19 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
             <div className="space-y-3">
               <div>
                 <p className="text-xs text-white/40 mb-0.5">Nama</p>
-                <p className="text-white font-semibold">{rsvp.user?.name ?? "—"}</p>
+                <p className="text-white font-semibold">{rsvp.is_manual_entry ? rsvp.guest_name : (rsvp.user?.name ?? "—")}</p>
               </div>
               <div>
                 <p className="text-xs text-white/40 mb-0.5">Email</p>
-                <p className="text-white/80 text-sm">{rsvp.user?.email ?? "—"}</p>
+                <p className="text-white/80 text-sm">{rsvp.is_manual_entry ? (rsvp.guest_email || "—") : (rsvp.user?.email ?? "—")}</p>
               </div>
               <div>
                 <p className="text-xs text-white/40 mb-0.5">No. HP</p>
-                <p className="text-white/80 text-sm">{rsvp.user?.phone_number ?? "—"}</p>
+                <p className="text-white/80 text-sm">{rsvp.is_manual_entry ? (rsvp.guest_phone || "—") : (rsvp.user?.phone_number ?? "—")}</p>
               </div>
               <div>
                 <p className="text-xs text-white/40 mb-0.5">Marhalah</p>
-                <p className="text-white/80 text-sm">{rsvp.user?.marhalah_year ?? "—"}</p>
+                <p className="text-white/80 text-sm">{rsvp.is_manual_entry ? "Manual Registration" : (rsvp.user?.marhalah_year ?? "—")}</p>
               </div>
               {cityName && (
                 <div>
@@ -170,14 +175,14 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
                   <p className="text-white/80 text-sm">{cityName}</p>
                 </div>
               )}
-              {rsvp.user?.country && (
+              {(rsvp.is_manual_entry ? rsvp.guest_country : rsvp.user?.country) && (
                 <div>
                   <p className="text-xs text-white/40 mb-0.5">Negara</p>
-                  <p className="text-white/80 text-sm">{rsvp.user.country}</p>
+                  <p className="text-white/80 text-sm">{rsvp.is_manual_entry ? rsvp.guest_country : rsvp.user?.country}</p>
                 </div>
               )}
             </div>
-            {rsvp.user && (
+            {!rsvp.is_manual_entry && rsvp.user && (
               <div className="mt-4 pt-4 border-t border-white/5">
                 <Link
                   href={`/god-mode/users/${rsvp.user.id}`}
@@ -381,17 +386,17 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
                           </div>
                         )}
                         {/* Variants (Purchased) */}
-                        {(addon as any).variant_slots && Object.keys((addon as any).variant_slots).length > 0 && (
+                        {addon.variant_slots && Object.keys(addon.variant_slots).length > 0 && (
                           <div className="text-xs text-white/40 mt-0.5">
-                            {Object.entries((addon as any).variant_slots)
+                            {Object.entries(addon.variant_slots)
                               .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
                               .join(", ")}
                           </div>
                         )}
                         {/* Custom Forms */}
-                        {(addon as any).form && Object.keys((addon as any).form).length > 0 && (
+                        {addon.form && Object.keys(addon.form).length > 0 && (
                           <div className="text-xs text-white/40 mt-0.5">
-                            {Object.entries((addon as any).form).map(([k, v]) => {
+                            {Object.entries(addon.form).map(([k, v]) => {
                               if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
                                 return `[Item #${parseInt(k)+1}: ${Object.entries(v).map(([sk, sv]) => `${sk} = ${sv}`).join(', ')}]`;
                               }
