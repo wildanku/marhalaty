@@ -1,0 +1,27 @@
+Topic: eCommerce Module (MVP 2)
+Context:
+- Marhalaty adalah open source untuk sistem marhalah atau angkatan di gontor, untuk fitur yg saat ini ada silahkan baca semua dokumen di directory /docs/*.md 
+
+Idea: 
+- E Commerce atau Store Module. 
+  Kebutuhan untuk membuat store dan produk kemudian integerasi dengan payment-service dan logistik.
+- Kebutuhan dan Skema Store:
+  -- kebutuhan data untuk store kurang lebih: id (ULID atau UUID), name, slug (auto generated), description, verified_at, verified_by, created_by_admin_id (nullable)
+  -- Memungkinkan untuk membuat lebih dari satu store, dan setiap user yg verified bisa membuat store namun perlu di verifikasi oleh admin 
+  -- di god-mode atau admin jg bisa membuat store namun tetap harus assign user sebagai admin atau ownernya
+  -- satu store bisa dihandle oleh banyak user dgn konsep invitation dgn role admin (saat ini role admin dulu), dimana hanya owner yg bisa invite member lain yg sudah verified
+  -- satu store bisa punya banyak alamat origin, saat ini kita buat satu store satu alamat origin untuk menentukan asal pengiriman (MVP 2); pake table indonesia_vilages.postal_code untuk menentukan alamat yg jg returning relasi ke kota/kabupaten dan provinsi; kemudian perlu jg tambah lat+lng
+  -- Flow-nya; user harus registrasi dan verified dulu supaya bisa create store disini.
+  -- setelah verified user bisa klik di halaman my profile dan disana ada section atau menu (Store) dan user bisa klik buat toko.
+  -- masukkan detail toko, dsb. Data submit dan tunggu approval dari admin
+  -- admin bisa approve dan reject store application tersebut, dan mengirim notif baik itu notif approval atau rejection
+- Kebutuhan product store:
+  -- produk disini akan kita bedakan menjadi 2 hal: 1) Produk fisik  2) Produk Non Fisik (seperti ebook, dsb)
+  -- setiap produk akan memiliki at least data berikut: id (ULID atau UUID), name, slug (auto generated), type (fisik atau non fisik), sku, dan data lain yg mungkin dibutuhkan
+  -- setiap produk bisa memiliki single price atau variable price (batasi maksimal 2 variable) dan user bisa menamai variabel tersebut misal aku mau jual kaos dgn variabel Ukuran dan Warna, Ukuran (M, L, XL, XXL, dst) Warna (Merah, Putih, dsb) dan setiap variabel akan punya harga masing masing. 
+- Integerasi ke logistik
+  -- Saat ini buat 2 modul integerasi ke logistik dan fokus dulu ke cek ongkir, pake 2 modul: Rajaongkir dan Kiriminaja. baca dokumentasi untuk integerasi ke dua service tersbut.
+- Integerasi ke payment
+  -- baca dokumen /docs/guidance/payment-guidance.md untuk mempelajari flow dan pengguaan service payment by satutera. 
+  -- endpoint yg dibutuhkan adalah mengambil payment-channel dan POST payment dgn raw_detail yg mana nantinya akan mengarahkan ke halaman payment dan menampilkan detail payment baik itu QRIS ataupun Virtual Account, jangan lupa tambahkan payment fee tersebut ke dalam total purchase
+  -- di halaman payment jg kasih web socket untuk mengecek apakah pembayaran berhasil atau belum

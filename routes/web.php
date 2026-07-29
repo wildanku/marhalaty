@@ -22,7 +22,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WelcomeController;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -92,12 +92,12 @@ Route::post('/payment-confirmation/{hash}', [PaymentPageController::class, 'conf
 // iPaymu webhook (exempt from CSRF – verified by provider signature)
 Route::post('/payments/ipaymu/webhook', [PaymentController::class, 'ipaymuWebhook'])
     ->name('payments.ipaymu.webhook')
-    ->withoutMiddleware([VerifyCsrfToken::class]);
+    ->withoutMiddleware([PreventRequestForgery::class]);
 
 // Telegram bot webhook (exempt from CSRF – verified by whitelist check)
 Route::post('/telegram/webhook', [App\Domains\Shared\Controllers\TelegramWebhookController::class, 'handle'])
     ->name('telegram.webhook')
-    ->withoutMiddleware([VerifyCsrfToken::class]);
+    ->withoutMiddleware([PreventRequestForgery::class]);
 
 // Telegram webhook test/debug (raw logging)
 Route::post('/telegram/webhook-debug', function (\Illuminate\Http\Request $request) {
@@ -112,7 +112,7 @@ Route::post('/telegram/webhook-debug', function (\Illuminate\Http\Request $reque
     return response('ok', 200);
 })
     ->name('telegram.webhook.debug')
-    ->withoutMiddleware([VerifyCsrfToken::class]);
+    ->withoutMiddleware([PreventRequestForgery::class]);
 
 // ─── God Mode ────────────────────────────────────────────────────────────────
 Route::prefix('god-mode')->name('god-mode.')->group(function () {
