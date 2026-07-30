@@ -31,6 +31,7 @@ use App\Domains\Store\Controllers\StoreMemberController;
 use App\Domains\Store\Controllers\StoreOrderController;
 use App\Domains\Store\Controllers\StoreOrderManagementController;
 use App\Domains\Store\Controllers\StorePaymentPageController;
+use App\Domains\Store\Controllers\StoreShippingMethodController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -121,6 +122,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/{store}/orders/{order}/process', [StoreOrderManagementController::class, 'process'])->name('orders.process');
         Route::post('/{store}/orders/{order}/ship', [StoreOrderManagementController::class, 'ship'])->name('orders.ship');
         Route::post('/{store}/orders/{order}/cancel', [StoreOrderManagementController::class, 'cancel'])->name('orders.cancel');
+
+        Route::get('/{store}/shipping-methods', [StoreShippingMethodController::class, 'index'])->name('shipping-methods.index');
+        Route::get('/{store}/shipping-methods/create', [StoreShippingMethodController::class, 'create'])->name('shipping-methods.create');
+        Route::post('/{store}/shipping-methods', [StoreShippingMethodController::class, 'store'])->name('shipping-methods.store');
+        Route::get('/{store}/shipping-methods/{shippingMethod}/edit', [StoreShippingMethodController::class, 'edit'])->name('shipping-methods.edit');
+        Route::put('/{store}/shipping-methods/{shippingMethod}', [StoreShippingMethodController::class, 'update'])->name('shipping-methods.update');
+        Route::patch('/{store}/shipping-methods/{shippingMethod}/status', [StoreShippingMethodController::class, 'updateStatus'])->name('shipping-methods.status');
+        Route::delete('/{store}/shipping-methods/{shippingMethod}', [StoreShippingMethodController::class, 'destroy'])->name('shipping-methods.destroy');
     });
 
     Route::get('/store-invitations/{token}', [StoreMemberController::class, 'invitationShow'])->name('stores.invitations.show');

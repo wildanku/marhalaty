@@ -64,7 +64,7 @@ class SatuteraPaymentService
 
                     return [];
                 }
-
+                
                 return collect($response->json('data', []))
                     ->filter(fn (array $channel) => $channel['supports_direct_detail'] ?? false)
                     ->values()

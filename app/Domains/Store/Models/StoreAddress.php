@@ -30,6 +30,8 @@ class StoreAddress extends Model
         'is_primary' => 'boolean',
     ];
 
+    protected $appends = ['full_address'];
+
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);

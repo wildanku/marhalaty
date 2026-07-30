@@ -116,18 +116,19 @@ class RajaOngkirService implements ShippingProviderInterface
             return null;
         }
 
-        $normalize = fn (?string $s) => $s === null ? '' : strtolower(preg_replace('/\b(kel\.?|kec\.?|desa)\b/i', '', $s));
-        $targetVillage = $normalize($villageName);
-        $targetDistrict = $normalize($districtName);
+        $targetVillageVariants = $this->areaNameVariants($villageName);
+        $targetDistrictVariants = $this->areaNameVariants($districtName);
 
-        $scored = collect($candidates)->map(function (array $candidate) use ($normalize, $targetVillage, $targetDistrict) {
-            $score = 0;
-            if ($targetVillage !== '' && str_contains($normalize($candidate['subdistrict_name']), trim($targetVillage))) {
-                $score += 2;
-            }
-            if ($targetDistrict !== '' && str_contains($normalize($candidate['district_name']), trim($targetDistrict))) {
-                $score += 1;
-            }
+        $scored = collect($candidates)->map(function (array $candidate) use ($targetVillageVariants, $targetDistrictVariants) {
+            $villageTier = $this->areaMatchTier($targetVillageVariants, $this->areaNameVariants($candidate['subdistrict_name']));
+            $districtTier = $this->areaMatchTier($targetDistrictVariants, $this->areaNameVariants($candidate['district_name']));
+
+            // Village weighted far above district (×10) so an exact village match always outranks
+            // every other candidate regardless of district tier — district alone (max tier 2) can
+            // never close a 10-point village gap. This matters because RajaOngkir's district name
+            // is often identical across every candidate for a given postal code (e.g. multiple
+            // kelurahan all under "Denpasar Barat"), so district alone can't disambiguate them.
+            $score = ($villageTier * 10) + $districtTier;
 
             return ['candidate' => $candidate, 'score' => $score];
         })->sortByDesc('score')->values();
@@ -141,6 +142,58 @@ class RajaOngkirService implements ShippingProviderInterface
         }
 
         return null;
+    }
+
+    /**
+     * Normalizes an area name for comparison and splits it into alternate-spelling variants.
+     * Strips "kel./kec./desa" prefixes and every character that isn't a letter, digit, or `/` —
+     * the `/` is kept as a separator since RajaOngkir sometimes records dual spellings for the
+     * same kelurahan (e.g. "PADANGSAMBIAN KLOD/KELOD"), and stripping spaces/punctuation avoids
+     * false mismatches between data sources with different formatting for the same name (e.g.
+     * local "Padang Sambian Kaja" vs RajaOngkir "PADANGSAMBIAN KAJA").
+     *
+     * @return array<int, string>
+     */
+    private function areaNameVariants(?string $name): array
+    {
+        if ($name === null) {
+            return [];
+        }
+
+        $name = strtolower($name);
+        $name = preg_replace('/\b(kel\.?|kec\.?|desa)\b/i', '', $name);
+        $name = preg_replace('/[^a-z0-9\/]/', '', $name);
+
+        return $name === '' ? [] : explode('/', $name);
+    }
+
+    /**
+     * 2 = exact match on at least one variant, 1 = one variant contains (or is contained by)
+     * another, 0 = no relation. Exact match must win over every partial match — see the ×10
+     * weighting where this is used.
+     *
+     * @param  array<int, string>  $targetVariants
+     * @param  array<int, string>  $candidateVariants
+     */
+    private function areaMatchTier(array $targetVariants, array $candidateVariants): int
+    {
+        if (empty($targetVariants) || empty($candidateVariants)) {
+            return 0;
+        }
+
+        if (array_intersect($targetVariants, $candidateVariants) !== []) {
+            return 2;
+        }
+
+        foreach ($targetVariants as $target) {
+            foreach ($candidateVariants as $candidate) {
+                if (str_contains($candidate, $target) || str_contains($target, $candidate)) {
+                    return 1;
+                }
+            }
+        }
+
+        return 0;
     }
 
     private function cacheDestination(array $candidate): string

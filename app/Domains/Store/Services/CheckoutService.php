@@ -10,6 +10,7 @@ use App\Domains\Store\Models\Product;
 use App\Domains\Store\Models\ProductVariant;
 use App\Domains\Store\Models\Store;
 use App\Domains\Store\Models\StoreOrder;
+use App\Domains\Store\Models\StoreShippingMethod;
 use App\Jobs\SendStoreOrderCreatedEmail;
 use App\Models\User;
 use App\Models\UserAddress;
@@ -199,6 +200,10 @@ class CheckoutService
      */
     private function resolveShipping(User $buyer, Store $store, array $data, int $totalWeight): array
     {
+        if (! empty($data['shipping_method_id'])) {
+            return $this->resolveCustomShipping($buyer, $store, $data);
+        }
+
         if (empty($data['user_address_id'])) {
             throw ValidationException::withMessages(['user_address_id' => 'Pilih alamat pengiriman.']);
         }
@@ -277,6 +282,68 @@ class CheckoutService
         ];
 
         return [$matched->cost, $shippingSnapshot, $shippingAddressSnapshot, $originAddressSnapshot];
+    }
+
+    /**
+     * A seller-defined flat-fee/pickup method — no RajaOngkir lookup at all, the fee is whatever
+     * the seller set. `pickup` never needs a buyer address (the destination is the store itself);
+     * `flat` still collects one so the store knows where to actually deliver, it just isn't
+     * resolved against a shipping provider since the fee doesn't depend on it.
+     *
+     * @return array{0: int, 1: array<string, string|null>, 2: array<string, mixed>|null, 3: array<string, mixed>|null}
+     */
+    private function resolveCustomShipping(User $buyer, Store $store, array $data): array
+    {
+        $method = StoreShippingMethod::where('store_id', $store->id)
+            ->where('id', $data['shipping_method_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (! $method) {
+            throw ValidationException::withMessages([
+                'shipping_method_id' => 'Metode pengiriman yang dipilih tidak lagi tersedia. Silakan pilih ulang.',
+            ]);
+        }
+
+        $originAddress = $store->primaryAddress()->first();
+        $originAddressSnapshot = $originAddress ? [
+            'recipient_name' => $originAddress->recipient_name,
+            'phone' => $originAddress->phone,
+            'address_line' => $originAddress->address_line,
+            'postal_code' => $originAddress->postal_code,
+        ] : null;
+
+        $shippingSnapshot = [
+            'shipping_provider' => 'store',
+            'store_shipping_method_id' => $method->id,
+            'shipping_courier_code' => $method->type,
+            'shipping_courier_name' => $method->name,
+            'shipping_service' => null,
+            'shipping_etd' => null,
+        ];
+
+        if ($method->isPickup()) {
+            return [(int) $method->fee, $shippingSnapshot, null, $originAddressSnapshot];
+        }
+
+        if (empty($data['user_address_id'])) {
+            throw ValidationException::withMessages(['user_address_id' => 'Pilih alamat pengiriman.']);
+        }
+
+        $buyerAddress = UserAddress::where('user_id', $buyer->id)->find($data['user_address_id']);
+        if (! $buyerAddress) {
+            throw ValidationException::withMessages(['user_address_id' => 'Alamat tidak ditemukan.']);
+        }
+
+        $shippingAddressSnapshot = [
+            'recipient_name' => $buyerAddress->recipient_name,
+            'phone' => $buyerAddress->phone,
+            'address_line' => $buyerAddress->address_line,
+            'full_address' => $buyerAddress->full_address,
+            'postal_code' => $buyerAddress->postal_code,
+        ];
+
+        return [(int) $method->fee, $shippingSnapshot, $shippingAddressSnapshot, $originAddressSnapshot];
     }
 
     private function initiateSatuteraPayment(StoreOrder $order, Transaction $transaction, User $buyer, array $data): void

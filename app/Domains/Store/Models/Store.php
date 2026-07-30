@@ -97,6 +97,11 @@ class Store extends Model implements HasMedia
         return $this->hasMany(Product::class);
     }
 
+    public function shippingMethods(): HasMany
+    {
+        return $this->hasMany(StoreShippingMethod::class);
+    }
+
     public function scopePubliclyVisible(Builder $q): Builder
     {
         return $q->where('status', 'approved')->where('is_active', true);

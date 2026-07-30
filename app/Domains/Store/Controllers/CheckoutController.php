@@ -37,6 +37,7 @@ class CheckoutController extends Controller
             ],
             'addresses' => $request->user()->addresses()->with('village.district.city.province')->orderByDesc('is_default')->get(),
             'paymentChannels' => $satutera->getPaymentChannels(),
+            'shippingMethods' => $store->shippingMethods()->where('is_active', true)->orderBy('created_at')->get(),
         ]);
     }
 
@@ -46,6 +47,7 @@ class CheckoutController extends Controller
             'user_address_id' => 'nullable|integer|exists:user_addresses,id',
             'shipping_courier_code' => 'nullable|string|max:20',
             'shipping_service' => 'nullable|string|max:50',
+            'shipping_method_id' => 'nullable|string|exists:store_shipping_methods,id',
             'payment_provider' => 'required|string|max:30',
             'payment_method' => 'required|string|max:20',
             'payment_channel' => 'required|string|max:30',

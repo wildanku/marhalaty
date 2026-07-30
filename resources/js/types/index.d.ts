@@ -379,6 +379,18 @@ export interface ShippingRate {
   etd: string | null;
 }
 
+export interface StoreShippingMethod {
+  id: string;
+  store_id: string;
+  name: string;
+  type: "pickup" | "flat";
+  fee: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PaymentChannel {
   provider: string;
   method: string;

@@ -21,10 +21,14 @@ export default function OrderShow() {
 
   const process = () => {
     setProcessing(true);
-    router.post(`/my/stores/${store.id}/orders/${order.id}/process`, {}, {
-      preserveScroll: true,
-      onFinish: () => setProcessing(false),
-    });
+    router.post(
+      `/my/stores/${store.id}/orders/${order.id}/process`,
+      {},
+      {
+        preserveScroll: true,
+        onFinish: () => setProcessing(false),
+      }
+    );
   };
 
   const ship = () => {
@@ -57,15 +61,22 @@ export default function OrderShow() {
       <Head title={order.order_number} />
 
       <div className="max-w-3xl mx-auto px-6 py-12">
-        <Link href={`/my/stores/${store.id}/orders`} className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-6">
+        <Link
+          href={`/my/stores/${store.id}/orders`}
+          className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-6"
+        >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
           Pesanan
         </Link>
 
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="font-headline text-2xl font-bold text-on-surface">{order.order_number}</h1>
-            <p className="text-sm text-on-surface-variant">{order.buyer?.name} · {order.buyer?.email}</p>
+            <h1 className="font-headline text-2xl font-bold text-on-surface">
+              {order.order_number}
+            </h1>
+            <p className="text-sm text-on-surface-variant">
+              {order.buyer?.name} · {order.buyer?.email}
+            </p>
           </div>
           <StatusBadge status={order.status} />
         </div>
@@ -82,8 +93,12 @@ export default function OrderShow() {
               <div key={item.id} className="flex items-center justify-between gap-4 p-5">
                 <div className="min-w-0">
                   <p className="font-medium text-on-surface truncate">{item.name_snapshot}</p>
-                  {item.variant_label_snapshot && <p className="text-xs text-on-surface-variant">{item.variant_label_snapshot}</p>}
-                  <p className="text-xs text-on-surface-variant">× {item.quantity} · {item.type_snapshot === "digital" ? "Digital" : "Fisik"}</p>
+                  {item.variant_label_snapshot && (
+                    <p className="text-xs text-on-surface-variant">{item.variant_label_snapshot}</p>
+                  )}
+                  <p className="text-xs text-on-surface-variant">
+                    × {item.quantity} · {item.type_snapshot === "digital" ? "Digital" : "Fisik"}
+                  </p>
                 </div>
                 <p className="font-headline font-semibold text-on-surface whitespace-nowrap">
                   Rp {Number(item.subtotal).toLocaleString("id-ID")}
@@ -93,15 +108,40 @@ export default function OrderShow() {
           </div>
           <div className="p-5 border-t border-outline-variant/10 flex justify-between">
             <span className="font-label font-semibold text-on-surface">Total</span>
-            <span className="font-headline text-lg font-bold text-primary">Rp {Number(order.total).toLocaleString("id-ID")}</span>
+            <span className="font-headline text-lg font-bold text-primary">
+              Rp {Number(order.total).toLocaleString("id-ID")}
+            </span>
           </div>
         </div>
 
         {order.requires_shipping && shippingAddress && (
           <div className="bg-surface-container-lowest rounded-3xl border border-surface-container-high p-5 mb-6">
-            <p className="font-label font-semibold text-on-surface mb-2">Alamat Pengiriman</p>
-            <p className="text-sm text-on-surface">{shippingAddress.recipient_name} — {shippingAddress.phone}</p>
-            <p className="text-sm text-on-surface-variant">{shippingAddress.full_address ?? shippingAddress.address_line}</p>
+            <p className="font-label font-semibold text-on-surface mb-2">
+              Alamat Pengiriman
+              {order.shipping_courier_name && (
+                <span className="font-normal text-on-surface-variant">
+                  {" "}
+                  · {order.shipping_courier_name}
+                </span>
+              )}
+            </p>
+            <p className="text-sm text-on-surface">
+              {shippingAddress.recipient_name} — {shippingAddress.phone}
+            </p>
+            <p className="text-sm text-on-surface-variant">
+              {shippingAddress.full_address ?? shippingAddress.address_line}
+            </p>
+          </div>
+        )}
+
+        {order.requires_shipping && !shippingAddress && order.shipping_provider === "store" && (
+          <div className="bg-primary-container/40 rounded-3xl border border-surface-container-high p-5 mb-6">
+            <p className="font-label font-semibold text-on-surface mb-1">
+              Pengiriman: {order.shipping_courier_name}
+            </p>
+            <p className="text-sm text-on-surface-variant">
+              Pembeli akan mengambil pesanan sendiri — tidak perlu dikirim.
+            </p>
           </div>
         )}
 

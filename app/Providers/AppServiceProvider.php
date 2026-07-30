@@ -23,6 +23,7 @@ use App\Domains\Store\Models\StoreAddress;
 use App\Domains\Store\Models\StoreMember;
 use App\Domains\Store\Models\StoreOrder;
 use App\Domains\Store\Models\StoreOrderItem;
+use App\Domains\Store\Models\StoreShippingMethod;
 use App\Domains\Store\Policies\StorePolicy;
 use App\Models\Admin;
 use App\Models\Consulate;
@@ -87,6 +88,7 @@ class AppServiceProvider extends ServiceProvider
         StoreOrder::observe(DeletedItemObserver::class);
         StoreOrderItem::observe(DeletedItemObserver::class);
         DigitalDelivery::observe(DeletedItemObserver::class);
+        StoreShippingMethod::observe(DeletedItemObserver::class);
 
         Gate::policy(Store::class, StorePolicy::class);
     }

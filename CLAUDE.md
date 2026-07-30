@@ -90,6 +90,17 @@ Frontend (no JS lockfile is committed; no ESLint configured, only Prettier):
 - **No global state library** (no Zustand) — state is `useState`/`useMemo` plus Inertia shared
   props (via the `HandleInertiaRequests` middleware). Don't introduce a state library without
   checking with the user first.
+- **Don't render large datasets as Inertia props.** Controllers must not pass big/unbounded
+  collections (product lists, user/alumni lists, order lists, admin tables, etc.) into
+  `Inertia::render()` — every full Inertia visit and partial reload re-serializes and re-transfers
+  that payload, which is what makes these pages slow to load. For anything list-shaped and
+  non-trivial in size, expose a thin JSON endpoint instead (still behind the normal
+  auth/policy/Form Request checks) and fetch it client-side with `axios` +
+  TanStack React Query (`@tanstack/react-query`) — neither is installed yet, so add both the first
+  time this pattern is needed. Reserve Inertia props for the page "shell": current user, small
+  lookup/filter option lists, and other bounded, cheap-to-serialize data. Note this is a narrow
+  exception to the "no global state library" rule above — React Query manages server-state
+  caching, not client/UI state, so it doesn't conflict with that rule.
 - i18n is a custom `useTranslate()` hook reading a `translations` Inertia prop backed by flat
   key→value maps in `lang/en.json` / `lang/id.json`; locale switches via `POST /language`.
 

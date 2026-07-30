@@ -22,6 +22,7 @@ class StoreController extends Controller
             'role' => $store->roleFor($request->user()),
             'productCount' => $store->products()->count(),
             'orderCount' => StoreOrder::where('store_id', $store->id)->count(),
+            'shippingMethodCount' => $store->shippingMethods()->count(),
         ]);
     }
 

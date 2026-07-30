@@ -35,4 +35,9 @@ class StorePolicy
     {
         return $store->isManagedBy($user);
     }
+
+    public function manageShipping(User $user, Store $store): bool
+    {
+        return $store->isManagedBy($user);
+    }
 }

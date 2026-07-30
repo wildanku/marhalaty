@@ -27,6 +27,7 @@ class StoreOrder extends Model
         'total',
         'total_weight_grams',
         'shipping_provider',
+        'store_shipping_method_id',
         'shipping_courier_code',
         'shipping_courier_name',
         'shipping_service',
