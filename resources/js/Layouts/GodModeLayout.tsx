@@ -22,6 +22,8 @@ const navItems = [
   { href: "/god-mode/admins", label: "Admins", icon: "admin_panel_settings" },
   { href: "/god-mode/activity-logs", label: "Activity Logs", icon: "receipt_long" },
   { href: "/god-mode/events", label: "Events", icon: "event" },
+  { href: "/god-mode/stores", label: "Stores", icon: "storefront" },
+  { href: "/god-mode/store-orders", label: "Store Orders", icon: "shopping_bag" },
   { href: "/god-mode/consulates", label: "Consulates", icon: "location_city" },
 ];
 

@@ -187,6 +187,33 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                       {t("Edit Profile")}
                     </Link>
 
+                    <Link
+                      href="/my/stores"
+                      className="flex items-center gap-3 px-4 py-2 text-on-surface hover:bg-surface-container-high transition-colors duration-200 font-body text-sm"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      <span className="material-symbols-outlined text-lg">storefront</span>
+                      {t("My Stores")}
+                    </Link>
+
+                    <Link
+                      href="/cart"
+                      className="flex items-center gap-3 px-4 py-2 text-on-surface hover:bg-surface-container-high transition-colors duration-200 font-body text-sm"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      <span className="material-symbols-outlined text-lg">shopping_cart</span>
+                      {t("Cart")}
+                    </Link>
+
+                    <Link
+                      href="/store/orders"
+                      className="flex items-center gap-3 px-4 py-2 text-on-surface hover:bg-surface-container-high transition-colors duration-200 font-body text-sm"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      <span className="material-symbols-outlined text-lg">receipt_long</span>
+                      {t("My Orders")}
+                    </Link>
+
                     <hr className="my-2 border-outline-variant/20" />
 
                     <button
@@ -310,6 +337,33 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                 >
                   <span className="material-symbols-outlined text-lg">manage_accounts</span>
                   {t("Edit Profile")}
+                </Link>
+
+                <Link
+                  href="/my/stores"
+                  className="flex items-center gap-3 px-4 py-2.5 text-on-surface hover:bg-surface-container-high rounded-xl transition-colors font-body text-sm"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  <span className="material-symbols-outlined text-lg">storefront</span>
+                  {t("My Stores")}
+                </Link>
+
+                <Link
+                  href="/cart"
+                  className="flex items-center gap-3 px-4 py-2.5 text-on-surface hover:bg-surface-container-high rounded-xl transition-colors font-body text-sm"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  <span className="material-symbols-outlined text-lg">shopping_cart</span>
+                  {t("Cart")}
+                </Link>
+
+                <Link
+                  href="/store/orders"
+                  className="flex items-center gap-3 px-4 py-2.5 text-on-surface hover:bg-surface-container-high rounded-xl transition-colors font-body text-sm"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  <span className="material-symbols-outlined text-lg">receipt_long</span>
+                  {t("My Orders")}
                 </Link>
 
                 <hr className="my-2 border-outline-variant/10" />

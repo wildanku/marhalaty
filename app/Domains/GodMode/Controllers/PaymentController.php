@@ -19,12 +19,17 @@ class PaymentController extends Controller
     {
         $transactions = Transaction::with(['user', 'rsvp.event', 'proof'])
             ->where('payment_provider', 'manual')
+            // Cheap insurance for when a store ever gains a manual-transfer channel: this view
+            // eager-loads and renders `rsvp.event` directly, which would be null for a store
+            // order and break the page. `payment_provider` filtering already prevents any real
+            // leak of store-order transactions today (see MVP2 fase 5 spec §4).
+            ->whereNotNull('rsvp_id')
             ->orderByRaw("CASE status WHEN 'pending' THEN 0 ELSE 1 END")
             ->orderBy('created_at', 'desc')
             ->paginate(30);
 
         return Inertia::render('GodMode/Payments/Index', [
-            'admin'        => auth('admin')->user(),
+            'admin' => auth('admin')->user(),
             'transactions' => $transactions,
         ]);
     }
@@ -46,15 +51,15 @@ class PaymentController extends Controller
                 ->findOrFail($id);
 
             $transaction->update([
-                'status'  => 'paid',
+                'status' => 'paid',
                 'paid_at' => now(),
             ]);
 
             if ($transaction->proof) {
                 $transaction->proof->update([
-                    'reviewed_at'  => now(),
-                    'reviewed_by'  => auth('admin')->id(),
-                    'review_note'  => $request->input('review_note', 'Bukti pembayaran terverifikasi.'),
+                    'reviewed_at' => now(),
+                    'reviewed_by' => auth('admin')->id(),
+                    'review_note' => $request->input('review_note', 'Bukti pembayaran terverifikasi.'),
                 ]);
             }
 
@@ -115,13 +120,13 @@ class PaymentController extends Controller
             ->where('payment_provider', 'manual')
             ->findOrFail($id);
 
-        if (!$transaction->proof) {
+        if (! $transaction->proof) {
             abort(404, 'Bukti pembayaran tidak ditemukan.');
         }
 
         $path = $transaction->proof->file_path;
 
-        if (!Storage::disk('local')->exists($path)) {
+        if (! Storage::disk('local')->exists($path)) {
             abort(404, 'File tidak ditemukan.');
         }
 

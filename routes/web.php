@@ -8,12 +8,29 @@ use App\Domains\Event\Controllers\PaymentController;
 use App\Domains\Event\Controllers\PaymentPageController;
 use App\Domains\Event\Controllers\PaymentProofController;
 use App\Domains\Event\Controllers\RsvpController;
+use App\Domains\GodMode\Controllers\AdminActivityLogController;
+use App\Domains\GodMode\Controllers\AdminManagementController;
 use App\Domains\GodMode\Controllers\AuthController;
 use App\Domains\GodMode\Controllers\ConsulateController;
 use App\Domains\GodMode\Controllers\EmailTesterController;
 use App\Domains\GodMode\Controllers\EventAddonController;
 use App\Domains\GodMode\Controllers\EventPackageController;
 use App\Domains\GodMode\Controllers\UserController;
+use App\Domains\Shared\Controllers\TelegramWebhookController;
+use App\Domains\Store\Controllers\CartController;
+use App\Domains\Store\Controllers\CheckoutController;
+use App\Domains\Store\Controllers\PaymentChannelController;
+use App\Domains\Store\Controllers\ProductController;
+use App\Domains\Store\Controllers\SatuteraWebhookController;
+use App\Domains\Store\Controllers\ShippingController;
+use App\Domains\Store\Controllers\StoreApplicationController;
+use App\Domains\Store\Controllers\StoreController;
+use App\Domains\Store\Controllers\StoreDirectoryController;
+use App\Domains\Store\Controllers\StoreDownloadController;
+use App\Domains\Store\Controllers\StoreMemberController;
+use App\Domains\Store\Controllers\StoreOrderController;
+use App\Domains\Store\Controllers\StoreOrderManagementController;
+use App\Domains\Store\Controllers\StorePaymentPageController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -21,8 +38,11 @@ use App\Http\Controllers\Auth\OnboardingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserAddressController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -43,6 +63,9 @@ Route::middleware('web')->group(function () {
 
     Route::get('/api/locations/cities', [LocationController::class, 'cities'])->name('api.locations.cities');
     Route::get('/api/locations/foreign-cities', [LocationController::class, 'foreignCities'])->name('api.locations.foreign-cities');
+    Route::get('/api/locations/provinces', [LocationController::class, 'provinces'])->name('api.locations.provinces');
+    Route::get('/api/locations/districts', [LocationController::class, 'districts'])->name('api.locations.districts');
+    Route::get('/api/locations/villages', [LocationController::class, 'villages'])->name('api.locations.villages');
 });
 
 // Placeholder for protected dashboard
@@ -73,7 +96,73 @@ Route::middleware('auth')->group(function () {
     Route::get('/maal', [CampaignController::class, 'index'])->name('maal.index');
     Route::get('/maal/campaigns/{slug}', [CampaignController::class, 'show'])->name('maal.show');
     Route::post('/maal/donate', [DonationController::class, 'store'])->name('maal.donate');
+
+    // Store module (seller-facing)
+    Route::prefix('my/stores')->name('stores.')->group(function () {
+        Route::get('/', [StoreApplicationController::class, 'index'])->name('mine');
+        Route::get('/create', [StoreApplicationController::class, 'create'])->name('create');
+        Route::post('/', [StoreApplicationController::class, 'store'])->name('store');
+        Route::get('/{store}', [StoreController::class, 'show'])->name('manage');
+        Route::patch('/{store}', [StoreController::class, 'update'])->name('update');
+        Route::post('/{store}/address', [StoreController::class, 'updateAddress'])->name('address.store');
+        Route::post('/{store}/members', [StoreMemberController::class, 'invite'])->name('members.invite');
+        Route::delete('/{store}/members/{member}', [StoreMemberController::class, 'revoke'])->name('members.revoke');
+
+        Route::get('/{store}/products', [ProductController::class, 'index'])->name('products.index');
+        Route::get('/{store}/products/create', [ProductController::class, 'create'])->name('products.create');
+        Route::post('/{store}/products', [ProductController::class, 'store'])->name('products.store');
+        Route::get('/{store}/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
+        Route::put('/{store}/products/{product}', [ProductController::class, 'update'])->name('products.update');
+        Route::patch('/{store}/products/{product}/status', [ProductController::class, 'updateStatus'])->name('products.status');
+        Route::delete('/{store}/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+        Route::get('/{store}/orders', [StoreOrderManagementController::class, 'index'])->name('orders.index');
+        Route::get('/{store}/orders/{order}', [StoreOrderManagementController::class, 'show'])->name('orders.show');
+        Route::post('/{store}/orders/{order}/process', [StoreOrderManagementController::class, 'process'])->name('orders.process');
+        Route::post('/{store}/orders/{order}/ship', [StoreOrderManagementController::class, 'ship'])->name('orders.ship');
+        Route::post('/{store}/orders/{order}/cancel', [StoreOrderManagementController::class, 'cancel'])->name('orders.cancel');
+    });
+
+    Route::get('/store-invitations/{token}', [StoreMemberController::class, 'invitationShow'])->name('stores.invitations.show');
+    Route::post('/store-invitations/{token}', [StoreMemberController::class, 'invitationAccept'])->name('stores.invitations.accept');
+
+    // Buyer address book (JSON, consumed by AddressPicker inside checkout — not a full page)
+    Route::prefix('my/addresses')->name('addresses.')->group(function () {
+        Route::get('/', [UserAddressController::class, 'index'])->name('index');
+        Route::post('/', [UserAddressController::class, 'store'])->name('store');
+        Route::put('/{id}', [UserAddressController::class, 'update'])->name('update');
+        Route::delete('/{id}', [UserAddressController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/default', [UserAddressController::class, 'setDefault'])->name('default');
+    });
+
+    // Cart (per-store)
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/items', [CartController::class, 'store'])->name('cart.items.store');
+    Route::patch('/cart/items/{id}', [CartController::class, 'updateQty'])->name('cart.items.update');
+    Route::delete('/cart/items/{id}', [CartController::class, 'destroy'])->name('cart.items.destroy');
+
+    // Shipping rates — billed RajaOngkir lookup per call
+    Route::post('/api/shipping/rates', [ShippingController::class, 'rates'])
+        ->name('api.shipping.rates')
+        ->middleware('throttle:30,1');
+
+    // Checkout
+    Route::get('/checkout/{store:slug}', [CheckoutController::class, 'show'])->name('checkout.show');
+    Route::post('/checkout/{store:slug}', [CheckoutController::class, 'store'])->name('checkout.store');
+
+    // Buyer order history
+    Route::get('/store/orders', [StoreOrderController::class, 'index'])->name('store.orders.index');
+    Route::get('/store/orders/{id}', [StoreOrderController::class, 'show'])->name('store.orders.show');
+    Route::post('/store/orders/{id}/complete', [StoreOrderController::class, 'complete'])->name('store.orders.complete');
+
+    // Digital product delivery — ownership/quota/expiry checked in the controller
+    Route::get('/downloads/{token}', [StoreDownloadController::class, 'show'])->name('store.downloads.show');
 });
+
+// Public Store directory & storefront
+Route::get('/stores', [StoreDirectoryController::class, 'index'])->name('stores.directory');
+Route::get('/stores/{store:slug}', [StoreDirectoryController::class, 'show'])->name('stores.show');
+Route::get('/stores/{store:slug}/products/{productSlug}', [StoreDirectoryController::class, 'productShow'])->name('stores.products.show');
 
 // Public Event Detail Route
 Route::get('/events/{slug}', [EventController::class, 'show'])->name('events.show');
@@ -89,19 +178,31 @@ Route::get('/payment/{hash}', [PaymentPageController::class, 'show'])->name('pay
 Route::get('/payment-confirmation/{hash}', [PaymentPageController::class, 'confirmationShow'])->name('payment.confirmation.show');
 Route::post('/payment-confirmation/{hash}', [PaymentPageController::class, 'confirmationStore'])->name('payment.confirmation.store');
 
+// Store order payment page (separate from the RSVP page above — see MVP2 README decision D8)
+Route::get('/store/payment/{hash}', [StorePaymentPageController::class, 'show'])->name('store.payment.show');
+Route::get('/store/payment/{hash}/status', [StorePaymentPageController::class, 'status'])->name('store.payment.status');
+
+// Public, credential-free payment channel catalog (cached)
+Route::get('/api/store/payment-channels', [PaymentChannelController::class, 'index'])->name('api.store.payment-channels');
+
 // iPaymu webhook (exempt from CSRF – verified by provider signature)
 Route::post('/payments/ipaymu/webhook', [PaymentController::class, 'ipaymuWebhook'])
     ->name('payments.ipaymu.webhook')
     ->withoutMiddleware([PreventRequestForgery::class]);
 
+// Satutera webhook (exempt from CSRF – verified by HMAC signature)
+Route::post('/webhooks/satutera/payment', [SatuteraWebhookController::class, 'handle'])
+    ->name('webhooks.satutera.payment')
+    ->withoutMiddleware([PreventRequestForgery::class]);
+
 // Telegram bot webhook (exempt from CSRF – verified by whitelist check)
-Route::post('/telegram/webhook', [App\Domains\Shared\Controllers\TelegramWebhookController::class, 'handle'])
+Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle'])
     ->name('telegram.webhook')
     ->withoutMiddleware([PreventRequestForgery::class]);
 
 // Telegram webhook test/debug (raw logging)
-Route::post('/telegram/webhook-debug', function (\Illuminate\Http\Request $request) {
-    \Illuminate\Support\Facades\Log::info('🔍 Telegram webhook debug request received', [
+Route::post('/telegram/webhook-debug', function (Request $request) {
+    Log::info('🔍 Telegram webhook debug request received', [
         'update_id' => $request->input('update_id'),
         'message' => $request->input('message.text'),
         'from_id' => $request->input('message.from.id'),
@@ -109,6 +210,7 @@ Route::post('/telegram/webhook-debug', function (\Illuminate\Http\Request $reque
         'all_keys' => array_keys($request->all()),
         'raw_body' => $request->getContent(),
     ]);
+
     return response('ok', 200);
 })
     ->name('telegram.webhook.debug')
@@ -125,15 +227,16 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         Route::get('/', [App\Domains\GodMode\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
         // Admins Management
-        Route::get('/admins', [App\Domains\GodMode\Controllers\AdminManagementController::class, 'index'])->name('admins.index');
-        Route::post('/admins', [App\Domains\GodMode\Controllers\AdminManagementController::class, 'store'])->name('admins.store');
-        Route::delete('/admins/{id}', [App\Domains\GodMode\Controllers\AdminManagementController::class, 'destroy'])->name('admins.destroy');
+        Route::get('/admins', [AdminManagementController::class, 'index'])->name('admins.index');
+        Route::post('/admins', [AdminManagementController::class, 'store'])->name('admins.store');
+        Route::delete('/admins/{id}', [AdminManagementController::class, 'destroy'])->name('admins.destroy');
 
         // Admin Activity Logs
-        Route::get('/activity-logs', [App\Domains\GodMode\Controllers\AdminActivityLogController::class, 'index'])->name('activity-logs.index');
+        Route::get('/activity-logs', [AdminActivityLogController::class, 'index'])->name('activity-logs.index');
 
         // Users
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users-search', [UserController::class, 'search'])->name('users.search');
         Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
         Route::patch('/users/{id}/verify', [UserController::class, 'toggleVerify'])->name('users.verify');
 
@@ -178,5 +281,19 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         // Email Tester
         Route::get('/email-tester', [EmailTesterController::class, 'index'])->name('email-tester.index');
         Route::post('/email-tester/send', [EmailTesterController::class, 'send'])->name('email-tester.send');
+
+        // Stores
+        Route::get('/stores', [App\Domains\GodMode\Controllers\StoreController::class, 'index'])->name('stores.index');
+        Route::get('/stores/create', [App\Domains\GodMode\Controllers\StoreController::class, 'create'])->name('stores.create');
+        Route::post('/stores', [App\Domains\GodMode\Controllers\StoreController::class, 'store'])->name('stores.store');
+        Route::get('/stores/{id}', [App\Domains\GodMode\Controllers\StoreController::class, 'show'])->name('stores.show');
+        Route::post('/stores/{id}/approve', [App\Domains\GodMode\Controllers\StoreController::class, 'approve'])->name('stores.approve');
+        Route::post('/stores/{id}/reject', [App\Domains\GodMode\Controllers\StoreController::class, 'reject'])->name('stores.reject');
+        Route::post('/stores/{id}/suspend', [App\Domains\GodMode\Controllers\StoreController::class, 'suspend'])->name('stores.suspend');
+
+        // Store Orders
+        Route::get('/store-orders', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'index'])->name('store-orders.index');
+        Route::get('/store-orders/{id}', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'show'])->name('store-orders.show');
+        Route::get('/store-orders-export', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'exportExcel'])->name('store-orders.export');
     });
 });

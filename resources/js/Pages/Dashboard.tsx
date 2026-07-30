@@ -61,11 +61,12 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Nav */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
           {[
             { href: "/directory", icon: "groups", label: t("Alumni Directory") },
             { href: "/events", icon: "calendar_month", label: t("Events & Reunions") },
             { href: "/maal", icon: "volunteer_activism", label: t("Baitul Maal") },
+            { href: "/store/orders", icon: "receipt_long", label: t("My Orders") },
             { href: `/p/${auth?.user?.slug}`, icon: "person", label: t("My Profile") },
           ].map((item) => (
             <Link

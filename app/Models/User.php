@@ -3,6 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domains\Donation\Models\Donation;
+use App\Domains\Shared\Models\IndonesiaCity;
+use App\Models\Scopes\MarhalahScope;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -56,12 +59,12 @@ class User extends Authenticatable
 
     public function donations()
     {
-        return $this->hasMany(\App\Domains\Donation\Models\Donation::class);
+        return $this->hasMany(Donation::class);
     }
 
     public function city()
     {
-        return $this->belongsTo(\App\Domains\Shared\Models\IndonesiaCity::class, 'city_id');
+        return $this->belongsTo(IndonesiaCity::class, 'city_id');
     }
 
     public function profession()
@@ -79,12 +82,17 @@ class User extends Authenticatable
         return $this->belongsTo(Option::class, 'pendidikan_terakhir_id');
     }
 
+    public function addresses()
+    {
+        return $this->hasMany(UserAddress::class);
+    }
+
     /**
      * The "booted" method of the model.
      */
     protected static function booted(): void
     {
-        static::addGlobalScope(new \App\Models\Scopes\MarhalahScope());
+        static::addGlobalScope(new MarhalahScope);
     }
 
     /**

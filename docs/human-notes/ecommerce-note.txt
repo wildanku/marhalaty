@@ -25,3 +25,8 @@ Idea:
   -- baca dokumen /docs/guidance/payment-guidance.md untuk mempelajari flow dan pengguaan service payment by satutera. 
   -- endpoint yg dibutuhkan adalah mengambil payment-channel dan POST payment dgn raw_detail yg mana nantinya akan mengarahkan ke halaman payment dan menampilkan detail payment baik itu QRIS ataupun Virtual Account, jangan lupa tambahkan payment fee tersebut ke dalam total purchase
   -- di halaman payment jg kasih web socket untuk mengecek apakah pembayaran berhasil atau belum
+
+Idea Part 2:
+- Untuk store kita ada tambahan badge "Official", "Top Seller", "Trusted" dan mungkin ada tambahan badge lainnya. Untuk mengatur badge tersebut hanya admin yg bisa melalui god-mode
+- Sistem payment bisa kita set, saat ini kan kita pake payment dari satutera, buat admin bisa set untuk masukin payment gateway sendiri dan bisa atur pembayaran manual mulai dari toggle on-off, set nomor rekening pembayaran, dsb
+- Admin jg bisa mengatur kurir yg aktif dan tidak, coba riset dulu di rajaongkir list kurir yg ada, kemudian admin bisa setting mau aktifin kurir yg mana aja dan simpan di table database, ketika admin set aturan kurir, kurir yg tampil di halaman checkout harus sesuai dgn apa yg kita set di admin

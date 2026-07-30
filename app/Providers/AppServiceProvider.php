@@ -2,25 +2,38 @@
 
 namespace App\Providers;
 
-use App\Domains\Event\Models\Rsvp;
-use App\Domains\Event\Models\Event;
-use App\Domains\Event\Models\EventPackage;
-use App\Domains\Event\Models\EventAddon;
-use App\Domains\Event\Models\Transaction;
-use App\Domains\Event\Models\PaymentProof;
+use App\Contracts\ShippingProviderInterface;
 use App\Domains\Donation\Models\Campaign;
 use App\Domains\Donation\Models\CampaignUpdate;
 use App\Domains\Donation\Models\Donation;
 use App\Domains\Donation\Models\Fund;
-use App\Models\User;
+use App\Domains\Event\Models\Event;
+use App\Domains\Event\Models\EventAddon;
+use App\Domains\Event\Models\EventPackage;
+use App\Domains\Event\Models\PaymentProof;
+use App\Domains\Event\Models\Rsvp;
+use App\Domains\Event\Models\Transaction;
+use App\Domains\Event\Observers\RsvpObserver;
+use App\Domains\Shared\Services\RajaOngkirService;
+use App\Domains\Store\Models\DigitalDelivery;
+use App\Domains\Store\Models\Product;
+use App\Domains\Store\Models\ProductVariant;
+use App\Domains\Store\Models\Store;
+use App\Domains\Store\Models\StoreAddress;
+use App\Domains\Store\Models\StoreMember;
+use App\Domains\Store\Models\StoreOrder;
+use App\Domains\Store\Models\StoreOrderItem;
+use App\Domains\Store\Policies\StorePolicy;
 use App\Models\Admin;
 use App\Models\Consulate;
 use App\Models\ConsulateCity;
 use App\Models\Option;
 use App\Models\Setting;
 use App\Models\TelegramWhitelist;
-use App\Domains\Event\Observers\RsvpObserver;
+use App\Models\User;
+use App\Models\UserAddress;
 use App\Observers\DeletedItemObserver;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -30,7 +43,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(ShippingProviderInterface::class, fn () => match (config('services.shipping.default')) {
+            'rajaongkir' => new RajaOngkirService,
+            default => new RajaOngkirService,
+        });
     }
 
     /**
@@ -61,5 +77,17 @@ class AppServiceProvider extends ServiceProvider
         Option::observe(DeletedItemObserver::class);
         Setting::observe(DeletedItemObserver::class);
         TelegramWhitelist::observe(DeletedItemObserver::class);
+
+        Store::observe(DeletedItemObserver::class);
+        StoreMember::observe(DeletedItemObserver::class);
+        StoreAddress::observe(DeletedItemObserver::class);
+        Product::observe(DeletedItemObserver::class);
+        ProductVariant::observe(DeletedItemObserver::class);
+        UserAddress::observe(DeletedItemObserver::class);
+        StoreOrder::observe(DeletedItemObserver::class);
+        StoreOrderItem::observe(DeletedItemObserver::class);
+        DigitalDelivery::observe(DeletedItemObserver::class);
+
+        Gate::policy(Store::class, StorePolicy::class);
     }
 }

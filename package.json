@@ -22,9 +22,14 @@
     },
     "dependencies": {
         "@inertiajs/react": "^3.0.3",
+        "@tiptap/extension-placeholder": "^3.29.2",
+        "@tiptap/pm": "^3.29.2",
+        "@tiptap/react": "^3.29.2",
+        "@tiptap/starter-kit": "^3.29.2",
         "react": "^19.2.5",
         "react-dom": "^19.2.5",
         "react-select": "^5.10.2",
+        "socket.io-client": "^4.8.3",
         "zod": "^4.3.6"
     }
 }

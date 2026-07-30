@@ -64,6 +64,84 @@
   --font-sans: 'Overused Grotesk', sans-serif;
 }
 
+/* Styles the fixed tag set HtmlSanitizerService allows through (product descriptions etc.) —
+   Tailwind's preflight strips default browser styling for headings/lists/links, so without this
+   a sanitized <ul> or <a> would render with no visual distinction from plain text. */
+.rich-text {
+  font-size: inherit;
+  line-height: 1.6;
+}
+
+.rich-text p {
+  margin: 0 0 0.75em;
+}
+
+.rich-text p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text h2 {
+  font-family: var(--font-headline);
+  font-size: 1.25em;
+  font-weight: 700;
+  margin: 1em 0 0.5em;
+}
+
+.rich-text h3 {
+  font-family: var(--font-headline);
+  font-size: 1.1em;
+  font-weight: 700;
+  margin: 1em 0 0.5em;
+}
+
+.rich-text ul,
+.rich-text ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.5em;
+}
+
+.rich-text ul {
+  list-style-type: disc;
+}
+
+.rich-text ol {
+  list-style-type: decimal;
+}
+
+.rich-text li {
+  margin: 0.25em 0;
+}
+
+.rich-text blockquote {
+  border-left: 3px solid var(--color-outline-variant);
+  padding-left: 1em;
+  margin: 0.75em 0;
+  color: var(--color-on-surface-variant);
+}
+
+.rich-text a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rich-text strong {
+  font-weight: 700;
+}
+
+.rich-text em {
+  font-style: italic;
+}
+
+.rich-text p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-on-surface-variant);
+  opacity: 0.6;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
 @layer utilities {
   @keyframes fadeIn {
     from {

@@ -10,7 +10,10 @@ export default function CurrencyInput({ value, onChange, className = "", ...prop
 
   const formatNumber = (val: string | number) => {
     if (val === null || val === undefined || val === "") return "";
-    const numericString = String(val).replace(/\D/g, "");
+    // Values may arrive as decimal-cast strings (e.g. "120000.00" from a `decimal:2` column) —
+    // drop the fractional part first so it isn't mistaken for extra whole-rupiah digits.
+    const integerPart = String(val).split(".")[0];
+    const numericString = integerPart.replace(/\D/g, "");
     return numericString.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
