@@ -34,14 +34,47 @@ export interface AddonFormField {
   options?: string[];
 }
 
+// Per-combination pricing (max 2 option groups) — mirrors `ProductVariant`. Addendum to
+// docs/plan/mvp2/8-event-product-integration.md, supersedes D26: addons (manual or product-linked)
+// now price each combination independently instead of one flat price for every variant.
+export interface EventAddonVariant {
+  id: number;
+  option1_name: string;
+  option1_value: string;
+  option2_name: string | null;
+  option2_value: string | null;
+  price: string;
+  label: string;
+}
+
 export interface EventAddon {
   id: number;
   event_id: number;
   name: string;
-  price: string;
+  // Flat price — only meaningful when `has_variants` is false. Null when has_variants (mirrors
+  // `Product.price`); use `display_price`/`variants` instead.
+  price: string | null;
   stock_quantity: number;
-  variants: Record<string, string[] | AddonFormField[]> | null;
+  has_variants: boolean;
+  form_fields: AddonFormField[] | null;
+  // Full per-combination price list — small & bounded (max 2 option groups), safe as an Inertia
+  // prop. Empty when `has_variants` is false.
+  variants: EventAddonVariant[];
   image_url?: string | null;
+  // Fase 8 (docs/plan/mvp2/8-event-product-integration.md) — product-linked addons. All are
+  // `$appends` on the EventAddon model, always present once the addon is loaded.
+  product_id?: string | null;
+  product_variant_id?: string | null;
+  is_product_linked: boolean;
+  // Buyer-visible stock: for a linked addon this reads the underlying product/variant, never
+  // `stock_quantity` (D25) — always prefer this field over `stock_quantity` directly.
+  available_stock: number;
+  // `{"Ukuran": ["M","L"], ...}` built from `variants` above — same for manual and product-linked
+  // addons now. Null when the addon has no variants.
+  variant_options: Record<string, string[]> | null;
+  // `price` when `!has_variants`, else the lowest active combination price — for "mulai dari"
+  // ("starting from") display before a buyer has picked a variant.
+  display_price: string;
 }
 
 export interface IncludedAddon extends EventAddon {
@@ -195,7 +228,9 @@ export interface Transaction {
   created_at: string;
   updated_at: string;
   rsvp?: Rsvp;
+  payable?: StoreOrder;
   proof?: PaymentProof | null;
+  user?: User;
 }
 
 export interface IndonesiaVillage {
@@ -274,6 +309,32 @@ export interface Store {
   members?: StoreMember[];
   primary_address?: StoreAddress | null;
   active_products_count?: number;
+  active_badges?: StoreBadgeSummary[];
+  badges?: StoreBadgeSummary[];
+}
+
+export type StoreBadgeColorToken = "primary" | "secondary" | "tertiary" | "error" | "neutral";
+
+export interface StoreBadgeAssignmentPivot {
+  id: number;
+  assigned_at: string;
+  expires_at: string | null;
+  note: string | null;
+  assigned_by: number | null;
+}
+
+export interface StoreBadgeSummary {
+  id: number;
+  code: string;
+  name: string;
+  name_en: string | null;
+  description: string | null;
+  icon: string;
+  color_token: StoreBadgeColorToken;
+  is_active?: boolean;
+  sort_order?: number;
+  assignments_count?: number;
+  pivot?: StoreBadgeAssignmentPivot;
 }
 
 export interface ProductOption {

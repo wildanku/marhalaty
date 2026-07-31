@@ -4,6 +4,8 @@ namespace App\Domains\Shared\Controllers;
 
 use App\Domains\Event\Models\Transaction;
 use App\Domains\Shared\Services\TelegramService;
+use App\Domains\Store\Models\StoreOrder;
+use App\Domains\Store\Services\OrderFulfillmentService;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendEventRegistrationConfirmedEmail;
 use App\Models\TelegramWhitelist;
@@ -21,7 +23,10 @@ use Illuminate\Support\Facades\Log;
  */
 class TelegramWebhookController extends Controller
 {
-    public function __construct(private readonly TelegramService $telegram) {}
+    public function __construct(
+        private readonly TelegramService $telegram,
+        private readonly OrderFulfillmentService $fulfillment,
+    ) {}
 
     public function handle(Request $request): Response
     {
@@ -34,29 +39,31 @@ class TelegramWebhookController extends Controller
             $message = $update['message'] ?? $update['channel_post'] ?? null;
             if (! $message || ! isset($message['text'])) {
                 Log::debug('Telegram webhook: ignoring non-text message', ['update_keys' => array_keys($update)]);
+
                 return response('ok', 200);
             }
 
-            $chatId    = $message['chat']['id'] ?? null;
+            $chatId = $message['chat']['id'] ?? null;
             $messageId = $message['message_id'] ?? null;
-            $text      = trim($message['text'] ?? '');
-            $fromId    = $message['from']['id'] ?? $chatId;
+            $text = trim($message['text'] ?? '');
+            $fromId = $message['from']['id'] ?? $chatId;
 
             Log::info('📨 Telegram message received', [
-                'chat_id'    => $chatId,
-                'from_id'    => $fromId,
+                'chat_id' => $chatId,
+                'from_id' => $fromId,
                 'message_id' => $messageId,
-                'text'       => $text,
-                'chat_type'  => $message['chat']['type'] ?? 'unknown',
+                'text' => $text,
+                'chat_type' => $message['chat']['type'] ?? 'unknown',
             ]);
 
             if (empty($chatId) || empty($messageId) || empty($text)) {
                 Log::error('❌ Missing required message fields', [
-                    'has_chat_id'    => !empty($chatId),
-                    'has_message_id' => !empty($messageId),
-                    'has_text'       => !empty($text),
-                    'message_keys'   => array_keys($message),
+                    'has_chat_id' => ! empty($chatId),
+                    'has_message_id' => ! empty($messageId),
+                    'has_text' => ! empty($text),
+                    'message_keys' => array_keys($message),
                 ]);
+
                 return response('ok', 200);
             }
 
@@ -76,13 +83,14 @@ class TelegramWebhookController extends Controller
                 Log::warning('🔒 Unauthorized sender attempting command', [
                     'from_id' => $fromId,
                     'chat_id' => $chatId,
-                    'text'    => $text,
+                    'text' => $text,
                 ]);
                 // Send feedback to unauthorized user
                 $this->telegram->sendMessage($chatId,
-                    "🔒 Anda tidak memiliki otorisasi untuk menjalankan command ini.\n\n" .
-                    "Hubungi admin untuk akses."
+                    "🔒 Anda tidak memiliki otorisasi untuk menjalankan command ini.\n\n".
+                    'Hubungi admin untuk akses.'
                 );
+
                 return response('ok', 200);
             }
 
@@ -100,20 +108,20 @@ class TelegramWebhookController extends Controller
             } elseif (preg_match('/^(approve|reject)/', $text)) {
                 Log::info('⚠️ Command detected but format invalid', ['text' => $text]);
                 $this->telegram->replyMessage($chatId, $messageId,
-                    "⚠️ <b>Format salah.</b>\n\nGunakan:\n" .
-                    "• <code>approve &lt;ID&gt;</code> - Setujui pembayaran\n" .
-                    "• <code>reject &lt;ID&gt; &lt;alasan&gt;</code> - Tolak pembayaran\n\n" .
-                    "<i>Contoh:</i>\n" .
-                    "<code>approve 9</code>\n" .
-                    "<code>reject 9 Bukti kurang jelas</code>"
+                    "⚠️ <b>Format salah.</b>\n\nGunakan:\n".
+                    "• <code>approve &lt;ID&gt;</code> - Setujui pembayaran\n".
+                    "• <code>reject &lt;ID&gt; &lt;alasan&gt;</code> - Tolak pembayaran\n\n".
+                    "<i>Contoh:</i>\n".
+                    "<code>approve 9</code>\n".
+                    '<code>reject 9 Bukti kurang jelas</code>'
                 );
             } else {
                 Log::debug('Non-command message received', ['text' => $text]);
             }
         } catch (\Exception $e) {
             Log::error('💥 Telegram webhook handler exception', [
-                'error'   => $e->getMessage(),
-                'trace'   => $e->getTraceAsString(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'request' => $request->all(),
             ]);
         }
@@ -128,12 +136,12 @@ class TelegramWebhookController extends Controller
         try {
             Log::info('Processing approve request', [
                 'transaction_id' => $transactionId,
-                'from_id'        => $fromId,
-                'chat_id'        => $chatId,
+                'from_id' => $fromId,
+                'chat_id' => $chatId,
             ]);
 
             DB::transaction(function () use ($transactionId, $chatId, $messageId, $fromId) {
-                $transaction = Transaction::with(['rsvp', 'proof'])
+                $transaction = Transaction::with(['rsvp', 'payable', 'proof'])
                     ->where('payment_provider', 'manual')
                     ->where('status', 'pending')
                     ->lockForUpdate()
@@ -142,17 +150,18 @@ class TelegramWebhookController extends Controller
                 if (! $transaction) {
                     Log::warning('Transaction not found for approval', [
                         'transaction_id' => $transactionId,
-                        'from_id'        => $fromId,
+                        'from_id' => $fromId,
                     ]);
                     $this->telegram->replyMessage($chatId, $messageId,
-                        "❌ <b>Transaksi tidak ditemukan</b>\n\n" .
+                        "❌ <b>Transaksi tidak ditemukan</b>\n\n".
                         "Transaksi <code>#{$transactionId}</code> tidak ada atau sudah diproses sebelumnya."
                     );
+
                     return;
                 }
 
                 $transaction->update([
-                    'status'  => 'paid',
+                    'status' => 'paid',
                     'paid_at' => now(),
                 ]);
 
@@ -170,37 +179,47 @@ class TelegramWebhookController extends Controller
                     if ($rsvp->user && $rsvp->user->email) {
                         SendEventRegistrationConfirmedEmail::dispatch($rsvp);
                     }
+                } elseif ($transaction->payable instanceof StoreOrder) {
+                    // Same fulfillment door as the Satutera webhook and the god-mode approval
+                    // action — never a second/duplicate fulfillment path (docs/plan/mvp2/7-payment-settings.md §6b).
+                    $order = $transaction->payable;
+                    $order->update(['status' => 'paid', 'paid_at' => now()]);
+                    $this->fulfillment->onPaid($order);
                 }
 
-                $user   = $transaction->user ?? $transaction->rsvp?->user;
-                $amount = 'Rp ' . number_format((float) $transaction->amount, 0, ',', '.');
+                $user = $transaction->user ?? $transaction->rsvp?->user;
+                $amount = 'Rp '.number_format((float) $transaction->amount, 0, ',', '.');
+                $context = $transaction->payable instanceof StoreOrder
+                    ? '🏬 <b>Order:</b> '.e($transaction->payable->order_number)."\n"
+                    : '';
 
-                $replyText = "✅ <b>Transaksi #{$transactionId} berhasil disetujui!</b>\n\n" .
-                    "👤 <b>Pendaftar:</b> " . e($user?->name ?? 'N/A') . "\n" .
-                    "💰 <b>Nominal:</b> {$amount}\n" .
-                    "📧 <b>Email:</b> " . e($user?->email ?? 'N/A') . "\n\n" .
-                    "✉️ <i>Email konfirmasi telah dikirim ke peserta.</i>";
+                $replyText = "✅ <b>Transaksi #{$transactionId} berhasil disetujui!</b>\n\n".
+                    '👤 <b>Pendaftar:</b> '.e($user?->name ?? 'N/A')."\n".
+                    $context.
+                    "💰 <b>Nominal:</b> {$amount}\n".
+                    '📧 <b>Email:</b> '.e($user?->email ?? 'N/A')."\n\n".
+                    '✉️ <i>Email konfirmasi telah dikirim ke peserta.</i>';
 
                 $this->telegram->replyMessage($chatId, $messageId, $replyText);
 
                 Log::info('Transaction approved via Telegram bot', [
                     'transaction_id' => $transactionId,
-                    'approved_by'    => $fromId,
-                    'user_name'      => $user?->name,
-                    'amount'         => $transaction->amount,
+                    'approved_by' => $fromId,
+                    'user_name' => $user?->name,
+                    'amount' => $transaction->amount,
                 ]);
             });
         } catch (\Exception $e) {
             Log::error('Telegram approve command failed', [
                 'transaction_id' => $transactionId,
-                'from_id'        => $fromId,
-                'error'          => $e->getMessage(),
-                'trace'          => $e->getTraceAsString(),
+                'from_id' => $fromId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
             $this->telegram->replyMessage($chatId, $messageId,
-                "❌ <b>Error saat approve pembayaran</b>\n\n" .
-                "<code>" . e($e->getMessage()) . "</code>\n\n" .
-                "Admin sudah dinotifikasi. Silakan coba lagi atau hubungi developer."
+                "❌ <b>Error saat approve pembayaran</b>\n\n".
+                '<code>'.e($e->getMessage())."</code>\n\n".
+                'Admin sudah dinotifikasi. Silakan coba lagi atau hubungi developer.'
             );
         }
     }
@@ -210,12 +229,12 @@ class TelegramWebhookController extends Controller
         try {
             Log::info('Processing reject request', [
                 'transaction_id' => $transactionId,
-                'from_id'        => $fromId,
-                'reason'         => $reason,
+                'from_id' => $fromId,
+                'reason' => $reason,
             ]);
 
             DB::transaction(function () use ($transactionId, $reason, $chatId, $messageId, $fromId) {
-                $transaction = Transaction::with(['rsvp', 'proof'])
+                $transaction = Transaction::with(['rsvp', 'payable', 'proof'])
                     ->where('payment_provider', 'manual')
                     ->where('status', 'pending')
                     ->lockForUpdate()
@@ -224,12 +243,13 @@ class TelegramWebhookController extends Controller
                 if (! $transaction) {
                     Log::warning('Transaction not found for rejection', [
                         'transaction_id' => $transactionId,
-                        'from_id'        => $fromId,
+                        'from_id' => $fromId,
                     ]);
                     $this->telegram->replyMessage($chatId, $messageId,
-                        "❌ <b>Transaksi tidak ditemukan</b>\n\n" .
+                        "❌ <b>Transaksi tidak ditemukan</b>\n\n".
                         "Transaksi <code>#{$transactionId}</code> tidak ada atau sudah diproses sebelumnya."
                     );
+
                     return;
                 }
 
@@ -244,36 +264,49 @@ class TelegramWebhookController extends Controller
 
                 if ($transaction->rsvp) {
                     $transaction->rsvp->update(['status' => 'failed']);
+                } elseif ($transaction->payable instanceof StoreOrder) {
+                    // Rejected proof ≠ dead order — give the buyer a fresh window to re-upload
+                    // instead of cancelling and releasing stock out from under them (matches the
+                    // god-mode reject action, docs/plan/mvp2/7-payment-settings.md §6b).
+                    $transaction->update(['status' => 'pending']);
+                    $transaction->payable->update([
+                        'expires_at' => now()->addMinutes((int) config('store.order_expiry_minutes')),
+                    ]);
                 }
 
                 $user = $transaction->user ?? $transaction->rsvp?->user;
 
-                $replyText = "🚫 <b>Transaksi #{$transactionId} ditolak</b>\n\n" .
-                    "👤 <b>Pendaftar:</b> " . e($user?->name ?? 'N/A') . "\n" .
-                    "📧 <b>Email:</b> " . e($user?->email ?? 'N/A') . "\n" .
-                    "📝 <b>Alasan Penolakan:</b>\n" .
-                    "<i>" . e($reason) . "</i>";
+                $context = $transaction->payable instanceof StoreOrder
+                    ? '🏬 <b>Order:</b> '.e($transaction->payable->order_number)."\n"
+                    : '';
+
+                $replyText = "🚫 <b>Transaksi #{$transactionId} ditolak</b>\n\n".
+                    '👤 <b>Pendaftar:</b> '.e($user?->name ?? 'N/A')."\n".
+                    $context.
+                    '📧 <b>Email:</b> '.e($user?->email ?? 'N/A')."\n".
+                    "📝 <b>Alasan Penolakan:</b>\n".
+                    '<i>'.e($reason).'</i>';
 
                 $this->telegram->replyMessage($chatId, $messageId, $replyText);
 
                 Log::info('Transaction rejected via Telegram bot', [
                     'transaction_id' => $transactionId,
-                    'rejected_by'    => $fromId,
-                    'reason'         => $reason,
-                    'user_name'      => $user?->name,
+                    'rejected_by' => $fromId,
+                    'reason' => $reason,
+                    'user_name' => $user?->name,
                 ]);
             });
         } catch (\Exception $e) {
             Log::error('Telegram reject command failed', [
                 'transaction_id' => $transactionId,
-                'from_id'        => $fromId,
-                'error'          => $e->getMessage(),
-                'trace'          => $e->getTraceAsString(),
+                'from_id' => $fromId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
             $this->telegram->replyMessage($chatId, $messageId,
-                "❌ <b>Error saat reject pembayaran</b>\n\n" .
-                "<code>" . e($e->getMessage()) . "</code>\n\n" .
-                "Admin sudah dinotifikasi. Silakan coba lagi atau hubungi developer."
+                "❌ <b>Error saat reject pembayaran</b>\n\n".
+                '<code>'.e($e->getMessage())."</code>\n\n".
+                'Admin sudah dinotifikasi. Silakan coba lagi atau hubungi developer.'
             );
         }
     }

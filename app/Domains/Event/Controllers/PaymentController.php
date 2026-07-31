@@ -4,8 +4,8 @@ namespace App\Domains\Event\Controllers;
 
 use App\Contracts\PaymentProviderInterface;
 use App\Domains\Event\Models\Transaction;
+use App\Domains\Shared\Services\PaymentSettingsService;
 use App\Http\Controllers\Controller;
-use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +13,8 @@ use Inertia\Inertia;
 
 class PaymentController extends Controller
 {
+    public function __construct(private readonly PaymentSettingsService $paymentSettings) {}
+
     /**
      * Show the payment status / instructions page for a transaction.
      */
@@ -22,12 +24,12 @@ class PaymentController extends Controller
             ->where('user_id', $request->user()->id)
             ->findOrFail($id);
 
-        $bankAccounts = Setting::get('bank_account_manual_transfer', []);
+        $bankAccounts = $this->paymentSettings->manualAccounts();
 
         return Inertia::render('Payment/Show', [
-            'transaction'  => $transaction,
-            'rsvp'         => $transaction->rsvp,
-            'event'        => $transaction->rsvp->event,
+            'transaction' => $transaction,
+            'rsvp' => $transaction->rsvp,
+            'event' => $transaction->rsvp->event,
             'bankAccounts' => $bankAccounts,
         ]);
     }
@@ -54,15 +56,19 @@ class PaymentController extends Controller
             // Cancel transaction
             $transaction->update(['status' => 'cancelled']);
 
-            // Delete RSVP registration
+            // Delete RSVP registration — forceDelete() here is a plain hard delete (Rsvp doesn't
+            // use SoftDeletes, so Model::forceDelete() falls back to delete()), which fires the
+            // same `deleted` event as any other delete. RsvpObserver::deleted() reacts to that by
+            // releasing any product reservations this RSVP was holding
+            // (docs/plan/mvp2/8-event-product-integration.md) — nothing else to do here.
             if ($transaction->rsvp) {
                 $transaction->rsvp->forceDelete();
             }
 
             Log::info('Payment cancelled and RSVP deleted', [
                 'transaction_id' => $transaction->id,
-                'rsvp_id'        => $rsvpId,
-                'user_id'        => $userId,
+                'rsvp_id' => $rsvpId,
+                'user_id' => $userId,
             ]);
         });
 
@@ -78,16 +84,18 @@ class PaymentController extends Controller
     {
         $provider = app(PaymentProviderInterface::class);
 
-        if (!$provider->verifyWebhook($request)) {
+        if (! $provider->verifyWebhook($request)) {
             Log::warning('iPaymu webhook verification failed', $request->all());
+
             return response()->json(['message' => 'Invalid webhook'], 400);
         }
 
         $payload = $provider->parseWebhook($request);
         $transactionId = (int) $payload['reference_id'];
 
-        if (!$transactionId) {
+        if (! $transactionId) {
             Log::warning('iPaymu webhook missing referenceId', $request->all());
+
             return response()->json(['message' => 'Missing referenceId'], 400);
         }
 
@@ -98,8 +106,9 @@ class PaymentController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            if (!$transaction) {
+            if (! $transaction) {
                 Log::warning('iPaymu webhook: transaction not found', ['id' => $transactionId]);
+
                 return;
             }
 
@@ -111,10 +120,10 @@ class PaymentController extends Controller
             $newStatus = $payload['status'];
 
             $transaction->update([
-                'status'             => $newStatus,
+                'status' => $newStatus,
                 'external_reference' => $payload['external_reference'] ?: $transaction->external_reference,
-                'paid_at'            => $newStatus === 'paid' ? now() : null,
-                'metadata'           => array_merge(
+                'paid_at' => $newStatus === 'paid' ? now() : null,
+                'metadata' => array_merge(
                     $transaction->metadata ?? [],
                     ['webhook_payload' => $request->all(), 'processed_at' => now()->toISOString()]
                 ),
@@ -123,17 +132,17 @@ class PaymentController extends Controller
             // Mirror status to the parent RSVP
             if ($transaction->rsvp) {
                 $rsvpStatus = match ($newStatus) {
-                    'paid'    => 'paid',
-                    'failed'  => 'failed',
+                    'paid' => 'paid',
+                    'failed' => 'failed',
                     'expired' => 'expired',
-                    default   => 'pending',
+                    default => 'pending',
                 };
                 $transaction->rsvp->update(['status' => $rsvpStatus]);
             }
 
             Log::info('iPaymu webhook processed', [
                 'transaction_id' => $transactionId,
-                'new_status'     => $newStatus,
+                'new_status' => $newStatus,
             ]);
         });
 
@@ -161,7 +170,7 @@ class PaymentController extends Controller
      */
     public function debugIPaymuConfig()
     {
-        if (!config('app.debug')) {
+        if (! config('app.debug')) {
             return response()->json(['error' => 'Not available in production'], 403);
         }
 
@@ -171,12 +180,12 @@ class PaymentController extends Controller
 
         $configStatus = [
             'va' => [
-                'set' => !empty($va),
-                'value' => $va ? substr($va, 0, 3) . '***' : 'NOT SET',
+                'set' => ! empty($va),
+                'value' => $va ? substr($va, 0, 3).'***' : 'NOT SET',
             ],
             'api_key' => [
-                'set' => !empty($apiKey),
-                'value' => $apiKey ? substr($apiKey, 0, 3) . '***' . substr($apiKey, -3) : 'NOT SET',
+                'set' => ! empty($apiKey),
+                'value' => $apiKey ? substr($apiKey, 0, 3).'***'.substr($apiKey, -3) : 'NOT SET',
             ],
             'sandbox' => $sandbox,
             'base_url' => $sandbox
@@ -184,7 +193,7 @@ class PaymentController extends Controller
                 : 'https://my.ipaymu.com/api/v2',
         ];
 
-        if (!$va || !$apiKey) {
+        if (! $va || ! $apiKey) {
             return response()->json([
                 'status' => 'ERROR',
                 'message' => 'iPaymu credentials not configured. Please set IPAYMU_VA and IPAYMU_API_KEY in .env',

@@ -2,10 +2,12 @@
 
 namespace App\Domains\Event\Controllers;
 
+use App\Domains\Event\Models\PaymentProof;
 use App\Domains\Event\Models\Transaction;
+use App\Domains\Shared\Services\PaymentSettingsService;
+use App\Domains\Shared\Services\RsvpPaymentService;
 use App\Domains\Shared\Services\TelegramService;
 use App\Http\Controllers\Controller;
-use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -18,10 +20,17 @@ use Inertia\Inertia;
  */
 class PaymentPageController extends Controller
 {
-    public function __construct(private readonly TelegramService $telegram) {}
+    public function __construct(
+        private readonly TelegramService $telegram,
+        private readonly PaymentSettingsService $paymentSettings,
+        private readonly RsvpPaymentService $rsvpPayment,
+    ) {}
+
     /**
      * GET /payment/{hash}
-     * Show payment details: VA / QRIS info for iPaymu, or bank info for manual.
+     * Show payment details: VA / QRIS info for Satutera/iPaymu, or bank info for manual. This page
+     * deliberately serves all three providers (fase 9, D34/§3 table) — never add a provider filter
+     * here the way the store payment page does.
      */
     public function show(string $hash)
     {
@@ -29,14 +38,44 @@ class PaymentPageController extends Controller
             ->where('payment_hash', $hash)
             ->firstOrFail();
 
-        $bankAccounts = Setting::get('bank_account_manual_transfer', []);
+        // Payment creation can fail at registration time (Satutera unreachable, timeout, ...),
+        // leaving the transaction without a checkout_token. Retry it here so opening/refreshing
+        // the payment page is enough to recover, instead of stranding the registrant with no way
+        // forward — mirrors `Store\StorePaymentPageController::show()`. No-ops for manual/ipaymu
+        // transactions (no `payment_request` in metadata to retry).
+        if ($transaction->payment_provider === 'satutera' && $transaction->rsvp) {
+            $this->rsvpPayment->retryPaymentInitiation($transaction->rsvp, $transaction);
+            $transaction->refresh();
+        }
+
+        $bankAccounts = $this->paymentSettings->manualAccounts();
 
         return Inertia::render('Payment/PaymentPage', [
-            'transaction'  => $transaction,
-            'rsvp'         => $transaction->rsvp,
-            'event'        => $transaction->rsvp->event,
+            'transaction' => $transaction,
+            'rsvp' => $transaction->rsvp,
+            'event' => $transaction->rsvp->event,
             'bankAccounts' => $bankAccounts,
-            'hash'         => $hash,
+            // Harmless/null for manual and ipaymu transactions — only meaningful when
+            // payment_provider === 'satutera'. See Components/Payment/SatuteraPanel.tsx.
+            'checkoutToken' => $transaction->checkout_token,
+            'expiresAt' => $transaction->expired_at,
+            'satuteraWsUrl' => config('services.satutera.base_url'),
+            'hash' => $hash,
+        ]);
+    }
+
+    /**
+     * GET /payment/{hash}/status — JSON polling fallback, same response shape as
+     * `Store\StorePaymentPageController::status()` since both feed the same shared panel.
+     */
+    public function status(string $hash)
+    {
+        $transaction = Transaction::where('payment_hash', $hash)->firstOrFail();
+
+        return response()->json([
+            'status' => $transaction->status,
+            'paid_at' => $transaction->paid_at,
+            'expires_at' => $transaction->expired_at,
         ]);
     }
 
@@ -52,9 +91,9 @@ class PaymentPageController extends Controller
 
         return Inertia::render('Payment/ConfirmationPage', [
             'transaction' => $transaction,
-            'rsvp'        => $transaction->rsvp,
-            'event'       => $transaction->rsvp->event,
-            'hash'        => $hash,
+            'rsvp' => $transaction->rsvp,
+            'event' => $transaction->rsvp->event,
+            'hash' => $hash,
         ]);
     }
 
@@ -91,16 +130,16 @@ class PaymentPageController extends Controller
             $file = $request->file('proof');
             $path = $file->store("payment-proofs/{$transaction->id}", 'public');
 
-            \App\Domains\Event\Models\PaymentProof::create([
+            PaymentProof::create([
                 'transaction_id' => $transaction->id,
-                'file_path'      => $path,
-                'original_name'  => $file->getClientOriginalName(),
-                'notes'          => $request->input('notes'),
+                'file_path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'notes' => $request->input('notes'),
             ]);
 
             Log::info('Payment proof uploaded via hash URL', [
                 'transaction_id' => $transaction->id,
-                'hash'           => $transaction->payment_hash,
+                'hash' => $transaction->payment_hash,
             ]);
 
             // Notify admin Telegram channel with proof image
@@ -108,6 +147,6 @@ class PaymentPageController extends Controller
             $this->telegram->notifyPaymentProof($transaction);
         });
 
-        return redirect('/payment/' . $hash)->with('success', 'Bukti pembayaran berhasil diunggah. Admin akan memverifikasi segera.');
+        return redirect('/payment/'.$hash)->with('success', 'Bukti pembayaran berhasil diunggah. Admin akan memverifikasi segera.');
     }
 }

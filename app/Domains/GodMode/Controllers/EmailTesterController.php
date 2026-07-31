@@ -5,10 +5,12 @@ namespace App\Domains\GodMode\Controllers;
 use App\Domains\Event\Models\Rsvp;
 use App\Domains\Event\Models\Transaction;
 use App\Domains\Shared\Services\BrevoApiService;
+use App\Domains\Shared\Services\PaymentSettingsService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * GodMode Email Tester — allows admins to preview and send test emails
@@ -16,14 +18,15 @@ use Inertia\Inertia;
  */
 class EmailTesterController extends Controller
 {
-    public function __construct(private BrevoApiService $brevoApi)
-    {
-    }
+    public function __construct(
+        private BrevoApiService $brevoApi,
+        private PaymentSettingsService $paymentSettings,
+    ) {}
 
     /**
      * Render the email tester admin panel.
      */
-    public function index(): \Inertia\Response
+    public function index(): Response
     {
         $mailConfig = [
             'method' => 'Brevo API v3',
@@ -58,8 +61,8 @@ class EmailTesterController extends Controller
     /**
      * Send a test email via Brevo API.
      * POST /god-mode/email-tester/send
-     * 
-     * @param Request $request {email: string, template: string, note?: string}
+     *
+     * @param  Request  $request  {email: string, template: string, note?: string}
      */
     public function send(Request $request)
     {
@@ -74,7 +77,7 @@ class EmailTesterController extends Controller
         $note = $validated['note'] ?? '';
 
         Log::info("📧 Email Tester: Sending [{$template}] to [{$email}] via Brevo API", [
-            'api_key_configured' => !empty(env('BREVO_API_KEY')),
+            'api_key_configured' => ! empty(env('BREVO_API_KEY')),
         ]);
 
         try {
@@ -85,7 +88,7 @@ class EmailTesterController extends Controller
                 'confirmed' => $this->sendDummyConfirmed($email),
             };
 
-            if (!isset($result['success'])) {
+            if (! isset($result['success'])) {
                 throw new \Exception('Invalid response from Brevo API service');
             }
 
@@ -117,7 +120,7 @@ class EmailTesterController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => '❌ Gagal mengirim email: ' . $e->getMessage(),
+                'message' => '❌ Gagal mengirim email: '.$e->getMessage(),
                 'debug' => [
                     'method' => 'Brevo API v3',
                     'from' => config('mail.from.address'),
@@ -132,7 +135,7 @@ class EmailTesterController extends Controller
      */
     private function sendTestEmail(string $toEmail, string $note): array
     {
-        $htmlContent = <<<HTML
+        $htmlContent = <<<'HTML'
 <!DOCTYPE html>
 <html>
 <head>
@@ -172,7 +175,7 @@ HTML;
 HTML;
         }
 
-        $htmlContent .= <<<HTML
+        $htmlContent .= <<<'HTML'
         </div>
     </div>
 </body>
@@ -199,17 +202,17 @@ HTML;
             ->first();
 
         // Fallback to test email if no data
-        if (!$transaction || !$transaction->rsvp || !$transaction->rsvp->event) {
+        if (! $transaction || ! $transaction->rsvp || ! $transaction->rsvp->event) {
             return $this->sendTestEmail($toEmail, '[DUMMY] Tidak ada transaksi manual. Mengirim test email.');
         }
 
-        $rsvp         = $transaction->rsvp;
-        $event        = $rsvp->event;
-        $bankAccounts = \App\Models\Setting::get('bank_account_manual_transfer', []);
+        $rsvp = $transaction->rsvp;
+        $event = $rsvp->event;
+        $bankAccounts = $this->paymentSettings->manualAccounts();
 
         $htmlContent = view('emails.event-registration-payment', [
-            'rsvp'         => $rsvp,
-            'transaction'  => $transaction,
+            'rsvp' => $rsvp,
+            'transaction' => $transaction,
             'bankAccounts' => $bankAccounts,
         ])->render();
 
@@ -232,14 +235,14 @@ HTML;
             ->first();
 
         // Fallback to test email if no data
-        if (!$rsvp || !$rsvp->event || !$rsvp->user) {
+        if (! $rsvp || ! $rsvp->event || ! $rsvp->user) {
             return $this->sendTestEmail($toEmail, '[DUMMY] Tidak ada RSVP. Mengirim test email.');
         }
 
         $htmlContent = view('emails.event-registration-confirmed', [
-            'rsvp'  => $rsvp,
+            'rsvp' => $rsvp,
             'event' => $rsvp->event,
-            'user'  => $rsvp->user,
+            'user' => $rsvp->user,
         ])->render();
 
         return $this->brevoApi->send(

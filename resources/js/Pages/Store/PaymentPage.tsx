@@ -1,9 +1,19 @@
-import { useEffect, useRef, useState } from "react";
-import { Head, Link, usePage } from "@inertiajs/react";
-import { io, Socket } from "socket.io-client";
+import { useEffect, useState } from "react";
+import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { PageProps, StoreOrder, Transaction } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import { validateFile } from "@/Helpers/fileValidation";
+import SatuteraPanel, { SatuteraLiveStatus, SATUTERA_FINAL_STATUSES } from "@/Components/Payment/SatuteraPanel";
+
+interface ManualAccount {
+  id: number;
+  bank_name: string;
+  account_number: string;
+  account_holder: string;
+  branch: string | null;
+  instructions: string | null;
+}
 
 interface PaymentPageProps extends PageProps {
   order: StoreOrder;
@@ -11,70 +21,26 @@ interface PaymentPageProps extends PageProps {
   checkoutToken: string | null;
   expiresAt: string | null;
   satuteraWsUrl: string;
+  manualAccounts: ManualAccount[];
   hash: string;
 }
 
-type LiveStatus = Transaction["status"] | "local_expired";
+type LiveStatus = SatuteraLiveStatus;
 
-const FINAL_STATUSES: LiveStatus[] = ["paid", "failed", "cancelled", "expired", "local_expired"];
+const FINAL_STATUSES = SATUTERA_FINAL_STATUSES;
 
 export default function PaymentPage() {
-  const { order, transaction, checkoutToken, expiresAt, satuteraWsUrl, hash } = usePage<PaymentPageProps>().props;
+  const { order, transaction, checkoutToken, expiresAt, satuteraWsUrl, manualAccounts, hash } =
+    usePage<PaymentPageProps>().props;
 
   const [status, setStatus] = useState<LiveStatus>(transaction.status);
-  const [copied, setCopied] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const statusRef = useRef(status);
-  statusRef.current = status;
-
-  const detail = transaction.payment_detail;
+  const isManual = transaction.payment_provider === "manual";
   const isFinal = FINAL_STATUSES.includes(status);
 
-  // Local expiry check — independent of socket/polling. Satutera's internal expiry window does
-  // not always emit a socket event (payment-guidance.md §6), so this is the only reliable signal
-  // for "time's up" from the client's point of view.
-  useEffect(() => {
-    if (!expiresAt) return;
-    const expiry = new Date(expiresAt).getTime();
-
-    const tick = () => {
-      const remaining = expiry - Date.now();
-      setTimeLeft(Math.max(remaining, 0));
-      if (remaining <= 0 && statusRef.current === "pending") {
-        setStatus("local_expired");
-      }
-    };
-
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [expiresAt]);
-
-  // WebSocket — realtime UX only. Fulfillment is decided by the server-to-server callback, never
-  // by this event or by any browser redirect.
-  useEffect(() => {
-    if (!checkoutToken || isFinal) return;
-
-    const socket: Socket = io(satuteraWsUrl, { path: "/ws/payments", transports: ["websocket"] });
-
-    socket.on("connect", () => {
-      // Room membership does not persist across reconnects, so this must run on every `connect`,
-      // not just once at mount.
-      socket.emit("subscribe", { checkout_token: checkoutToken });
-    });
-
-    socket.onAny((_event, payload) => {
-      if (payload?.checkout_token === checkoutToken && payload?.status) {
-        setStatus(payload.status);
-      }
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [checkoutToken, satuteraWsUrl, isFinal]);
-
-  // Polling fallback every 7s while pending — matches Satutera's own frontend interval.
+  // Polling fallback every 7s while pending — matches Satutera's own frontend interval. Kept at
+  // the page level (not inside SatuteraPanel) because it also drives the manual flow: a god-mode
+  // approve/reject changes status server-side with no socket involved at all, and this is how a
+  // buyer sitting on this page picks that up without a manual reload.
   useEffect(() => {
     if (isFinal) return;
 
@@ -85,28 +51,13 @@ export default function PaymentPage() {
         const body = await response.json();
         if (body.status) setStatus(body.status);
       } catch {
-        // Silent — the next tick (or the socket) will pick it up.
+        // Silent — the next tick (or the socket, for satutera) will pick it up.
       }
     };
 
     const interval = setInterval(poll, 7000);
     return () => clearInterval(interval);
   }, [isFinal, hash]);
-
-  const copyVaNumber = () => {
-    if (!detail?.payment_no) return;
-    navigator.clipboard.writeText(detail.payment_no);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const formatCountdown = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    return [hours, minutes, seconds].map((v) => String(v).padStart(2, "0")).join(":");
-  };
 
   return (
     <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
@@ -118,78 +69,27 @@ export default function PaymentPage() {
           <StatusHeadline status={status} />
         </div>
 
-        {status === "pending" && !detail && (
-          <div className="bg-tertiary-container text-on-tertiary-container rounded-3xl p-8 mb-6 text-center">
-            <p className="font-headline text-lg font-bold">Detail Pembayaran Belum Tersedia</p>
-            <p className="text-sm mt-2">
-              Kami belum bisa mengambil detail VA/QRIS untuk pesanan ini. Hubungi admin toko atau coba buat pesanan baru.
-            </p>
-          </div>
+        {isManual && status === "pending" && (
+          <ManualPaymentBlock hash={hash} manualAccounts={manualAccounts} hasExistingProof={!!transaction.proof} />
         )}
 
-        {status === "pending" && detail && (
-          <div className="bg-surface-container-lowest rounded-3xl border border-surface-container-high p-8 mb-6 text-center">
-            {detail.type === "qris" ? (
-              <>
-                {detail.qr_template ? (
-                  <img
-                    src={detail.qr_template}
-                    alt="QRIS"
-                    className="w-56 h-56 mx-auto rounded-2xl border border-outline-variant/20"
-                  />
-                ) : detail.qr_string ? (
-                  <div className="bg-surface-container rounded-2xl p-4 text-xs font-mono break-all text-on-surface-variant max-w-xs mx-auto">
-                    {detail.qr_string}
-                  </div>
-                ) : null}
-                <p className="text-sm text-on-surface-variant mt-4">
-                  Scan QRIS dengan aplikasi e-Wallet atau Mobile Banking
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-xs uppercase tracking-wider text-on-surface-variant font-label mb-2">
-                  {detail.payment_name}
-                </p>
-                <div className="flex items-center justify-center gap-3">
-                  <p className="font-headline text-3xl font-bold text-on-surface tracking-wider">{detail.payment_no}</p>
-                  <button
-                    onClick={copyVaNumber}
-                    className="text-primary hover:bg-primary-container/20 rounded-full p-2 transition-colors"
-                  >
-                    <span className="material-symbols-outlined">{copied ? "check" : "content_copy"}</span>
-                  </button>
-                </div>
-              </>
-            )}
-
-            {timeLeft !== null && timeLeft > 0 && (
-              <p className="mt-6 text-sm text-on-surface-variant">
-                Bayar sebelum <span className="font-mono font-semibold text-on-surface">{formatCountdown(timeLeft)}</span>
-              </p>
-            )}
-
-            {detail.instructions.length > 0 && (
-              <div className="mt-8 text-left space-y-4">
-                {detail.instructions.map((instruction, i) => (
-                  <div key={i}>
-                    <p className="font-label font-semibold text-on-surface text-sm mb-2">{instruction.title}</p>
-                    <ol className="list-decimal list-inside text-sm text-on-surface-variant space-y-1">
-                      {instruction.steps.map((step, j) => (
-                        <li key={j}>{step}</li>
-                      ))}
-                    </ol>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        {!isManual && (
+          <SatuteraPanel
+            status={status}
+            onStatusChange={setStatus}
+            paymentDetail={transaction.payment_detail}
+            checkoutToken={checkoutToken}
+            expiresAt={expiresAt}
+            satuteraWsUrl={satuteraWsUrl}
+          />
         )}
 
         {status === "local_expired" && (
           <div className="bg-error-container text-on-error-container rounded-3xl p-8 mb-6 text-center">
             <p className="font-headline text-lg font-bold">Waktu Pembayaran Habis</p>
-            <p className="text-sm mt-2">Buat pesanan baru untuk mendapatkan metode pembayaran baru.</p>
+            <p className="text-sm mt-2">
+              Buat pesanan baru untuk mendapatkan metode pembayaran baru.
+            </p>
             {order.store?.slug && (
               <Link
                 href={`/checkout/${order.store.slug}`}
@@ -229,41 +129,194 @@ export default function PaymentPage() {
         )}
 
         <div className="bg-surface-container-lowest rounded-3xl border border-surface-container-high p-6">
-          <h2 className="font-headline text-lg font-bold text-on-surface mb-4">{order.order_number}</h2>
+          <h2 className="font-headline text-lg font-bold text-on-surface mb-4">
+            {order.order_number}
+          </h2>
           <div className="divide-y divide-outline-variant/10">
             {order.items?.map((item) => (
               <div key={item.id} className="flex items-center justify-between py-3 text-sm">
                 <span className="text-on-surface">
                   {item.name_snapshot}
-                  {item.variant_label_snapshot ? ` (${item.variant_label_snapshot})` : ""} × {item.quantity}
+                  {item.variant_label_snapshot ? ` (${item.variant_label_snapshot})` : ""} ×{" "}
+                  {item.quantity}
                 </span>
-                <span className="text-on-surface-variant">Rp {Number(item.subtotal).toLocaleString("id-ID")}</span>
+                <span className="text-on-surface-variant">
+                  Rp {Number(item.subtotal).toLocaleString("id-ID")}
+                </span>
               </div>
             ))}
           </div>
           <div className="pt-4 mt-4 border-t border-outline-variant/10 space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-on-surface-variant">Subtotal</span>
-              <span className="text-on-surface">Rp {Number(order.subtotal).toLocaleString("id-ID")}</span>
+              <span className="text-on-surface">
+                Rp {Number(order.subtotal).toLocaleString("id-ID")}
+              </span>
             </div>
             {order.requires_shipping && (
               <div className="flex justify-between">
                 <span className="text-on-surface-variant">Ongkos Kirim</span>
-                <span className="text-on-surface">Rp {Number(order.shipping_cost).toLocaleString("id-ID")}</span>
+                <span className="text-on-surface">
+                  Rp {Number(order.shipping_cost).toLocaleString("id-ID")}
+                </span>
               </div>
             )}
             <div className="flex justify-between">
               <span className="text-on-surface-variant">Biaya Layanan Pembayaran</span>
-              <span className="text-on-surface">Rp {Number(order.payment_fee).toLocaleString("id-ID")}</span>
+              <span className="text-on-surface">
+                Rp {Number(order.payment_fee).toLocaleString("id-ID")}
+              </span>
             </div>
             <div className="flex justify-between pt-2 mt-2 border-t border-outline-variant/10">
               <span className="font-label font-semibold text-on-surface">Total</span>
-              <span className="font-headline text-lg font-bold text-primary">Rp {Number(order.total).toLocaleString("id-ID")}</span>
+              <span className="font-headline text-lg font-bold text-primary">
+                Rp {Number(order.total).toLocaleString("id-ID")}
+              </span>
             </div>
           </div>
         </div>
       </div>
       <Footer />
+    </div>
+  );
+}
+
+interface ManualPaymentBlockProps {
+  hash: string;
+  manualAccounts: ManualAccount[];
+  hasExistingProof: boolean;
+}
+
+function ManualPaymentBlock({ hash, manualAccounts, hasExistingProof }: ManualPaymentBlockProps) {
+  const [fileError, setFileError] = useState<string | null>(null);
+  const form = useForm<{ proof: File | null; notes: string }>({ proof: null, notes: "" });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setFileError(null);
+      form.setData("proof", null);
+      return;
+    }
+
+    const error = validateFile(file, ["image/jpeg", "image/png", "application/pdf"]);
+    if (error) {
+      setFileError(error.message);
+      form.setData("proof", null);
+    } else {
+      setFileError(null);
+      form.setData("proof", file);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    form.post(`/store/payment/${hash}/proof`, { forceFormData: true });
+  };
+
+  return (
+    <div className="bg-surface-container-lowest rounded-3xl border border-surface-container-high p-8 mb-6">
+      <p className="font-headline text-lg font-bold text-on-surface text-center mb-1">
+        Transfer Manual ke Rekening Berikut
+      </p>
+      <p className="text-sm text-on-surface-variant text-center mb-6">
+        Transfer tepat sesuai nominal, lalu unggah bukti pembayaran di bawah.
+      </p>
+
+      <div className="space-y-3 mb-6">
+        {manualAccounts.length > 0 ? (
+          manualAccounts.map((account, idx) => (
+            <div key={account.id} className="bg-surface-container rounded-xl p-4 space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="font-headline font-bold text-on-surface text-lg">{account.bank_name}</p>
+                {manualAccounts.length > 1 && (
+                  <span className="text-[10px] font-bold bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full uppercase">
+                    Rekening {idx + 1}
+                  </span>
+                )}
+              </div>
+              <p className="font-headline font-bold text-primary text-xl tracking-widest">
+                {account.account_number}
+              </p>
+              <p className="text-sm text-on-surface-variant">a.n. {account.account_holder}</p>
+              {account.branch && <p className="text-xs text-on-surface-variant">Cabang {account.branch}</p>}
+              {account.instructions && (
+                <p className="text-xs text-on-surface-variant mt-2">{account.instructions}</p>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="bg-error-container text-on-error-container rounded-xl p-4 text-sm text-center">
+            Informasi rekening belum tersedia. Hubungi admin toko.
+          </div>
+        )}
+      </div>
+
+      {hasExistingProof && (
+        <div className="flex items-center gap-3 bg-tertiary-container text-on-tertiary-container rounded-xl px-4 py-3 mb-5 text-sm">
+          <span className="material-symbols-outlined text-[20px]">info</span>
+          Bukti sebelumnya sudah ada dan sedang ditinjau admin — unggah ulang di bawah akan
+          menggantikannya.
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block font-body font-semibold text-sm text-on-surface mb-2">
+            File Bukti Transfer <span className="text-error">*</span>
+          </label>
+          <div
+            className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
+              form.data.proof ? "border-primary bg-primary/5" : "border-surface-container-high hover:border-outline-variant"
+            }`}
+          >
+            <input
+              type="file"
+              id="store-proof-file"
+              accept=".jpg,.jpeg,.png,.pdf"
+              className="sr-only"
+              onChange={handleFileChange}
+            />
+            <label htmlFor="store-proof-file" className="cursor-pointer block">
+              <span
+                className={`material-symbols-outlined text-4xl block mb-2 ${form.data.proof ? "text-primary" : "text-on-surface-variant/40"}`}
+              >
+                {form.data.proof ? "check_circle" : "cloud_upload"}
+              </span>
+              {form.data.proof ? (
+                <p className="text-sm font-semibold text-primary">{form.data.proof.name}</p>
+              ) : (
+                <p className="text-sm font-semibold text-on-surface-variant">
+                  Klik untuk pilih file (JPG, PNG, PDF maks 2 MB)
+                </p>
+              )}
+            </label>
+          </div>
+          {(fileError || form.errors.proof) && (
+            <p className="text-error text-xs mt-1">{fileError || form.errors.proof}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block font-body font-semibold text-sm text-on-surface mb-2">
+            Catatan <span className="text-on-surface-variant font-normal">(opsional)</span>
+          </label>
+          <textarea
+            value={form.data.notes}
+            onChange={(e) => form.setData("notes", e.target.value)}
+            rows={2}
+            className="w-full bg-surface border-2 border-surface-container focus:border-primary focus:outline-none rounded-xl px-4 py-3 text-sm text-on-surface resize-none transition-colors"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={form.processing || !form.data.proof}
+          className="w-full bg-primary text-on-primary py-3.5 rounded-full font-label font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {form.processing ? "Mengunggah..." : "Unggah Bukti Pembayaran"}
+        </button>
+      </form>
     </div>
   );
 }

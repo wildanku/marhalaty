@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import type { ReactElement } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
-import { PageProps, GontorEvent, Rsvp, CustomFormField } from "@/types";
+import { PageProps, GontorEvent, Rsvp, CustomFormField, EventAddon } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import CurrencyInput from "@/Components/CurrencyInput";
@@ -20,10 +20,20 @@ type IncludedAddonVariants = Record<number, Record<string, string[]>>;
 
 type StepKey = "form" | "package" | "addons" | "infak" | "konfirmasi";
 
+interface PaymentGatewayOption {
+  code: string;
+  label: string;
+  description: string | null;
+  requires_channel: boolean;
+}
+
 interface ShowProps extends PageProps {
   event: GontorEvent;
   existingRsvp: Rsvp | null;
   image_url?: string | null;
+  enabledPaymentProviders: string[];
+  paymentGateways: PaymentGatewayOption[];
+  qrisOnlyBelowAmount: number;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -34,6 +44,29 @@ const formatRupiah = (num: number | string) =>
     currency: "IDR",
     minimumFractionDigits: 0,
   }).format(typeof num === "string" ? parseFloat(num) : num);
+
+// A slot is `{"Ukuran": "L", "Warna": "Merah"}` — matched against an addon's `variants` (per-combo
+// pricing, addendum to docs/plan/mvp2/8-event-product-integration.md, supersedes D26's flat price)
+// by comparing the *set* of chosen values, same rule the backend resolver uses. Falls back to
+// `display_price` (lowest active combination) when the slot isn't fully picked yet.
+const resolveAddonUnitPrice = (
+  addon: EventAddon,
+  slot: Record<string, string> | undefined
+): number => {
+  if (!addon.has_variants) return parseFloat(addon.price ?? "0");
+
+  const wanted = Object.values(slot ?? {})
+    .filter(Boolean)
+    .slice()
+    .sort();
+
+  const match = addon.variants.find((v) => {
+    const combo = [v.option1_value, v.option2_value].filter((x): x is string => !!x).sort();
+    return combo.length === wanted.length && combo.every((val, i) => val === wanted[i]);
+  });
+
+  return match ? parseFloat(match.price) : parseFloat(addon.display_price);
+};
 
 const formatDate = (dateStr: string) =>
   new Date(dateStr).toLocaleDateString("id-ID", {
@@ -57,6 +90,20 @@ interface PaymentChannelData {
 // Flattened channel for easier UI rendering
 interface PaymentChannel extends PaymentChannelData {
   method: "qris" | "va";
+}
+
+// Satutera's channel shape (fase 9) — a flat fee, no `fee_type`, and identified by
+// provider+method+code rather than code alone (payment-guidance.md §2). Kept as its own type
+// instead of reusing `PaymentChannel` above, which is iPaymu-shaped and currently dead code
+// (see the `{false && ...}` block below) — conflating the two would resurrect assumptions that
+// don't hold for Satutera.
+interface SatuteraChannel {
+  provider: string;
+  method: "qris" | "va";
+  code: string;
+  name: string;
+  fee: number;
+  image?: string | null;
 }
 
 // ─── Step Config ─────────────────────────────────────────────────────────────
@@ -134,7 +181,15 @@ function StepperProgress({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function Show({ auth, event, existingRsvp, image_url }: ShowProps) {
+export default function Show({
+  auth,
+  event,
+  existingRsvp,
+  image_url,
+  enabledPaymentProviders,
+  paymentGateways,
+  qrisOnlyBelowAmount,
+}: ShowProps) {
   const user = auth.user;
   const customForms: CustomFormField[] = event.metadata?.custom_forms ?? [];
   const packageDescription =
@@ -154,7 +209,11 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     purchased_addon_variants: IncludedAddonVariants;
     included_addon_forms: Record<number, Record<string, string>>;
     purchased_addon_forms: Record<number, Record<string, Record<string, string>>>;
-    payment_provider: "manual" | "ipaymu";
+    payment_provider: "manual" | "ipaymu" | "satutera";
+    // Satutera-only (fase 9) — see the note on the backend validation rules in
+    // RsvpController@store for why these are separate from `payment_provider` above.
+    channel_provider: string;
+    payment_method: string;
     payment_channel: string;
   }>({
     event_package_id: null,
@@ -166,6 +225,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     included_addon_forms: {},
     purchased_addon_forms: {},
     payment_provider: "manual",
+    channel_provider: "",
+    payment_method: "",
     payment_channel: "",
   });
 
@@ -173,7 +234,10 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
   const [view, setView] = useState<"detail" | "stepper">("detail");
   const [stepIndex, setStepIndex] = useState(0);
   const [paymentChannels, setPaymentChannels] = useState<PaymentChannel[]>([]);
+  const [satuteraChannels, setSatuteraChannels] = useState<SatuteraChannel[]>([]);
   const [previewImage, setPreviewImage] = useState<{ src: string; title: string } | null>(null);
+
+  const satuteraEnabled = paymentGateways.some((g) => g.code === "satutera");
 
   // ── Fetch Payment Channels ─────────────────────────────────────────────────
   useEffect(() => {
@@ -199,6 +263,19 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     };
     fetchChannels();
   }, []);
+
+  // ── Fetch Satutera Channels (fase 9) ────────────────────────────────────────
+  // Only fetched when the event actually offers Satutera — most events won't, and the endpoint
+  // is otherwise a needless network call.
+  useEffect(() => {
+    if (!satuteraEnabled) return;
+
+    fetch("/api/payment/channels")
+      .then((res) => res.json())
+      .then((body: { data: SatuteraChannel[] }) => setSatuteraChannels(body.data ?? []))
+      .catch((err) => console.error("Failed to fetch Satutera channels:", err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [satuteraEnabled]);
 
   // ── Initialize Custom Forms with Default Values ────────────────────────────
   useEffect(() => {
@@ -241,7 +318,27 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
   const totals = useMemo(() => {
     const pkg = parseFloat(selectedPackage?.price ?? "0");
     const infak = parseFloat(data.infak_amount) || 0;
-    const addons = data.addons.reduce((s, a) => s + a.price * a.quantity, 0);
+    const addons = data.addons.reduce((sum, a) => {
+      const catalogAddon = (event.addons ?? []).find((ca) => ca.id === a.id);
+
+      if (!catalogAddon || !catalogAddon.has_variants) {
+        return sum + a.price * a.quantity;
+      }
+
+      const slots = data.purchased_addon_variants[a.id] ?? {};
+      let subtotal = 0;
+
+      for (let slotIdx = 0; slotIdx < a.quantity; slotIdx++) {
+        const slotSelection: Record<string, string> = {};
+        Object.keys(slots).forEach((vKey) => {
+          const val = slots[vKey]?.[slotIdx];
+          if (val) slotSelection[vKey] = val;
+        });
+        subtotal += resolveAddonUnitPrice(catalogAddon, slotSelection);
+      }
+
+      return sum + subtotal;
+    }, 0);
     const subtotal = pkg + infak + addons;
 
     // Calculate admin fee
@@ -254,6 +351,14 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
             ? Math.round(subtotal * (channel.fee / 100))
             : channel.fee;
       }
+    } else if (data.payment_provider === "satutera" && data.payment_channel) {
+      const channel = satuteraChannels.find(
+        (ch) =>
+          ch.provider === data.channel_provider &&
+          ch.method === data.payment_method &&
+          ch.code === data.payment_channel
+      );
+      if (channel) adminFee = channel.fee;
     }
 
     return { pkg, infak, addons, subtotal, adminFee, total: subtotal + adminFee };
@@ -261,10 +366,39 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     selectedPackage,
     data.infak_amount,
     data.addons,
+    data.purchased_addon_variants,
+    event.addons,
     data.payment_provider,
     data.payment_channel,
+    data.channel_provider,
+    data.payment_method,
     paymentChannels,
+    satuteraChannels,
   ]);
+
+  // ── QRIS-only threshold (fase 9, D38) ───────────────────────────────────────
+  // Same pre-fee amount the backend sends to Satutera as `amount` (RsvpController@store
+  // re-checks this same rule server-side) — below the configured threshold, only QRIS is
+  // offered, since VA/retail channels enforce their own higher provider-side minimums.
+  const qrisOnlyActive = totals.subtotal > 0 && totals.subtotal < qrisOnlyBelowAmount;
+  const visibleSatuteraChannels = qrisOnlyActive
+    ? satuteraChannels.filter((ch) => ch.method === "qris")
+    : satuteraChannels;
+
+  // The subtotal can change after a channel was already selected (e.g. infak amount edited
+  // going back a step) — if that drops the total below the QRIS-only threshold, drop an
+  // incompatible selection rather than let the user submit a combination the backend will reject.
+  useEffect(() => {
+    if (qrisOnlyActive && data.payment_method && data.payment_method !== "qris") {
+      setData((prev) => ({
+        ...prev,
+        channel_provider: "",
+        payment_method: "",
+        payment_channel: "",
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrisOnlyActive]);
 
   // ── Min Price ─────────────────────────────────────────────────────────────
   const minPrice = useMemo(() => {
@@ -402,9 +536,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
 
     // Check included addons with variants and forms
     for (const addon of includedAddons) {
-      const variantKeys = addon.variants
-        ? Object.keys(addon.variants).filter((k) => k !== "forms")
-        : [];
+      const effectiveVariants = addon.variant_options;
+      const variantKeys = effectiveVariants ? Object.keys(effectiveVariants) : [];
 
       // Check variants for each slot
       if (variantKeys.length > 0) {
@@ -422,8 +555,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
       }
 
       // Check forms (no quantity slots for included addons)
-      if (addon.variants && (addon.variants as any).forms) {
-        const forms = (addon.variants as any).forms as any[];
+      if (addon.form_fields && addon.form_fields.length > 0) {
+        const forms = addon.form_fields;
         const addonForms = data.included_addon_forms[addon.id] ?? {};
         for (const form of forms) {
           if (form.required && !addonForms[form.key]?.trim()) {
@@ -437,9 +570,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
     for (const addon of purchasableAddons) {
       const addonQty = getAddonQty(addon.id);
       if (addonQty > 0) {
-        const variantKeys = addon.variants
-          ? Object.keys(addon.variants).filter((k) => k !== "forms")
-          : [];
+        const effectiveVariants = addon.variant_options;
+        const variantKeys = effectiveVariants ? Object.keys(effectiveVariants) : [];
 
         // Check variants for each slot
         if (variantKeys.length > 0) {
@@ -456,8 +588,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
         }
 
         // Check forms for each slot
-        if (addon.variants && (addon.variants as any).forms) {
-          const forms = (addon.variants as any).forms as any[];
+        if (addon.form_fields && addon.form_fields.length > 0) {
+          const forms = addon.form_fields;
           const addonForms = data.purchased_addon_forms[addon.id] ?? {};
           for (let slotIdx = 0; slotIdx < addonQty; slotIdx++) {
             const slotForms = addonForms[slotIdx] ?? {};
@@ -768,7 +900,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                     event_busy
                   </span>
                   <p className="font-body text-sm font-medium">
-                    Maaf, pendaftaran untuk event ini sudah ditutup. Jika ada pertanyaan atau butuh bantuan, silakan hubungi Admin melalui WhatsApp ya! 😊
+                    Maaf, pendaftaran untuk event ini sudah ditutup. Jika ada pertanyaan atau butuh
+                    bantuan, silakan hubungi Admin melalui WhatsApp ya! 😊
                   </p>
                 </div>
               )}
@@ -1140,9 +1273,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           </h3>
           {includedAddons.map((addon) => {
             const qty = addon.pivot.included_quantity;
-            const variantKeys = addon.variants
-              ? Object.keys(addon.variants).filter((k) => k !== "forms")
-              : [];
+            const effectiveVariants = addon.variant_options;
+            const variantKeys = effectiveVariants ? Object.keys(effectiveVariants) : [];
             const addonVariants = data.included_addon_variants[addon.id] ?? {};
 
             return (
@@ -1170,6 +1302,11 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                       <p className="font-headline font-bold text-on-surface text-sm truncate">
                         {addon.name}
                       </p>
+                      {addon.is_product_linked && (
+                        <span className="inline-block bg-tertiary-container text-on-tertiary-container text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full mt-1">
+                          Diambil saat acara
+                        </span>
+                      )}
                     </div>
                     <p className="font-body text-xs text-on-surface-variant">
                       {qty} item termasuk dalam paket
@@ -1209,7 +1346,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                           Item #{slotIdx + 1}
                         </p>
                         {variantKeys.map((vKey) => {
-                          const options = (addon.variants as Record<string, string[]>)[vKey] ?? [];
+                          const options =
+                            (effectiveVariants as Record<string, string[]>)[vKey] ?? [];
                           const selectedVal = addonVariants[vKey]?.[slotIdx] ?? "";
                           return (
                             <div key={vKey}>
@@ -1247,9 +1385,9 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                 )}
 
                 {/* Addon Forms for Included Addons */}
-                {addon.variants && (addon.variants as any).forms && (
+                {addon.form_fields && addon.form_fields.length > 0 && (
                   <div className="space-y-3 pt-3 border-t border-surface-container-high">
-                    {((addon.variants as any).forms as any[]).map((form: any) => {
+                    {addon.form_fields.map((form) => {
                       const addonForms = data.included_addon_forms[addon.id] ?? {};
                       const value = addonForms[form.key] ?? "";
                       const isRequired = form.required;
@@ -1345,9 +1483,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
           </h3>
           {purchasableAddons.map((addon) => {
             const qty = getAddonQty(addon.id);
-            const variantKeys = addon.variants
-              ? Object.keys(addon.variants).filter((k) => k !== "forms")
-              : [];
+            const effectiveVariants = addon.variant_options;
+            const variantKeys = effectiveVariants ? Object.keys(effectiveVariants) : [];
             const addonVariants = data.purchased_addon_variants[addon.id] ?? {};
             const includedInfo = includedAddons.find((ia) => ia.id === addon.id);
             return (
@@ -1387,9 +1524,15 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                             ×{includedInfo.pivot.included_quantity} sudah termasuk
                           </span>
                         )}
+                        {addon.is_product_linked && (
+                          <span className="inline-block bg-tertiary-container text-on-tertiary-container text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0">
+                            Diambil saat acara
+                          </span>
+                        )}
                       </div>
                       <p className="font-body text-xs text-primary font-medium mt-0.5">
-                        {formatRupiah(parseFloat(addon.price))} / pcs
+                        {addon.has_variants ? "mulai " : ""}
+                        {formatRupiah(parseFloat(addon.display_price))} / pcs
                       </p>
                     </div>
                   </div>
@@ -1397,7 +1540,9 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                   <div className="flex items-center bg-surface rounded-lg overflow-hidden border border-surface-container-high shrink-0">
                     <button
                       type="button"
-                      onClick={() => handleAddonQty(addon.id, addon.price, Math.max(0, qty - 1))}
+                      onClick={() =>
+                        handleAddonQty(addon.id, addon.display_price, Math.max(0, qty - 1))
+                      }
                       className="px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-colors font-bold"
                     >
                       −
@@ -1410,8 +1555,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                       onClick={() =>
                         handleAddonQty(
                           addon.id,
-                          addon.price,
-                          Math.min(addon.stock_quantity ?? 999, qty + 1)
+                          addon.display_price,
+                          Math.min(addon.available_stock ?? addon.stock_quantity ?? 999, qty + 1)
                         )
                       }
                       className="px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-colors font-bold"
@@ -1446,54 +1591,84 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                 {/* Per-slot variant picker when qty > 0 and has variants */}
                 {qty > 0 && variantKeys.length > 0 && (
                   <div className="space-y-3 pt-1 border-t border-surface-container-high">
-                    {Array.from({ length: qty }, (_, slotIdx) => (
-                      <div key={slotIdx} className="bg-surface rounded-xl p-3 space-y-2">
-                        <p className="font-body text-xs font-semibold text-on-surface-variant">
-                          Item #{slotIdx + 1}
-                        </p>
-                        {variantKeys.map((vKey) => {
-                          const options = (addon.variants as Record<string, string[]>)[vKey] ?? [];
-                          const selectedVal = addonVariants[vKey]?.[slotIdx] ?? "";
-                          return (
-                            <div key={vKey}>
-                              <label className="block font-body text-xs text-on-surface-variant mb-1.5 capitalize">
-                                {vKey}
-                              </label>
-                              <div className="flex flex-wrap gap-1.5">
-                                {options.map((opt) => (
-                                  <button
-                                    key={opt}
-                                    type="button"
-                                    onClick={() =>
-                                      handlePurchasedVariant(addon.id, vKey, slotIdx, opt)
-                                    }
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
-                                      selectedVal === opt
-                                        ? "border-primary bg-primary text-on-primary"
-                                        : "border-surface-container-high bg-surface text-on-surface hover:border-primary/50"
-                                    }`}
-                                  >
-                                    {opt}
-                                  </button>
-                                ))}
+                    {Array.from({ length: qty }, (_, slotIdx) => {
+                      // Already-picked keys for this unit, so a per-option price can account for
+                      // a second option group already chosen (e.g. "Warna" already set to
+                      // "Merah" while picking "Ukuran") instead of pricing each key in isolation.
+                      const currentSlot: Record<string, string> = {};
+                      variantKeys.forEach((k) => {
+                        const v = addonVariants[k]?.[slotIdx];
+                        if (v) currentSlot[k] = v;
+                      });
+
+                      return (
+                        <div key={slotIdx} className="bg-surface rounded-xl p-3 space-y-2">
+                          <p className="font-body text-xs font-semibold text-on-surface-variant">
+                            Item #{slotIdx + 1}
+                          </p>
+                          {variantKeys.map((vKey) => {
+                            const options =
+                              (effectiveVariants as Record<string, string[]>)[vKey] ?? [];
+                            const selectedVal = addonVariants[vKey]?.[slotIdx] ?? "";
+                            return (
+                              <div key={vKey}>
+                                <label className="block font-body text-xs text-on-surface-variant mb-1.5 capitalize">
+                                  {vKey}
+                                </label>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {options.map((opt) => {
+                                    // Same resolver the running total uses — the price shown here
+                                    // is guaranteed to match what picking `opt` will actually add.
+                                    const optionPrice = resolveAddonUnitPrice(addon, {
+                                      ...currentSlot,
+                                      [vKey]: opt,
+                                    });
+                                    const isSelected = selectedVal === opt;
+                                    return (
+                                      <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() =>
+                                          handlePurchasedVariant(addon.id, vKey, slotIdx, opt)
+                                        }
+                                        className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg border-2 transition-all ${
+                                          isSelected
+                                            ? "border-primary bg-primary text-on-primary"
+                                            : "border-surface-container-high bg-surface text-on-surface hover:border-primary/50"
+                                        }`}
+                                      >
+                                        <span className="text-xs font-bold">{opt}</span>
+                                        <span
+                                          className={`text-[10px] font-normal ${
+                                            isSelected
+                                              ? "text-on-primary/80"
+                                              : "text-on-surface-variant"
+                                          }`}
+                                        >
+                                          {formatRupiah(optionPrice)}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
                 {/* Addon Forms for Purchased Addons */}
-                {qty > 0 && addon.variants && (addon.variants as any).forms && (
+                {qty > 0 && addon.form_fields && addon.form_fields.length > 0 && (
                   <div className="space-y-3 pt-3 border-t border-surface-container-high">
                     {Array.from({ length: qty }, (_, slotIdx) => (
                       <div key={slotIdx} className="bg-surface rounded-xl p-3 space-y-2">
                         <p className="font-body text-xs font-semibold text-on-surface-variant">
                           Item #{slotIdx + 1} - Informasi Tambahan
                         </p>
-                        {((addon.variants as any).forms as any[]).map((form: any) => {
+                        {addon.form_fields!.map((form) => {
                           const addonForms = data.purchased_addon_forms[addon.id] ?? {};
                           const slotForms = addonForms[slotIdx] ?? {};
                           const value = slotForms[form.key] ?? "";
@@ -1812,7 +1987,8 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                 </span>
                 <div>
                   <span className="font-body text-sm text-on-surface">Biaya Admin</span>
-                  {data.payment_channel &&
+                  {data.payment_provider === "ipaymu" &&
+                    data.payment_channel &&
                     paymentChannels.length > 0 &&
                     (() => {
                       const channel = paymentChannels.find(
@@ -1830,6 +2006,21 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                         );
                       }
                       return null;
+                    })()}
+                  {data.payment_provider === "satutera" &&
+                    data.payment_channel &&
+                    (() => {
+                      const channel = satuteraChannels.find(
+                        (ch) =>
+                          ch.provider === data.channel_provider &&
+                          ch.method === data.payment_method &&
+                          ch.code === data.payment_channel
+                      );
+                      return channel ? (
+                        <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                          {formatRupiah(channel.fee)}
+                        </p>
+                      ) : null;
                     })()}
                 </div>
               </div>
@@ -1855,48 +2046,62 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
       <div className="space-y-3">
         <h3 className="font-body font-bold text-sm text-on-surface">Metode Pembayaran</h3>
 
-        {/* Manual */}
-        <label
-          className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-            data.payment_provider === "manual"
-              ? "border-primary bg-primary/5"
-              : "border-surface-container hover:border-outline-variant"
-          }`}
-        >
-          <div
-            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
-              data.payment_provider === "manual" ? "border-primary" : "border-outline"
+        {!enabledPaymentProviders.includes("manual") && (
+          <div className="bg-error-container text-on-error-container rounded-2xl p-4 text-sm">
+            Belum ada metode pembayaran yang aktif untuk event ini. Hubungi admin.
+          </div>
+        )}
+
+        {/* Manual — hidden if an admin switched it off for event registration (god-mode Payment Settings) */}
+        {enabledPaymentProviders.includes("manual") && (
+          <label
+            className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+              data.payment_provider === "manual"
+                ? "border-primary bg-primary/5"
+                : "border-surface-container hover:border-outline-variant"
             }`}
           >
-            {data.payment_provider === "manual" && (
-              <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-headline font-bold text-on-surface text-sm">
-                Transfer Manual
-              </span>
-              <span className="inline-block bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full">
-                Gratis biaya admin
-              </span>
+            <div
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                data.payment_provider === "manual" ? "border-primary" : "border-outline"
+              }`}
+            >
+              {data.payment_provider === "manual" && (
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              )}
             </div>
-            <p className="font-body text-xs text-on-surface-variant mt-0.5">
-              Transfer ke rekening BSI lalu upload bukti pembayaran.
-            </p>
-          </div>
-          <input
-            type="radio"
-            className="sr-only"
-            checked={data.payment_provider === "manual"}
-            onChange={() => {
-              setData("payment_provider", "manual");
-              setData("payment_channel", "");
-            }}
-          />
-        </label>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-headline font-bold text-on-surface text-sm">
+                  Transfer Manual
+                </span>
+                <span className="inline-block bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full">
+                  Gratis biaya admin
+                </span>
+              </div>
+              <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                Transfer ke rekening BSI lalu upload bukti pembayaran.
+              </p>
+            </div>
+            <input
+              type="radio"
+              className="sr-only"
+              checked={data.payment_provider === "manual"}
+              onChange={() => {
+                setData("payment_provider", "manual");
+                setData("payment_channel", "");
+              }}
+            />
+          </label>
+        )}
 
-        {/* iPaymu automatic — DISABLED FOR NOW */}
+        {/*
+          iPaymu automatic — DISABLED FOR NOW independently of god-mode Payment Settings.
+          This `{false && ...}` kill-switch predates Fase 7 and stays as-is: an admin can enable
+          the "ipaymu" driver for the event context (it'll be accepted server-side), but this UI
+          won't offer it until someone deliberately re-enables this block — re-exposing it here is
+          a separate product decision, not something Fase 7 should do silently.
+        */}
         {false && (
           <label
             className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
@@ -1993,6 +2198,123 @@ export default function Show({ auth, event, existingRsvp, image_url }: ShowProps
                         <span className="font-body text-xs text-on-surface-variant">Biaya</span>
                         <span className="font-body text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
                           {feeLabel}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Satutera automatic (fase 9) — same "Pembayaran Otomatis" concept the iPaymu block
+            above uses, offered independently since an admin can enable either/both/neither
+            per docs/plan/mvp2/7-payment-settings.md. */}
+        {satuteraEnabled && (
+          <label
+            className={`flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+              data.payment_provider === "satutera"
+                ? "border-primary bg-primary/5"
+                : "border-surface-container hover:border-outline-variant"
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                data.payment_provider === "satutera" ? "border-primary" : "border-outline"
+              }`}
+            >
+              {data.payment_provider === "satutera" && (
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-headline font-bold text-on-surface text-sm">
+                  Pembayaran Otomatis
+                </span>
+                <span className="inline-block bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full">
+                  via Satutera
+                </span>
+              </div>
+              <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                QRIS atau Virtual Account. Terverifikasi otomatis.
+              </p>
+            </div>
+            <input
+              type="radio"
+              className="sr-only"
+              checked={data.payment_provider === "satutera"}
+              onChange={() => {
+                setData("payment_provider", "satutera");
+                setData("channel_provider", "");
+                setData("payment_method", "");
+                setData("payment_channel", "");
+              }}
+            />
+          </label>
+        )}
+
+        {satuteraEnabled && data.payment_provider === "satutera" && (
+          <div className="pl-2 space-y-3">
+            <p className="font-body text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+              Pilih Metode Pembayaran
+            </p>
+            {qrisOnlyActive && (
+              <p className="font-body text-xs text-on-surface-variant bg-tertiary-container/40 rounded-xl px-3 py-2">
+                Transaksi di bawah {formatRupiah(qrisOnlyBelowAmount)} hanya bisa dibayar dengan
+                QRIS — metode lain memerlukan nominal minimal {formatRupiah(qrisOnlyBelowAmount)}.
+              </p>
+            )}
+            {satuteraChannels.length === 0 && (
+              <p className="font-body text-xs text-on-surface-variant">Memuat metode pembayaran…</p>
+            )}
+            <div className="space-y-2">
+              {visibleSatuteraChannels.map((ch) => {
+                const isSelected =
+                  data.channel_provider === ch.provider &&
+                  data.payment_method === ch.method &&
+                  data.payment_channel === ch.code;
+                return (
+                  <button
+                    key={`${ch.provider}-${ch.method}-${ch.code}`}
+                    type="button"
+                    onClick={() => {
+                      setData("channel_provider", ch.provider);
+                      setData("payment_method", ch.method);
+                      setData("payment_channel", ch.code);
+                    }}
+                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : "border-surface-container hover:border-outline-variant bg-surface"
+                    }`}
+                  >
+                    {ch.image && (
+                      <img
+                        src={ch.image}
+                        alt={ch.name}
+                        className="w-12 h-12 object-contain shrink-0"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-headline font-bold text-sm text-on-surface">
+                          {ch.name}
+                        </span>
+                        {isSelected && (
+                          <span
+                            className="material-symbols-outlined text-primary text-[20px] shrink-0"
+                            style={{ fontVariationSettings: "'FILL' 1" }}
+                          >
+                            check_circle
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="font-body text-xs text-on-surface-variant">Biaya</span>
+                        <span className="font-body text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                          {ch.fee === 0 ? "Gratis" : `+${formatRupiah(ch.fee)}`}
                         </span>
                       </div>
                     </div>

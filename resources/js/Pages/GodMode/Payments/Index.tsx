@@ -145,7 +145,7 @@ export default function PaymentsIndex({ admin, transactions }: PaymentsIndexProp
         <div>
           <h1 className="text-2xl font-headline font-bold text-white">Manual Payments</h1>
           <p className="text-white/50 text-sm mt-1">
-            Verifikasi bukti transfer manual dari peserta event.
+            Verifikasi bukti transfer manual dari peserta event maupun pembeli toko.
           </p>
         </div>
         <div className="text-right">
@@ -174,7 +174,7 @@ export default function PaymentsIndex({ admin, transactions }: PaymentsIndexProp
                     Peserta
                   </th>
                   <th className="px-5 py-3.5 text-white/40 font-semibold uppercase tracking-wider text-xs">
-                    Event
+                    Event / Toko
                   </th>
                   <th className="px-5 py-3.5 text-white/40 font-semibold uppercase tracking-wider text-xs">
                     Nominal
@@ -195,9 +195,11 @@ export default function PaymentsIndex({ admin, transactions }: PaymentsIndexProp
               </thead>
               <tbody className="divide-y divide-white/5">
                 {transactions.data.map((tx) => {
-                  const rsvp = tx.rsvp as any;
-                  const user = rsvp?.user;
-                  const event = rsvp?.event;
+                  // `tx.user` is eager-loaded directly on the transaction — always populated,
+                  // for both the RSVP flow and store orders.
+                  const user = tx.user;
+                  const event = tx.rsvp?.event;
+                  const order = tx.payable;
                   const hasProof = !!tx.proof;
 
                   return (
@@ -210,7 +212,14 @@ export default function PaymentsIndex({ admin, transactions }: PaymentsIndexProp
                       </td>
 
                       <td className="px-5 py-4">
-                        <p className="text-white/70 text-xs line-clamp-2">{event?.title ?? "—"}</p>
+                        {order ? (
+                          <>
+                            <p className="text-white/70 text-xs">{order.order_number}</p>
+                            <p className="text-white/40 text-[11px]">{order.store?.name ?? "Toko"}</p>
+                          </>
+                        ) : (
+                          <p className="text-white/70 text-xs line-clamp-2">{event?.title ?? "—"}</p>
+                        )}
                       </td>
 
                       <td className="px-5 py-4">

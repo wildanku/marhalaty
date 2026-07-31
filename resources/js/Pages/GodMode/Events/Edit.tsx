@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
+import RichTextEditor from "@/Components/RichTextEditor";
 import { validateFile, MAX_FILE_SIZE_MB } from "@/Helpers/fileValidation";
 
 interface EventEditProps {
@@ -140,11 +141,12 @@ export default function EventEdit({ admin, event, current_image_url }: EventEdit
             {/* Description */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-white/70 mb-2">Description</label>
-              <textarea
+              <RichTextEditor
                 value={data.description}
-                onChange={(e) => setData("description", e.target.value)}
-                rows={4}
-                className="w-full bg-[#0d1117] border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                onChange={(html) => setData("description", html)}
+                placeholder="Tulis deskripsi event..."
+                variant="dark"
+                allowHtmlMode
               />
               {errors.description && (
                 <div className="text-red-400 text-sm mt-1">{errors.description}</div>

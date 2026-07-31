@@ -4,7 +4,7 @@ namespace App\Mail;
 
 use App\Domains\Event\Models\Rsvp;
 use App\Domains\Event\Models\Transaction;
-use App\Models\Setting;
+use App\Domains\Shared\Services\PaymentSettingsService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -21,26 +21,26 @@ class EventRegistrationPendingPayment extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public function __construct(
-        public readonly Rsvp        $rsvp,
+        public readonly Rsvp $rsvp,
         public readonly Transaction $transaction,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Segera Selesaikan Pembayaran – ' . $this->rsvp->event->title,
+            subject: 'Segera Selesaikan Pembayaran – '.$this->rsvp->event->title,
         );
     }
 
     public function content(): Content
     {
-        $bankAccounts = Setting::get('bank_account_manual_transfer', []);
+        $bankAccounts = app(PaymentSettingsService::class)->manualAccounts();
 
         return new Content(
             view: 'emails.event-registration-payment',
             with: [
-                'rsvp'         => $this->rsvp->load(['event', 'user', 'package']),
-                'transaction'  => $this->transaction,
+                'rsvp' => $this->rsvp->load(['event', 'user', 'package']),
+                'transaction' => $this->transaction,
                 'bankAccounts' => $bankAccounts,
             ],
         );

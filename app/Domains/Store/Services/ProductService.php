@@ -71,6 +71,16 @@ class ProductService
             ]);
         }
 
+        // event_addons.product_id is restrictOnDelete (docs/plan/mvp2/8-event-product-integration.md
+        // D24) — without this check the delete would still be blocked, just as a raw QueryException
+        // instead of a message that tells the seller which event to go unlink it from first.
+        $linkedEvent = $this->linkedEventTitle($product);
+        if ($linkedEvent) {
+            throw ValidationException::withMessages([
+                'product' => "Produk ini masih dipakai sebagai addon di event \"{$linkedEvent}\". Hubungi admin untuk melepas tautannya sebelum menghapus.",
+            ]);
+        }
+
         $product->delete();
     }
 
@@ -196,5 +206,17 @@ class ProductService
     {
         return Schema::hasTable('store_order_items')
             && DB::table('store_order_items')->where('product_id', $product->id)->exists();
+    }
+
+    private function linkedEventTitle(Product $product): ?string
+    {
+        if (! Schema::hasTable('event_addons')) {
+            return null;
+        }
+
+        return DB::table('event_addons')
+            ->join('events', 'events.id', '=', 'event_addons.event_id')
+            ->where('event_addons.product_id', $product->id)
+            ->value('events.title');
     }
 }

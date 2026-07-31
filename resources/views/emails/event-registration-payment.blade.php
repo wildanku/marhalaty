@@ -133,7 +133,7 @@
         @if(!empty($bankAccounts))
             @foreach($bankAccounts as $bank)
             <div class="bank-card">
-                <p class="bank-name">{{ $bank['bank'] ?? 'Bank' }}</p>
+                <p class="bank-name">{{ $bank['bank_name'] ?? 'Bank' }}</p>
                 <p class="account-number">{{ $bank['account_number'] ?? '-' }}</p>
                 <p class="account-name">a.n. {{ $bank['account_holder'] ?? '-' }}</p>
             </div>

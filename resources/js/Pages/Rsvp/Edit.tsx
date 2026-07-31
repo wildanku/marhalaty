@@ -210,10 +210,11 @@ export default function RsvpEdit() {
                     originalAddon = event.addons.find((a) => a.id === addon.id);
                   }
 
-                  if (!originalAddon || !originalAddon.variants) return null;
+                  if (!originalAddon) return null;
 
-                  const variantKeys = Object.keys(originalAddon.variants).filter((k) => k !== "forms");
-                  const forms = (originalAddon.variants as any).forms as any[] | undefined;
+                  const variantOptions = originalAddon.variant_options;
+                  const variantKeys = variantOptions ? Object.keys(variantOptions) : [];
+                  const forms = originalAddon.form_fields ?? undefined;
 
                   if (variantKeys.length === 0 && (!forms || forms.length === 0)) return null;
 
@@ -228,7 +229,7 @@ export default function RsvpEdit() {
                             
                             {/* Variant Selectors */}
                             {variantKeys.map((vKey) => {
-                              const options = (originalAddon.variants as Record<string, string[]>)[vKey] ?? [];
+                              const options = variantOptions?.[vKey] ?? [];
                               const selectedVal = isIncluded 
                                 ? data.included_addon_variants[addon.id]?.[vKey]?.[slotIdx] ?? ""
                                 : data.purchased_addon_variants[addon.id]?.[vKey]?.[slotIdx] ?? "";

@@ -2,15 +2,16 @@
 
 namespace App\Domains\Donation\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
+use App\Support\Eloquent\HasTypeSafeMorphMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Donation extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia;
+    use HasFactory, HasTypeSafeMorphMany, InteractsWithMedia;
 
     protected $fillable = [
         'donatable_type',

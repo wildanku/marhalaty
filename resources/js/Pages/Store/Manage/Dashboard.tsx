@@ -67,7 +67,7 @@ export default function Dashboard() {
         <ManageNav active={tab} onChange={setTab} showMembers={isOwner} />
 
         {tab === "dashboard" && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <Link
               href={`/my/stores/${store.id}/products`}
               className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high hover:shadow-[0px_10px_30px_rgba(80,100,71,0.08)] transition-shadow"
@@ -97,6 +97,16 @@ export default function Dashboard() {
                 {shippingMethodCount}
               </p>
               <p className="text-sm text-on-surface-variant">Metode Pengiriman</p>
+            </Link>
+            <Link
+              href={`/my/stores/${store.id}/event-reservations`}
+              className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high hover:shadow-[0px_10px_30px_rgba(80,100,71,0.08)] transition-shadow"
+            >
+              <span className="material-symbols-outlined text-3xl text-primary">event</span>
+              <p className="font-headline text-lg font-bold text-on-surface mt-3">
+                Pesanan Event
+              </p>
+              <p className="text-sm text-on-surface-variant">Produk yang dipakai di event</p>
             </Link>
           </div>
         )}

@@ -849,6 +849,7 @@ export default function EventShow({
 
       {/* ─── Addon Tab ───────────────────────────────────────────────────── */}
       {activeTab === "addon" && (
+        <>
         <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
           <div className="p-5 border-b border-white/5">
             <h3 className="font-bold text-white flex items-center gap-2">
@@ -908,6 +909,11 @@ export default function EventShow({
             </table>
           </div>
         </div>
+
+        <div className="mt-6">
+          <ProductReservationsRecap eventId={event.id} />
+        </div>
+        </>
       )}
 
       {/* ─── Infak Tab ───────────────────────────────────────────────────── */}
@@ -984,5 +990,117 @@ export default function EventShow({
         </div>
       )}
     </GodModeLayout>
+  );
+}
+
+interface ProductReservationItem {
+  id: number;
+  quantity: number;
+  participant_name: string | null;
+  rsvp_status: string;
+}
+
+interface ProductReservationRow {
+  product_id: string;
+  product_name: string | null;
+  store_name: string | null;
+  variant_label: string | null;
+  pending: number;
+  paid: number;
+  fulfilled: number;
+  items: ProductReservationItem[];
+}
+
+/** "Barang yang harus disiapkan" — docs/plan/mvp2/8-event-product-integration.md §5.3. Fetches its
+ * own data (JSON endpoint, not an Inertia prop — CLAUDE.md) so it stays fully additive to this
+ * already-large page. */
+function ProductReservationsRecap({ eventId }: { eventId: number }) {
+  const [rows, setRows] = useState<ProductReservationRow[] | null>(null);
+
+  const load = () => {
+    fetch(`/god-mode/events/${eventId}/api-product-reservations`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setRows)
+      .catch(() => setRows([]));
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId]);
+
+  const fulfill = (reservationId: number) => {
+    router.post(
+      `/god-mode/events/${eventId}/product-reservations/${reservationId}/fulfill`,
+      {},
+      { preserveScroll: true, onSuccess: load }
+    );
+  };
+
+  if (rows === null) {
+    return <p className="text-white/40 text-sm">Memuat rekap barang...</p>;
+  }
+
+  return (
+    <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
+      <div className="p-5 border-b border-white/5">
+        <h3 className="font-bold text-white flex items-center gap-2">
+          <span className="material-symbols-outlined text-sky-400 text-[18px]">inventory_2</span>
+          Barang yang Harus Disiapkan
+          <span className="text-xs text-white/40 font-normal">(addon tertaut produk toko)</span>
+        </h3>
+      </div>
+      {rows.length === 0 ? (
+        <p className="p-5 text-white/30 text-sm">Belum ada addon tertaut produk di event ini.</p>
+      ) : (
+        <div className="divide-y divide-white/5">
+          {rows.map((row) => (
+            <div key={`${row.product_id}-${row.variant_label ?? ""}`} className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="font-semibold text-white">
+                    {row.product_name}
+                    {row.variant_label && <span className="text-white/50"> — {row.variant_label}</span>}
+                  </p>
+                  <p className="text-xs text-white/40">{row.store_name}</p>
+                </div>
+                <div className="flex gap-4 text-xs">
+                  <span className="text-amber-400">Belum bayar: {row.pending}</span>
+                  <span className="text-emerald-400">Lunas: {row.paid}</span>
+                  <span className="text-white/50">Diserahkan: {row.fulfilled}</span>
+                </div>
+              </div>
+              {row.items.length > 0 && (
+                <div className="space-y-1.5">
+                  {row.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between bg-white/[0.03] rounded-lg px-3 py-2 text-xs"
+                    >
+                      <span className="text-white/70">
+                        {item.participant_name ?? "—"} × {item.quantity}
+                        <span
+                          className={`ml-2 ${item.rsvp_status === "paid" ? "text-emerald-400" : "text-amber-400"}`}
+                        >
+                          ({item.rsvp_status})
+                        </span>
+                      </span>
+                      {item.rsvp_status === "paid" && (
+                        <button
+                          onClick={() => fulfill(item.id)}
+                          className="px-2 py-1 rounded bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 font-semibold"
+                        >
+                          Tandai Diserahkan
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

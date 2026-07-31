@@ -38,10 +38,13 @@ export default function EventsIndex({ admin, events }: EventsIndexProps) {
           <h2 className="text-xl font-bold text-white font-headline">Events Overview</h2>
           <p className="text-sm text-white/50">Manage upcoming and past events.</p>
         </div>
-        {/* Placeholder for future Create Event feature */}
-        <button className="bg-emerald-500 hover:bg-emerald-400 text-[#0f1117] px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-emerald-500/20">
+        <Link
+          href="/god-mode/events/create"
+          className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-[#0f1117] px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-emerald-500/20"
+        >
+          <span className="material-symbols-outlined text-[18px]">add</span>
           Create Event
-        </button>
+        </Link>
       </div>
 
       <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">

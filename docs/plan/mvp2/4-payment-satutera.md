@@ -125,7 +125,11 @@ Endpoint internal: `GET /api/store/payment-channels` (cached, tanpa kredensial d
 [
     'client_id'             => config('services.satutera.client_id'),
     'client_transaction_id' => $order->order_number,      // INV/20260729/A1B2C3
-    'amount'                => (int) $order->total,        // sudah termasuk ongkir + fee
+    // Satutera menambahkan fee channel sendiri di atas `amount` (guidance §3: request amount
+    // exclude fee, response payment_detail.total = amount + fee) — kirim subtotal + ongkir saja
+    // (amount TANPA payment_fee); mengirim order->total (yang sudah termasuk fee) membuat fee
+    // dihitung dua kali.
+    'amount'                => (int) ($order->total - $order->payment_fee),
     'currency'              => 'IDR',
     'provider'              => $channel['provider'],
     'payment_method'        => $channel['method'],         // 'va' | 'qris'
@@ -288,8 +292,10 @@ public function handle(Request $request)
         if (! $transaction) { Log::warning(...); return; }
         if ($transaction->status === 'paid') { $event->update(['processed_at' => now()]); return; }
 
-        // 3. Verifikasi ulang jumlah — payload tidak dipercaya begitu saja
-        if ((int) $payload['amount'] !== (int) $transaction->amount) {
+        // 3. Verifikasi ulang jumlah — payload tidak dipercaya begitu saja. Dibandingkan terhadap
+        //    amount TANPA fee, karena itu yang benar-benar dikirim sebagai `amount` saat create
+        //    payment (Satutera echo balik apa adanya, fee ditambahkan di sisi mereka).
+        if ((int) $payload['amount'] !== (int) ($transaction->amount - $transaction->payment_fee)) {
             Log::error('Satutera callback amount mismatch', [...]);
             return;                                  // jangan tandai lunas; butuh peninjauan manual
         }

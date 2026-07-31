@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: 'Overused Grotesk';
-  src: url('/fonts/overused_grotesk/fonts/variable/OverusedGrotesk-VF.woff2') format('woff2');
+  font-family: "Overused Grotesk";
+  src: url("/fonts/overused_grotesk/fonts/variable/OverusedGrotesk-VF.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
 }
@@ -58,10 +58,10 @@
   --color-surface-tint: #506447;
   --color-on-secondary: #ffffff;
 
-  --font-headline: 'Overused Grotesk', sans-serif;
-  --font-body: 'Overused Grotesk', sans-serif;
-  --font-label: 'Overused Grotesk', sans-serif;
-  --font-sans: 'Overused Grotesk', sans-serif;
+  --font-headline: "Overused Grotesk", sans-serif;
+  --font-body: "Overused Grotesk", sans-serif;
+  --font-label: "Overused Grotesk", sans-serif;
+  --font-sans: "Overused Grotesk", sans-serif;
 }
 
 /* Styles the fixed tag set HtmlSanitizerService allows through (product descriptions etc.) —
@@ -140,6 +140,24 @@
   float: left;
   height: 0;
   pointer-events: none;
+}
+
+/* GodMode's admin UI is a separate hardcoded dark palette (bg-[#0d1117]/text-white, no
+   prefers-color-scheme or [data-theme] switching anywhere in the app) rather than a themed
+   variant of the Material tokens above, so the light-palette CSS vars used by .rich-text
+   (near-black text, maroon links) need an explicit override instead of a token swap. */
+.rich-text--dark blockquote {
+  border-left-color: rgb(255 255 255 / 15%);
+  color: rgb(255 255 255 / 60%);
+}
+
+.rich-text--dark a {
+  color: #34d399;
+}
+
+.rich-text--dark p.is-editor-empty:first-child::before {
+  color: rgb(255 255 255 / 30%);
+  opacity: 1;
 }
 
 @layer utilities {

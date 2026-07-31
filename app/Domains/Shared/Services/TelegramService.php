@@ -18,14 +18,16 @@ use Illuminate\Support\Facades\Storage;
 class TelegramService
 {
     private string $botToken;
+
     private string $notifyChatId;
+
     private string $baseUrl;
 
     public function __construct()
     {
-        $this->botToken     = config('services.telegram.bot_token', '');
+        $this->botToken = config('services.telegram.bot_token', '');
         $this->notifyChatId = config('services.telegram.notify_chat_id', '');
-        $this->baseUrl      = "https://api.telegram.org/bot{$this->botToken}";
+        $this->baseUrl = "https://api.telegram.org/bot{$this->botToken}";
     }
 
     /**
@@ -35,22 +37,25 @@ class TelegramService
     {
         try {
             $response = Http::timeout(15)->post("{$this->baseUrl}/sendMessage", [
-                'chat_id'                  => $chatId,
-                'text'                     => $text,
-                'parse_mode'               => $parseMode,
+                'chat_id' => $chatId,
+                'text' => $text,
+                'parse_mode' => $parseMode,
                 'disable_web_page_preview' => true,
             ]);
 
             if (! $response->successful() || ! ($response->json('ok') ?? false)) {
                 Log::warning('Telegram sendMessage failed', [
-                    'chat_id'  => $chatId,
+                    'chat_id' => $chatId,
                     'response' => $response->json(),
                 ]);
+
                 return false;
             }
+
             return true;
         } catch (\Exception $e) {
             Log::error('Telegram sendMessage exception', ['error' => $e->getMessage()]);
+
             return false;
         }
     }
@@ -64,34 +69,37 @@ class TelegramService
         try {
             if (! Storage::disk('public')->exists($storagePath)) {
                 Log::warning('Telegram sendPhoto: file not found', ['path' => $storagePath]);
-                return $this->sendMessage($chatId, $caption . "\n\n⚠️ <i>Gambar bukti tidak ditemukan di server.</i>", $parseMode);
+
+                return $this->sendMessage($chatId, $caption."\n\n⚠️ <i>Gambar bukti tidak ditemukan di server.</i>", $parseMode);
             }
 
             $fileContents = Storage::disk('public')->get($storagePath);
-            $fileName     = basename($storagePath);
+            $fileName = basename($storagePath);
 
             $response = Http::timeout(30)->attach(
                 'photo',
                 $fileContents,
                 $fileName
             )->post("{$this->baseUrl}/sendPhoto", [
-                'chat_id'    => $chatId,
-                'caption'    => $caption,
+                'chat_id' => $chatId,
+                'caption' => $caption,
                 'parse_mode' => $parseMode,
             ]);
 
             if (! $response->successful() || ! ($response->json('ok') ?? false)) {
                 Log::warning('Telegram sendPhoto failed', [
-                    'chat_id'  => $chatId,
+                    'chat_id' => $chatId,
                     'response' => $response->json(),
                 ]);
+
                 // Fallback: send as text without image
-                return $this->sendMessage($chatId, $caption . "\n\n⚠️ <i>Gagal mengirim gambar bukti transfer.</i>", $parseMode);
+                return $this->sendMessage($chatId, $caption."\n\n⚠️ <i>Gagal mengirim gambar bukti transfer.</i>", $parseMode);
             }
 
             return true;
         } catch (\Exception $e) {
             Log::error('Telegram sendPhoto exception', ['error' => $e->getMessage()]);
+
             return false;
         }
     }
@@ -104,24 +112,29 @@ class TelegramService
     {
         if (empty($this->notifyChatId) || empty($this->botToken)) {
             Log::warning('Telegram notifyPaymentProof skipped: bot_token or notify_chat_id not configured.');
+
             return;
         }
 
-        $transaction->loadMissing(['rsvp.event', 'rsvp.package', 'user', 'proof']);
+        $transaction->loadMissing(['rsvp.event', 'rsvp.package', 'payable.store', 'user', 'proof']);
 
-        $user        = $transaction->user;
-        $rsvp        = $transaction->rsvp;
-        $event       = $rsvp?->event;
-        $package     = $rsvp?->package;
-        $proof       = $transaction->proof;
-        $amount      = number_format((float) $transaction->amount, 0, ',', '.');
-        $notes       = $proof?->notes ? "\n📝 <b>Catatan:</b> {$proof->notes}" : '';
+        $user = $transaction->user;
+        $rsvp = $transaction->rsvp;
+        $event = $rsvp?->event;
+        $package = $rsvp?->package;
+        $storeOrder = $transaction->payable; // null for the RSVP flow (payable_type is only ever set for store orders)
+        $proof = $transaction->proof;
+        $amount = number_format((float) $transaction->amount, 0, ',', '.');
+        $notes = $proof?->notes ? "\n📝 <b>Catatan:</b> {$proof->notes}" : '';
+        $contextLine = $storeOrder
+            ? '🏬 <b>Order:</b> '.e($storeOrder->order_number).' — '.e($storeOrder->store?->name ?? 'Toko')
+            : '🎟 <b>Acara:</b> '.e($event?->title ?? 'N/A');
 
         // Format package info
         $packageInfo = '';
         if ($package) {
             $packagePrice = number_format((float) $package->price, 0, ',', '.');
-            $packageInfo = "\n\n🎁 <b>Paket:</b> " . e($package->name) . " (Rp " . $packagePrice . ")";
+            $packageInfo = "\n\n🎁 <b>Paket:</b> ".e($package->name).' (Rp '.$packagePrice.')';
         }
 
         // Format add-ons info
@@ -129,34 +142,34 @@ class TelegramService
         if ($rsvp?->add_ons_snapshot) {
             $addons = is_array($rsvp->add_ons_snapshot) ? $rsvp->add_ons_snapshot : json_decode($rsvp->add_ons_snapshot, true);
             if (! empty($addons) && is_array($addons)) {
-                $addonLines = ["🛍️ <b>Tambahan:</b>"];
+                $addonLines = ['🛍️ <b>Tambahan:</b>'];
                 foreach ($addons as $addon) {
                     if (is_array($addon) && isset($addon['name'])) {
-                        $addonName  = e($addon['name'] ?? 'N/A');
-                        $quantity   = $addon['quantity'] ?? 0;
-                        $price      = isset($addon['price']) ? number_format((float) $addon['price'], 0, ',', '.') : '0';
+                        $addonName = e($addon['name'] ?? 'N/A');
+                        $quantity = $addon['quantity'] ?? 0;
+                        $price = isset($addon['price']) ? number_format((float) $addon['price'], 0, ',', '.') : '0';
                         $totalPrice = isset($addon['price']) ? number_format((float) $addon['price'] * $quantity, 0, ',', '.') : '0';
                         $addonLines[] = "  • {$addonName} x{$quantity} = Rp {$totalPrice}";
                     }
                 }
-                $addonsInfo = "\n" . implode("\n", $addonLines);
+                $addonsInfo = "\n".implode("\n", $addonLines);
             }
         }
 
         $caption = implode("\n", [
-            "💳 <b>Bukti Pembayaran Masuk</b>",
-            "",
-            "👤 <b>Pendaftar:</b> " . e($user?->name ?? 'N/A'),
-            "📧 <b>Email:</b> " . e($user?->email ?? 'N/A'),
-            "🎟 <b>Acara:</b> " . e($event?->title ?? 'N/A'),
+            '💳 <b>Bukti Pembayaran Masuk</b>',
+            '',
+            '👤 <b>Pendaftar:</b> '.e($user?->name ?? 'N/A'),
+            '📧 <b>Email:</b> '.e($user?->email ?? 'N/A'),
+            $contextLine,
             $packageInfo,
             $addonsInfo,
-            "",
-            "💰 <b>Nominal:</b> Rp " . $amount,
+            '',
+            '💰 <b>Nominal:</b> Rp '.$amount,
             "🔖 <b>ID Transaksi:</b> <code>{$transaction->id}</code>",
-            "⏰ <b>Waktu Upload:</b> " . now()->setTimezone('Asia/Jakarta')->format('d M Y, H:i') . " WIB",
+            '⏰ <b>Waktu Upload:</b> '.now()->setTimezone('Asia/Jakarta')->format('d M Y, H:i').' WIB',
             $notes,
-            "",
+            '',
             "✅ Ketik <code>approve {$transaction->id}</code> untuk menyetujui.",
             "❌ Ketik <code>reject {$transaction->id} &lt;alasan&gt;</code> untuk menolak.",
         ]);
@@ -181,23 +194,26 @@ class TelegramService
     {
         try {
             $response = Http::timeout(15)->post("{$this->baseUrl}/sendMessage", [
-                'chat_id'                  => $chatId,
-                'text'                     => $text,
-                'parse_mode'               => $parseMode,
-                'reply_to_message_id'      => $replyToMessageId,
+                'chat_id' => $chatId,
+                'text' => $text,
+                'parse_mode' => $parseMode,
+                'reply_to_message_id' => $replyToMessageId,
                 'disable_web_page_preview' => true,
             ]);
 
             if (! $response->successful() || ! ($response->json('ok') ?? false)) {
                 Log::warning('Telegram replyMessage failed', [
-                    'chat_id'  => $chatId,
+                    'chat_id' => $chatId,
                     'response' => $response->json(),
                 ]);
+
                 return false;
             }
+
             return true;
         } catch (\Exception $e) {
             Log::error('Telegram replyMessage exception', ['error' => $e->getMessage()]);
+
             return false;
         }
     }

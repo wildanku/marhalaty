@@ -15,22 +15,27 @@ use App\Domains\GodMode\Controllers\ConsulateController;
 use App\Domains\GodMode\Controllers\EmailTesterController;
 use App\Domains\GodMode\Controllers\EventAddonController;
 use App\Domains\GodMode\Controllers\EventPackageController;
+use App\Domains\GodMode\Controllers\PaymentSettingController;
+use App\Domains\GodMode\Controllers\ProductSearchController;
+use App\Domains\GodMode\Controllers\StoreBadgeController;
 use App\Domains\GodMode\Controllers\UserController;
+use App\Domains\Shared\Controllers\PaymentChannelController;
+use App\Domains\Shared\Controllers\SatuteraWebhookController;
 use App\Domains\Shared\Controllers\TelegramWebhookController;
 use App\Domains\Store\Controllers\CartController;
 use App\Domains\Store\Controllers\CheckoutController;
-use App\Domains\Store\Controllers\PaymentChannelController;
 use App\Domains\Store\Controllers\ProductController;
-use App\Domains\Store\Controllers\SatuteraWebhookController;
 use App\Domains\Store\Controllers\ShippingController;
 use App\Domains\Store\Controllers\StoreApplicationController;
 use App\Domains\Store\Controllers\StoreController;
 use App\Domains\Store\Controllers\StoreDirectoryController;
 use App\Domains\Store\Controllers\StoreDownloadController;
+use App\Domains\Store\Controllers\StoreEventReservationController;
 use App\Domains\Store\Controllers\StoreMemberController;
 use App\Domains\Store\Controllers\StoreOrderController;
 use App\Domains\Store\Controllers\StoreOrderManagementController;
 use App\Domains\Store\Controllers\StorePaymentPageController;
+use App\Domains\Store\Controllers\StorePaymentProofController;
 use App\Domains\Store\Controllers\StoreShippingMethodController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -130,6 +135,11 @@ Route::middleware('auth')->group(function () {
         Route::put('/{store}/shipping-methods/{shippingMethod}', [StoreShippingMethodController::class, 'update'])->name('shipping-methods.update');
         Route::patch('/{store}/shipping-methods/{shippingMethod}/status', [StoreShippingMethodController::class, 'updateStatus'])->name('shipping-methods.status');
         Route::delete('/{store}/shipping-methods/{shippingMethod}', [StoreShippingMethodController::class, 'destroy'])->name('shipping-methods.destroy');
+
+        // "Pesanan Event" recap (fase 8) — JSON, not an Inertia prop (CLAUDE.md: no unbounded
+        // datasets in Inertia props).
+        Route::get('/{store}/event-reservations', [StoreEventReservationController::class, 'page'])->name('event-reservations');
+        Route::get('/{store}/api-event-reservations', [StoreEventReservationController::class, 'index'])->name('api-event-reservations');
     });
 
     Route::get('/store-invitations/{token}', [StoreMemberController::class, 'invitationShow'])->name('stores.invitations.show');
@@ -184,14 +194,19 @@ Route::get('/api/debug/ipaymu-config', [PaymentController::class, 'debugIPaymuCo
 
 // Hash-based payment pages (public – hash is the access token)
 Route::get('/payment/{hash}', [PaymentPageController::class, 'show'])->name('payment.show');
+Route::get('/payment/{hash}/status', [PaymentPageController::class, 'status'])->name('payment.status');
 Route::get('/payment-confirmation/{hash}', [PaymentPageController::class, 'confirmationShow'])->name('payment.confirmation.show');
 Route::post('/payment-confirmation/{hash}', [PaymentPageController::class, 'confirmationStore'])->name('payment.confirmation.store');
 
 // Store order payment page (separate from the RSVP page above — see MVP2 README decision D8)
 Route::get('/store/payment/{hash}', [StorePaymentPageController::class, 'show'])->name('store.payment.show');
 Route::get('/store/payment/{hash}/status', [StorePaymentPageController::class, 'status'])->name('store.payment.status');
+Route::post('/store/payment/{hash}/proof', [StorePaymentProofController::class, 'store'])->name('store.payment.proof.store');
 
-// Public, credential-free payment channel catalog (cached)
+// Public, credential-free payment channel catalog (cached). Context-neutral endpoint (fase 9,
+// D40); /api/store/payment-channels kept as an alias to the same handler so Pages/Store/Checkout.tsx
+// doesn't need to change in this release.
+Route::get('/api/payment/channels', [PaymentChannelController::class, 'index'])->name('api.payment.channels');
 Route::get('/api/store/payment-channels', [PaymentChannelController::class, 'index'])->name('api.store.payment-channels');
 
 // iPaymu webhook (exempt from CSRF – verified by provider signature)
@@ -251,6 +266,9 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
 
         // Events
         Route::get('/events', [App\Domains\GodMode\Controllers\EventController::class, 'index'])->name('events.index');
+        // Must be registered before /events/{id} — otherwise "create" is captured as the {id}.
+        Route::get('/events/create', [App\Domains\GodMode\Controllers\EventController::class, 'create'])->name('events.create');
+        Route::post('/events', [App\Domains\GodMode\Controllers\EventController::class, 'store'])->name('events.store');
         Route::get('/events/{id}', [App\Domains\GodMode\Controllers\EventController::class, 'show'])->name('events.show');
         Route::get('/events/{id}/api-rsvps', [App\Domains\GodMode\Controllers\EventController::class, 'apiRsvps'])->name('events.api-rsvps');
         Route::get('/events/{id}/edit', [App\Domains\GodMode\Controllers\EventController::class, 'edit'])->name('events.edit');
@@ -272,14 +290,30 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         // Event Addons
         Route::get('/events/{event}/addons', [EventAddonController::class, 'index'])->name('events.addons.index');
         Route::post('/events/{event}/addons', [EventAddonController::class, 'store'])->name('events.addons.store');
+        Route::post('/events/{event}/addons/from-product', [EventAddonController::class, 'storeFromProduct'])->name('events.addons.store-from-product');
         Route::put('/events/{event}/addons/{addon}', [EventAddonController::class, 'update'])->name('events.addons.update');
         Route::delete('/events/{event}/addons/{addon}', [EventAddonController::class, 'destroy'])->name('events.addons.destroy');
+
+        // Product-linked addon stock recap (fase 8 §5.3)
+        Route::get('/events/{event}/api-product-reservations', [App\Domains\GodMode\Controllers\EventController::class, 'apiProductReservations'])->name('events.api-product-reservations');
+        Route::post('/events/{event}/product-reservations/{reservation}/fulfill', [App\Domains\GodMode\Controllers\EventController::class, 'fulfillProductReservation'])->name('events.product-reservations.fulfill');
+
+        // Cross-store product search for the addon-linking modal (fase 8 §5.1)
+        Route::get('/api/products/search', [ProductSearchController::class, 'index'])->name('api.products.search');
 
         // Payments (manual transfer approval)
         Route::get('/payments', [App\Domains\GodMode\Controllers\PaymentController::class, 'index'])->name('payments.index');
         Route::post('/payments/{id}/approve', [App\Domains\GodMode\Controllers\PaymentController::class, 'approve'])->name('payments.approve');
         Route::post('/payments/{id}/reject', [App\Domains\GodMode\Controllers\PaymentController::class, 'reject'])->name('payments.reject');
         Route::get('/payments/{id}/proof', [App\Domains\GodMode\Controllers\PaymentController::class, 'downloadProof'])->name('payments.proof');
+
+        // Payment settings (Fase 7 — gateway toggle/credentials + manual transfer accounts)
+        Route::get('/settings/payments', [PaymentSettingController::class, 'index'])->name('settings.payments.index');
+        Route::put('/settings/payments/{code}', [PaymentSettingController::class, 'update'])->name('settings.payments.update');
+        Route::post('/settings/payments/{code}/test', [PaymentSettingController::class, 'test'])->name('settings.payments.test');
+        Route::post('/settings/payments/manual-accounts', [PaymentSettingController::class, 'storeManualAccount'])->name('settings.manual-accounts.store');
+        Route::put('/settings/payments/manual-accounts/{id}', [PaymentSettingController::class, 'updateManualAccount'])->name('settings.manual-accounts.update');
+        Route::delete('/settings/payments/manual-accounts/{id}', [PaymentSettingController::class, 'destroyManualAccount'])->name('settings.manual-accounts.destroy');
 
         // Consulates
         Route::get('/consulates', [ConsulateController::class, 'index'])->name('consulates.index');
@@ -299,6 +333,14 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         Route::post('/stores/{id}/approve', [App\Domains\GodMode\Controllers\StoreController::class, 'approve'])->name('stores.approve');
         Route::post('/stores/{id}/reject', [App\Domains\GodMode\Controllers\StoreController::class, 'reject'])->name('stores.reject');
         Route::post('/stores/{id}/suspend', [App\Domains\GodMode\Controllers\StoreController::class, 'suspend'])->name('stores.suspend');
+        Route::post('/stores/{id}/badges', [StoreBadgeController::class, 'assign'])->name('stores.badges.assign');
+        Route::delete('/stores/{id}/badges/{badgeId}', [StoreBadgeController::class, 'revoke'])->name('stores.badges.revoke');
+
+        // Store Badges catalog
+        Route::get('/store-badges', [StoreBadgeController::class, 'index'])->name('store-badges.index');
+        Route::post('/store-badges', [StoreBadgeController::class, 'store'])->name('store-badges.store');
+        Route::put('/store-badges/{id}', [StoreBadgeController::class, 'update'])->name('store-badges.update');
+        Route::delete('/store-badges/{id}', [StoreBadgeController::class, 'destroy'])->name('store-badges.destroy');
 
         // Store Orders
         Route::get('/store-orders', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'index'])->name('store-orders.index');

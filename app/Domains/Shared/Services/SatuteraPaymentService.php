@@ -16,23 +16,24 @@ use Illuminate\Support\Facades\Log;
  */
 class SatuteraPaymentService
 {
-    private string $baseUrl;
+    public function __construct(private PaymentSettingsService $settings) {}
 
-    private string $clientId;
-
-    private string $clientSecret;
-
-    private string $apiKey;
-
-    private string $webhookSecret;
-
-    public function __construct()
+    private function baseUrl(): string
     {
-        $this->baseUrl = rtrim(config('services.satutera.base_url'), '/');
-        $this->clientId = config('services.satutera.client_id', '');
-        $this->clientSecret = config('services.satutera.client_secret', '');
-        $this->apiKey = config('services.satutera.api_key', '');
-        $this->webhookSecret = config('services.satutera.webhook_secret', '');
+        return rtrim(config('services.satutera.base_url'), '/');
+    }
+
+    /**
+     * Credentials are read fresh (through PaymentSettingsService's own cache) on every call rather
+     * than once at construction time, so a god-mode credential change (docs/plan/mvp2/7-payment-settings.md
+     * D20) takes effect on the next request instead of being stuck on whatever container instance
+     * was resolved first.
+     *
+     * @return array{client_id:string,client_secret:string,api_key:string,webhook_secret:string}
+     */
+    private function credentials(): array
+    {
+        return $this->settings->credentials('satutera');
     }
 
     /**
@@ -50,7 +51,7 @@ class SatuteraPaymentService
             try {
                 $response = Http::timeout(10)
                     ->retry(2, 200)
-                    ->get("{$this->baseUrl}/api/v1/payment-channels", array_filter([
+                    ->get("{$this->baseUrl()}/api/v1/payment-channels", array_filter([
                         'method' => $method,
                         'provider' => $provider,
                         'limit' => 100,
@@ -64,7 +65,7 @@ class SatuteraPaymentService
 
                     return [];
                 }
-                
+
                 return collect($response->json('data', []))
                     ->filter(fn (array $channel) => $channel['supports_direct_detail'] ?? false)
                     ->values()
@@ -113,7 +114,7 @@ class SatuteraPaymentService
             $response = Http::withHeaders($headers)
                 ->withBody($rawBody, 'application/json')
                 ->timeout(15)
-                ->post("{$this->baseUrl}{$path}");
+                ->post("{$this->baseUrl()}{$path}");
 
             if (! $response->successful()) {
                 Log::error('Satutera createPayment failed', [
@@ -140,7 +141,7 @@ class SatuteraPaymentService
         $headers = $this->signedHeaders('GET', $path, '');
 
         try {
-            $response = Http::withHeaders($headers)->timeout(10)->retry(2, 200)->get("{$this->baseUrl}{$path}");
+            $response = Http::withHeaders($headers)->timeout(10)->retry(2, 200)->get("{$this->baseUrl()}{$path}");
 
             if (! $response->successful()) {
                 Log::warning('Satutera getPaymentStatus failed', [
@@ -160,29 +161,58 @@ class SatuteraPaymentService
     }
 
     /**
+     * Best-effort credential check for the god-mode "Tes koneksi" button
+     * (docs/plan/mvp2/7-payment-settings.md D23). `GET /api/v1/payment-channels` is documented as
+     * public/no-auth (guidance §2), so it can't actually validate credentials — this instead signs
+     * a request to the HMAC-protected status endpoint for a payment ID that will never exist. A
+     * bad signature is rejected before Satutera even looks the ID up, so 401/403 means bad
+     * credentials while 404 (or anything else) means the signature was accepted.
+     */
+    public function testConnection(): array
+    {
+        $path = '/api/v1/payments/__connection_test__/status';
+        $headers = $this->signedHeaders('GET', $path, '');
+
+        try {
+            $response = Http::withHeaders($headers)->timeout(10)->get("{$this->baseUrl()}{$path}");
+
+            if (in_array($response->status(), [401, 403], true)) {
+                return ['ok' => false, 'message' => "Kredensial ditolak Satutera (HTTP {$response->status()})."];
+            }
+
+            return ['ok' => true, 'message' => "Terhubung ke Satutera (HTTP {$response->status()})."];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => 'Tidak bisa terhubung ke Satutera: '.$e->getMessage()];
+        }
+    }
+
+    /**
      * Verify an incoming callback's signature: HMAC_SHA256(webhook_secret, timestamp . rawBody).
      */
     public function verifyCallbackSignature(string $rawBody, ?string $timestamp, ?string $signature): bool
     {
-        if (empty($this->webhookSecret) || empty($timestamp) || empty($signature)) {
+        $webhookSecret = $this->credentials()['webhook_secret'] ?? '';
+
+        if (empty($webhookSecret) || empty($timestamp) || empty($signature)) {
             return false;
         }
 
-        $expected = hash_hmac('sha256', $timestamp.$rawBody, $this->webhookSecret);
+        $expected = hash_hmac('sha256', $timestamp.$rawBody, $webhookSecret);
 
         return hash_equals($expected, $signature);
     }
 
     private function signedHeaders(string $method, string $path, string $rawBody): array
     {
+        $credentials = $this->credentials();
         $timestamp = now()->toIso8601String();
         $payload = $timestamp.strtoupper($method).$path.hash('sha256', $rawBody);
 
         return [
-            'X-Client-Id' => $this->clientId,
-            'X-Api-Key' => $this->apiKey,
+            'X-Client-Id' => $credentials['client_id'],
+            'X-Api-Key' => $credentials['api_key'],
             'X-Timestamp' => $timestamp,
-            'X-Signature' => hash_hmac('sha256', $payload, $this->clientSecret),
+            'X-Signature' => hash_hmac('sha256', $payload, $credentials['client_secret']),
             'Content-Type' => 'application/json',
         ];
     }

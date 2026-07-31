@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Domains\Event\Models\Rsvp;
 use App\Domains\Event\Models\Transaction;
 use App\Domains\Shared\Services\BrevoApiService;
-use App\Models\Setting;
+use App\Domains\Shared\Services\PaymentSettingsService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -32,27 +32,28 @@ class SendEventRegistrationPendingPaymentEmail implements ShouldQueue
     /**
      * Execute the queued job.
      */
-    public function handle(BrevoApiService $brevoApi): void
+    public function handle(BrevoApiService $brevoApi, PaymentSettingsService $paymentSettings): void
     {
         try {
             $this->rsvp->load(['event', 'user', 'package']);
 
-            if (!$this->rsvp->user || !$this->rsvp->event) {
+            if (! $this->rsvp->user || ! $this->rsvp->event) {
                 Log::warning('SendEventRegistrationPendingPaymentEmail: Missing user or event', [
-                    'rsvp_id'        => $this->rsvp->id,
+                    'rsvp_id' => $this->rsvp->id,
                     'transaction_id' => $this->transaction->id,
                 ]);
+
                 return;
             }
 
-            $recipient    = $this->rsvp->user;
-            $event        = $this->rsvp->event;
-            $bankAccounts = Setting::get('bank_account_manual_transfer', []);
+            $recipient = $this->rsvp->user;
+            $event = $this->rsvp->event;
+            $bankAccounts = $paymentSettings->manualAccounts();
 
             // Render Blade template
             $htmlContent = view('emails.event-registration-payment', [
-                'rsvp'         => $this->rsvp,
-                'transaction'  => $this->transaction,
+                'rsvp' => $this->rsvp,
+                'transaction' => $this->transaction,
                 'bankAccounts' => $bankAccounts,
             ])->render();
 
@@ -98,9 +99,9 @@ class SendEventRegistrationPendingPaymentEmail implements ShouldQueue
     public function failed(\Throwable $exception): void
     {
         Log::error('SendEventRegistrationPendingPaymentEmail: Job failed', [
-            'rsvp_id'        => $this->rsvp->id,
+            'rsvp_id' => $this->rsvp->id,
             'transaction_id' => $this->transaction->id,
-            'error'          => $exception->getMessage(),
+            'error' => $exception->getMessage(),
         ]);
     }
 }

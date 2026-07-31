@@ -2,6 +2,7 @@
 
 namespace App\Domains\Event\Models;
 
+use App\Support\Eloquent\HasTypeSafeMorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
@@ -9,7 +10,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class EventPackage extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia;
+    use HasFactory, HasTypeSafeMorphMany, InteractsWithMedia;
 
     protected $fillable = [
         'event_id',
@@ -21,9 +22,9 @@ class EventPackage extends Model implements HasMedia
     ];
 
     protected $casts = [
-        'price'         => 'decimal:2',
-        'quota'         => 'integer',
-        'booked_count'  => 'integer',
+        'price' => 'decimal:2',
+        'quota' => 'integer',
+        'booked_count' => 'integer',
     ];
 
     protected $appends = ['image_url', 'available_quota', 'is_available'];

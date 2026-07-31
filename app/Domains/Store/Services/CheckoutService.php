@@ -4,6 +4,8 @@ namespace App\Domains\Store\Services;
 
 use App\Contracts\ShippingProviderInterface;
 use App\Domains\Event\Models\Transaction;
+use App\Domains\Shared\Services\PaymentSettingsService;
+use App\Domains\Shared\Services\SatuteraPaymentInitiator;
 use App\Domains\Shared\Services\SatuteraPaymentService;
 use App\Domains\Store\Models\Cart;
 use App\Domains\Store\Models\Product;
@@ -14,7 +16,6 @@ use App\Domains\Store\Models\StoreShippingMethod;
 use App\Jobs\SendStoreOrderCreatedEmail;
 use App\Models\User;
 use App\Models\UserAddress;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -24,6 +25,8 @@ class CheckoutService
         private ShippingProviderInterface $shipping,
         private AddressResolver $addressResolver,
         private SatuteraPaymentService $satutera,
+        private SatuteraPaymentInitiator $satuteraInitiator,
+        private PaymentSettingsService $paymentSettings,
     ) {}
 
     /**
@@ -34,9 +37,10 @@ class CheckoutService
      *   user_address_id?: int|null,
      *   shipping_courier_code?: string|null,
      *   shipping_service?: string|null,
-     *   payment_provider: string,
-     *   payment_method: string,
-     *   payment_channel: string,
+     *   payment_gateway: string,
+     *   payment_provider?: string|null,
+     *   payment_method?: string|null,
+     *   payment_channel?: string|null,
      *   buyer_note?: string|null,
      * } $data
      */
@@ -66,17 +70,41 @@ class CheckoutService
                     = $this->resolveShipping($buyer, $store, $data, $totalWeight);
             }
 
-            $channel = $this->satutera->findChannel(
-                $data['payment_provider'],
-                $data['payment_method'],
-                $data['payment_channel'],
-            );
+            // Never trust the client's gateway choice — re-check against what's actually switched
+            // on for store checkout right now, not what the form happened to show when it loaded.
+            $gateway = $data['payment_gateway'];
 
-            if (! $channel) {
-                throw ValidationException::withMessages(['payment_channel' => 'Metode pembayaran tidak tersedia. Pilih ulang.']);
+            if (! in_array($gateway, $this->paymentSettings->enabledCodesFor('store'), true)) {
+                throw ValidationException::withMessages(['payment_gateway' => 'Metode pembayaran tidak tersedia. Pilih ulang.']);
             }
 
-            $paymentFee = (int) ($channel['fee'] ?? 0);
+            $paymentFee = 0;
+
+            if ($gateway === 'satutera') {
+                $channel = $this->satutera->findChannel(
+                    $data['payment_provider'],
+                    $data['payment_method'],
+                    $data['payment_channel'],
+                );
+
+                if (! $channel) {
+                    throw ValidationException::withMessages(['payment_channel' => 'Metode pembayaran tidak tersedia. Pilih ulang.']);
+                }
+
+                // Never trust the client's channel filtering — re-check server-side against the
+                // same pre-fee amount Satutera will actually receive as `amount`.
+                $preFeeAmount = $subtotal + $shippingCost;
+                $qrisOnlyBelowAmount = (int) config('store.qris_only_below_amount');
+
+                if ($preFeeAmount > 0 && $preFeeAmount < $qrisOnlyBelowAmount && $channel['method'] !== 'qris') {
+                    throw ValidationException::withMessages([
+                        'payment_channel' => 'Untuk transaksi di bawah Rp'.number_format($qrisOnlyBelowAmount, 0, ',', '.').', hanya QRIS yang tersedia.',
+                    ]);
+                }
+
+                $paymentFee = (int) ($channel['fee'] ?? 0);
+            }
+
             $total = $subtotal + $shippingCost + $paymentFee;
 
             $order = StoreOrder::create(array_merge([
@@ -115,12 +143,24 @@ class CheckoutService
                 'user_id' => $buyer->id,
                 'amount' => $total,
                 'payment_fee' => $paymentFee,
-                'payment_provider' => 'satutera',
-                'payment_channel' => $data['payment_channel'],
+                'payment_provider' => $gateway,
+                'payment_channel' => $gateway === 'satutera' ? $data['payment_channel'] : null,
                 'status' => 'pending',
+                // Kept so a later retry (see retryPaymentInitiation()) can rebuild the exact same
+                // create-payment request without access to the original HTTP request payload.
+                // Only meaningful for satutera — manual has nothing to retry.
+                'metadata' => $gateway === 'satutera' ? [
+                    'payment_request' => [
+                        'payment_provider' => $data['payment_provider'],
+                        'payment_method' => $data['payment_method'],
+                        'payment_channel' => $data['payment_channel'],
+                    ],
+                ] : null,
             ]);
 
-            $this->initiateSatuteraPayment($order, $transaction, $buyer, $data);
+            if ($gateway === 'satutera') {
+                $this->initiateSatuteraPayment($order, $transaction, $buyer, $data);
+            }
 
             SendStoreOrderCreatedEmail::dispatch($order->fresh(['items', 'store']), $transaction);
 
@@ -346,50 +386,58 @@ class CheckoutService
         return [(int) $method->fee, $shippingSnapshot, $shippingAddressSnapshot, $originAddressSnapshot];
     }
 
+    /**
+     * Called from the payment page when a previous checkout left the transaction without a
+     * `checkout_token` (e.g. Satutera was unreachable at order-creation time). Reuses the same
+     * deterministic Idempotency-Key as the original attempt, so if that attempt actually succeeded
+     * on Satutera's side despite us losing the response, this safely fetches the existing payment
+     * instead of creating a duplicate.
+     */
+    public function retryPaymentInitiation(StoreOrder $order, Transaction $transaction): void
+    {
+        if ($transaction->checkout_token !== null || $transaction->status !== 'pending') {
+            return;
+        }
+
+        $request = $transaction->metadata['payment_request'] ?? null;
+
+        if (! $request) {
+            return;
+        }
+
+        $this->initiateSatuteraPayment($order, $transaction, $transaction->user, $request);
+    }
+
+    /**
+     * Builds the store-order descriptor and delegates to the shared initiator (fase 9, D35) — this
+     * wrapper exists so `place()` and `retryPaymentInitiation()` don't each have to know the
+     * descriptor shape. Never throws (see `SatuteraPaymentInitiator::initiate()`): order + transaction
+     * remain pending_payment/pending on provider failure, and the payment page retries.
+     */
     private function initiateSatuteraPayment(StoreOrder $order, Transaction $transaction, User $buyer, array $data): void
     {
-        try {
-            $payload = [
-                'client_id' => config('services.satutera.client_id'),
-                'client_transaction_id' => $order->order_number,
-                'amount' => (int) round((float) $transaction->amount),
-                'currency' => 'IDR',
-                'provider' => $data['payment_provider'],
-                'payment_method' => $data['payment_method'],
-                'payment_channel' => $data['payment_channel'],
-                'response_mode' => 'raw_detail',
-                'customer' => [
-                    'name' => $buyer->name,
-                    'email' => $buyer->email,
-                    'phone' => $buyer->phone_number,
-                ],
-                'items' => $order->items->map(fn ($item) => [
-                    'name' => $item->name_snapshot.($item->variant_label_snapshot ? " ({$item->variant_label_snapshot})" : ''),
-                    'price' => (int) $item->unit_price,
-                    'quantity' => $item->quantity,
-                ])->all(),
-                'client_redirect' => [
-                    'success_url' => route('store.orders.show', $order->id),
-                    'failed_url' => route('store.payment.show', $transaction->payment_hash),
-                    'expired_url' => route('store.payment.show', $transaction->payment_hash),
-                ],
-                'metadata' => ['order_id' => $order->id, 'store_id' => $order->store_id],
-            ];
-
-            $response = $this->satutera->createPayment($payload, "order-{$order->id}-{$transaction->id}");
-
-            $transaction->update([
-                'external_reference' => $response['payment_id'] ?? null,
-                'checkout_token' => $response['checkout_token'] ?? null,
-                'payment_detail' => $response['payment_detail'] ?? null,
-                'va_number' => $response['payment_detail']['payment_no'] ?? null,
-                'expired_at' => isset($response['expires_at']) ? Carbon::parse($response['expires_at']) : null,
-            ]);
-        } catch (\Throwable $e) {
-            report($e);
-            // Order + transaction remain pending_payment/pending — the payment page can retry
-            // payment creation when there's no external_reference yet, so checkout still
-            // succeeds and the buyer isn't stuck on a hard failure here.
-        }
+        $this->satuteraInitiator->initiate($transaction, [
+            'client_transaction_id' => $order->order_number,
+            'idempotency_key' => "order-{$order->id}-{$transaction->id}",
+            'provider' => $data['payment_provider'],
+            'payment_method' => $data['payment_method'],
+            'payment_channel' => $data['payment_channel'],
+            'customer' => [
+                'name' => $buyer->name,
+                'email' => $buyer->email,
+                'phone' => $buyer->phone_number,
+            ],
+            'items' => $order->items->map(fn ($item) => [
+                'name' => $item->name_snapshot.($item->variant_label_snapshot ? " ({$item->variant_label_snapshot})" : ''),
+                'price' => (int) $item->unit_price,
+                'quantity' => $item->quantity,
+            ])->all(),
+            'client_redirect' => [
+                'success_url' => route('store.orders.show', $order->id),
+                'failed_url' => route('store.payment.show', $transaction->payment_hash),
+                'expired_url' => route('store.payment.show', $transaction->payment_hash),
+            ],
+            'metadata' => ['order_id' => $order->id, 'store_id' => $order->store_id],
+        ]);
     }
 }

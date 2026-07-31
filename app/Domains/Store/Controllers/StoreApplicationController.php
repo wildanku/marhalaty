@@ -26,7 +26,7 @@ class StoreApplicationController extends Controller
 
         $stores = Store::whereIn('id', $storeIds)
             ->orWhere('owner_user_id', $user->id)
-            ->with('primaryAddress')
+            ->with(['primaryAddress', 'activeBadges'])
             ->orderByDesc('created_at')
             ->get();
 

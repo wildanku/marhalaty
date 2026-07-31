@@ -5,6 +5,7 @@ namespace App\Domains\GodMode\Controllers;
 use App\Domains\Store\Actions\ApproveStore;
 use App\Domains\Store\Actions\RejectStore;
 use App\Domains\Store\Models\Store;
+use App\Domains\Store\Models\StoreBadge;
 use App\Domains\Store\Models\StoreMember;
 use App\Http\Controllers\Controller;
 use App\Models\AdminActivityLog;
@@ -20,7 +21,7 @@ class StoreController extends Controller
     {
         $status = $request->input('status', 'pending');
 
-        $stores = Store::with('owner')
+        $stores = Store::with(['owner', 'activeBadges'])
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->orderByRaw("CASE status WHEN 'pending' THEN 0 ELSE 1 END")
             ->orderByDesc('created_at')
@@ -36,12 +37,16 @@ class StoreController extends Controller
 
     public function show(string $id)
     {
-        $store = Store::with(['owner', 'primaryAddress.village.district.city.province', 'members.user'])
+        // `badges` (not `activeBadges`) here on purpose — the admin managing this store needs to
+        // see expired/inactive grants too, so they can tell an expired badge apart from one that
+        // was never assigned.
+        $store = Store::with(['owner', 'primaryAddress.village.district.city.province', 'members.user', 'badges'])
             ->findOrFail($id);
 
         return Inertia::render('GodMode/Stores/Show', [
             'admin' => auth('admin')->user(),
             'store' => $store,
+            'availableBadges' => StoreBadge::active()->orderBy('sort_order')->get(),
         ]);
     }
 

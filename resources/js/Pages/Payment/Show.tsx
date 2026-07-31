@@ -6,7 +6,7 @@ import { validateFile } from "@/Helpers/fileValidation";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 
 interface BankAccount {
-  bank: string;
+  bank_name: string;
   account_number: string;
   account_holder: string;
 }
@@ -375,7 +375,7 @@ export default function PaymentShow({
                               Bank
                             </p>
                             <p className="font-headline font-bold text-on-surface text-lg">
-                              {account.bank}
+                              {account.bank_name}
                             </p>
                           </div>
                           {bankAccounts.length > 1 && (

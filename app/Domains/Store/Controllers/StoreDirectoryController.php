@@ -22,6 +22,7 @@ class StoreDirectoryController extends Controller
                 })
             )
             ->withCount(['products as active_products_count' => fn (Builder $q) => $q->where('status', 'active')])
+            ->with('activeBadges')
             ->orderByDesc('created_at')
             ->paginate(12)
             ->withQueryString();
@@ -50,7 +51,7 @@ class StoreDirectoryController extends Controller
             ->withQueryString();
 
         return Inertia::render('Store/Show', [
-            'store' => $store->load('primaryAddress.village.district.city.province'),
+            'store' => $store->load(['primaryAddress.village.district.city.province', 'activeBadges']),
             'products' => $products,
         ]);
     }
@@ -58,6 +59,8 @@ class StoreDirectoryController extends Controller
     public function productShow(Request $request, Store $store, string $productSlug)
     {
         abort_unless($this->isVisibleTo($store, $request), 404);
+
+        $store->load('activeBadges');
 
         $product = Product::with(['store', 'variants', 'media'])
             ->where('store_id', $store->id)

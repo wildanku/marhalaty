@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Head, useForm, usePage } from "@inertiajs/react";
+import { ReactNode, useEffect, useState } from "react";
+import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import {
   Cart,
   PageProps,
@@ -13,7 +13,9 @@ import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import AddressPicker from "@/Components/Store/AddressPicker";
 import ShippingRatePicker from "@/Components/Store/ShippingRatePicker";
+import ShippingMethodDetailModal from "@/Components/Store/ShippingMethodDetailModal";
 import OrderSummary from "@/Components/Store/OrderSummary";
+import StoreBadgeList from "@/Components/Store/StoreBadgeList";
 
 interface CheckoutSummary {
   subtotal: number;
@@ -21,23 +23,75 @@ interface CheckoutSummary {
   requires_shipping: boolean;
 }
 
-interface CheckoutPageProps extends PageProps {
-  store: Store;
-  cart: Cart;
-  summary: CheckoutSummary;
-  addresses: UserAddress[];
-  paymentChannels: PaymentChannel[];
-  shippingMethods: StoreShippingMethod[];
+interface PaymentGatewayOption {
+  code: string;
+  label: string;
+  description: string | null;
+  requires_channel: boolean;
+}
+
+interface ManualAccountPreview {
+  id: number;
+  bank_name: string;
+  account_number: string;
+  account_holder: string;
+  branch: string | null;
+  instructions: string | null;
+}
+
+type CheckoutPageProps = PageProps &
+  (
+    | { isEmpty: true; store: Store }
+    | {
+        isEmpty: false;
+        store: Store;
+        cart: Cart;
+        summary: CheckoutSummary;
+        addresses: UserAddress[];
+        paymentGateways: PaymentGatewayOption[];
+        paymentChannels: PaymentChannel[];
+        manualAccounts: ManualAccountPreview[];
+        shippingMethods: StoreShippingMethod[];
+        qrisOnlyBelowAmount: number;
+      }
+  );
+
+function formatRupiah(value: number): string {
+  return `Rp ${value.toLocaleString("id-ID")}`;
 }
 
 export default function Checkout() {
-  const { store, cart, summary, addresses, paymentChannels, shippingMethods } =
-    usePage<CheckoutPageProps>().props;
+  const props = usePage<CheckoutPageProps>().props;
 
+  if (props.isEmpty) {
+    return <EmptyCheckout store={props.store} />;
+  }
+
+  return <CheckoutForm {...props} />;
+}
+
+type CheckoutFormProps = Extract<CheckoutPageProps, { isEmpty: false }>;
+
+function CheckoutForm({
+  store,
+  cart,
+  summary,
+  addresses,
+  paymentGateways,
+  paymentChannels,
+  manualAccounts,
+  shippingMethods,
+  qrisOnlyBelowAmount,
+}: CheckoutFormProps) {
   const [addressId, setAddressId] = useState<number | null>(null);
   const [shippingRate, setShippingRate] = useState<ShippingRate | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<StoreShippingMethod | null>(null);
+  const [selectedGateway, setSelectedGateway] = useState<string | null>(
+    paymentGateways.length === 1 ? paymentGateways[0].code : null
+  );
   const [selectedChannel, setSelectedChannel] = useState<PaymentChannel | null>(null);
+  const [detailMethod, setDetailMethod] = useState<StoreShippingMethod | null>(null);
+  const [showMobileSummary, setShowMobileSummary] = useState(false);
 
   // A store's own flat/pickup method and a real RajaOngkir courier rate are mutually exclusive —
   // picking one clears the other so the submitted payload is never ambiguous about which shipping
@@ -55,19 +109,34 @@ export default function Checkout() {
   const isPickup = selectedMethod?.type === "pickup";
   const needsAddress = summary.requires_shipping && !isPickup;
 
+  const shippingCost = summary.requires_shipping
+    ? selectedMethod
+      ? Number(selectedMethod.fee)
+      : (shippingRate?.cost ?? null)
+    : 0;
+
+  // Same pre-fee amount the backend sends to Satutera as `amount` — below the configured
+  // threshold, only QRIS is offered (VA/retail channels enforce their own higher minimums).
+  const preFeeAmount = summary.subtotal + (shippingCost ?? 0);
+  const qrisOnlyActive = preFeeAmount > 0 && preFeeAmount < qrisOnlyBelowAmount;
+
   const { data, setData, post, processing, errors } = useForm({
     user_address_id: null as number | null,
     shipping_courier_code: null as string | null,
     shipping_service: null as string | null,
     shipping_method_id: null as string | null,
+    payment_gateway: paymentGateways.length === 1 ? paymentGateways[0].code : "",
     payment_provider: "",
     payment_method: "",
     payment_channel: "",
     buyer_note: "",
   });
 
+  const paymentReady =
+    selectedGateway === "satutera" ? selectedChannel !== null : selectedGateway === "manual";
+
   const canSubmit =
-    selectedChannel !== null &&
+    paymentReady &&
     (!summary.requires_shipping ||
       (selectedMethod !== null
         ? isPickup || addressId !== null
@@ -84,12 +153,22 @@ export default function Checkout() {
       shipping_courier_code: shippingRate?.courier_code ?? null,
       shipping_service: shippingRate?.service ?? null,
       shipping_method_id: selectedMethod?.id ?? null,
-      payment_provider: selectedChannel?.provider ?? "",
-      payment_method: selectedChannel?.method ?? "",
-      payment_channel: selectedChannel?.code ?? "",
+      payment_gateway: selectedGateway ?? "",
+      payment_provider: selectedGateway === "satutera" ? (selectedChannel?.provider ?? "") : "",
+      payment_method: selectedGateway === "satutera" ? (selectedChannel?.method ?? "") : "",
+      payment_channel: selectedGateway === "satutera" ? (selectedChannel?.code ?? "") : "",
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addressId, shippingRate, selectedMethod, selectedChannel]);
+  }, [addressId, shippingRate, selectedMethod, selectedChannel, selectedGateway]);
+
+  // The shipping pick can change after a payment channel was already selected — if that drops the
+  // order below the QRIS-only threshold, drop an incompatible selection rather than let the buyer
+  // submit a combination the backend will reject.
+  useEffect(() => {
+    if (qrisOnlyActive && selectedChannel && selectedChannel.method !== "qris") {
+      setSelectedChannel(null);
+    }
+  }, [qrisOnlyActive, selectedChannel]);
 
   const doSubmit = () => {
     post(`/checkout/${store.slug}`);
@@ -101,27 +180,56 @@ export default function Checkout() {
     new Set(Object.values(errors).filter((message): message is string => Boolean(message)))
   );
 
-  const vaChannels = paymentChannels.filter((c) => c.method === "va");
-  const qrisChannels = paymentChannels.filter((c) => c.method === "qris");
+  // Surface a failed submit even though the trigger button lives in the floating mobile bar or a
+  // sticky desktop sidebar, both away from wherever Inertia left the scroll position.
+  useEffect(() => {
+    if (errorMessages.length > 0) setShowMobileSummary(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [errors]);
+
+  const selectGateway = (code: string) => {
+    setSelectedGateway(code);
+    if (code !== "satutera") setSelectedChannel(null);
+  };
+
+  const visibleChannels = qrisOnlyActive
+    ? paymentChannels.filter((c) => c.method === "qris")
+    : paymentChannels;
+  const vaChannels = visibleChannels.filter((c) => c.method === "va");
+  const qrisChannels = visibleChannels.filter((c) => c.method === "qris");
+
+  const storeAddress =
+    store.primary_address?.full_address ?? store.primary_address?.address_line ?? null;
+
+  const total = summary.subtotal + (shippingCost ?? 0) + (selectedChannel?.fee ?? 0);
 
   return (
     <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
       <Header />
       <Head title={`Checkout - ${store.name}`} />
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        <h1 className="font-headline text-2xl font-bold text-on-surface mb-8">
-          Checkout — {store.name}
-        </h1>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12 pb-32 lg:pb-12">
+        <div className="mb-8">
+          <span className="inline-flex items-center gap-1.5 bg-primary-container/30 text-primary rounded-full px-3.5 py-1.5 text-xs font-label font-bold uppercase tracking-wider">
+            <span className="material-symbols-outlined text-sm">shopping_bag</span>
+            Checkout
+          </span>
+          <h1 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface mt-3">
+            Selesaikan pesanan dari {store.name}
+          </h1>
+          <StoreBadgeList badges={store.active_badges} size="sm" className="mt-2" />
+          <p className="text-sm text-on-surface-variant mt-1">
+            Periksa detail pesananmu sebelum lanjut ke pembayaran.
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <section className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high">
-              <h2 className="font-headline text-lg font-bold text-on-surface mb-4">Produk</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="lg:col-span-2 space-y-5">
+            <SectionCard icon="inventory_2" title="Produk">
               <div className="divide-y divide-outline-variant/10">
                 {cart.items?.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4 py-3">
-                    <div className="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center overflow-hidden shrink-0">
+                  <div key={item.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                    <div className="w-14 h-14 rounded-xl bg-surface-container-high flex items-center justify-center overflow-hidden shrink-0">
                       {item.product?.primary_image_url && (
                         <img
                           src={item.product.primary_image_url}
@@ -135,34 +243,29 @@ export default function Checkout() {
                         {item.product?.name}
                       </p>
                       {item.variant && (
-                        <p className="text-xs text-on-surface-variant">{item.variant.label}</p>
+                        <p className="text-xs text-on-surface-variant mt-0.5">
+                          {item.variant.label}
+                        </p>
                       )}
                     </div>
-                    <p className="text-sm text-on-surface-variant">× {item.quantity}</p>
+                    <p className="text-sm text-on-surface-variant shrink-0">× {item.quantity}</p>
                   </div>
                 ))}
               </div>
-            </section>
+            </SectionCard>
 
             {needsAddress && (
-              <section className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high">
-                <h2 className="font-headline text-lg font-bold text-on-surface mb-4">
-                  Alamat Pengiriman
-                </h2>
+              <SectionCard icon="location_on" title="Alamat Pengiriman">
                 <AddressPicker
                   initialAddresses={addresses}
                   value={addressId}
                   onChange={setAddressId}
                 />
-              </section>
+              </SectionCard>
             )}
 
             {summary.requires_shipping && (
-              <section className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high">
-                <h2 className="font-headline text-lg font-bold text-on-surface mb-4">
-                  Pilih Pengiriman
-                </h2>
-
+              <SectionCard icon="local_shipping" title="Pilih Pengiriman">
                 {shippingMethods.length > 0 && (
                   <div className="space-y-2 mb-4">
                     {shippingMethods.map((method) => {
@@ -171,47 +274,48 @@ export default function Checkout() {
                       return (
                         <label
                           key={method.id}
-                          className={`flex items-center justify-between gap-3 p-4 rounded-2xl border cursor-pointer transition-colors ${
+                          className={`flex items-start justify-between gap-3 p-4 rounded-2xl border cursor-pointer transition-colors ${
                             isSelected
                               ? "border-primary bg-primary-container/20"
                               : "border-outline-variant/20 hover:border-outline-variant"
                           }`}
                         >
-                          <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex items-start gap-3 min-w-0">
                             <input
                               type="radio"
                               name="shipping_method"
                               checked={isSelected}
                               onChange={() => selectCustomMethod(method)}
-                              className="text-primary focus:ring-primary"
+                              className="mt-0.5 text-primary focus:ring-primary"
                             />
                             <div className="min-w-0">
                               <p className="font-medium text-on-surface text-sm">{method.name}</p>
-                              {method.description && (
-                                <p className="text-xs text-on-surface-variant">
-                                  {method.description}
+                              {method.type === "pickup" && (
+                                <p className="text-xs text-on-surface-variant mt-0.5">
+                                  Ambil langsung di toko, tanpa ongkos kirim
                                 </p>
                               )}
-                              {method.type === "pickup" && (
+                              {method.description && (
                                 <>
-                                  {/* The store's actual registered address, not the seller's free-text
-                                      description — that field can drift out of sync with the real
-                                      address (store profile changes, typos), so it's never trusted
-                                      as the source of truth for where a pickup actually happens. */}
-                                  <p className="text-xs text-on-surface-variant">
-                                    {store.primary_address?.full_address ??
-                                      store.primary_address?.address_line ??
-                                      "Alamat toko belum diatur."}
+                                  <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-2">
+                                    {method.description}
                                   </p>
-                                  <p className="text-xs text-on-surface-variant">
-                                    Tanpa perlu alamat pengiriman
-                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setDetailMethod(method);
+                                    }}
+                                    className="text-xs font-label font-semibold text-primary mt-1 hover:underline"
+                                  >
+                                    Lihat selengkapnya
+                                  </button>
                                 </>
                               )}
                             </div>
                           </div>
                           <p className="font-headline font-semibold text-on-surface whitespace-nowrap">
-                            {fee > 0 ? `Rp ${fee.toLocaleString("id-ID")}` : "Gratis"}
+                            {fee > 0 ? formatRupiah(fee) : "Gratis"}
                           </p>
                         </label>
                       );
@@ -240,117 +344,299 @@ export default function Checkout() {
                 {errors.shipping_method_id && (
                   <p className="mt-2 text-xs text-error">{errors.shipping_method_id}</p>
                 )}
-              </section>
+              </SectionCard>
             )}
 
-            <section className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high">
-              <h2 className="font-headline text-lg font-bold text-on-surface mb-4">
-                Metode Pembayaran
-              </h2>
-
-              {qrisChannels.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-xs uppercase tracking-wider text-on-surface-variant font-label mb-2">
-                    QRIS
-                  </p>
-                  <div className="space-y-2">
-                    {qrisChannels.map((channel) => (
-                      <ChannelOption
-                        key={`${channel.provider}-${channel.method}-${channel.code}`}
-                        channel={channel}
-                        selected={selectedChannel}
-                        onSelect={setSelectedChannel}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {vaChannels.length > 0 && (
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-on-surface-variant font-label mb-2">
-                    Virtual Account
-                  </p>
-                  <div className="space-y-2">
-                    {vaChannels.map((channel) => (
-                      <ChannelOption
-                        key={`${channel.provider}-${channel.method}-${channel.code}`}
-                        channel={channel}
-                        selected={selectedChannel}
-                        onSelect={setSelectedChannel}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {paymentChannels.length === 0 && (
-                <p className="text-sm text-on-surface-variant">
-                  Metode pembayaran belum tersedia saat ini.
+            <SectionCard icon="payments" title="Metode Pembayaran">
+              {paymentGateways.length === 0 && (
+                <p className="text-sm text-error">
+                  Belum ada metode pembayaran yang aktif untuk toko ini. Hubungi admin.
                 </p>
+              )}
+
+              {paymentGateways.length > 1 && (
+                <div className="space-y-2 mb-4">
+                  {paymentGateways.map((gateway) => (
+                    <label
+                      key={gateway.code}
+                      className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition-colors ${
+                        selectedGateway === gateway.code
+                          ? "border-primary bg-primary-container/20"
+                          : "border-outline-variant/20 hover:border-outline-variant"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="payment_gateway"
+                        checked={selectedGateway === gateway.code}
+                        onChange={() => selectGateway(gateway.code)}
+                        className="mt-0.5 text-primary focus:ring-primary"
+                      />
+                      <div className="min-w-0">
+                        <p className="font-medium text-on-surface text-sm">{gateway.label}</p>
+                        {gateway.description && (
+                          <p className="text-xs text-on-surface-variant mt-0.5">
+                            {gateway.description}
+                          </p>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {selectedGateway === "satutera" && (
+                <>
+                  {qrisOnlyActive && (
+                    <div className="flex items-start gap-2.5 rounded-2xl bg-tertiary-container/25 border border-tertiary-container/50 px-4 py-3 mb-4">
+                      <span className="material-symbols-outlined text-tertiary text-lg shrink-0 mt-0.5">
+                        info
+                      </span>
+                      <p className="text-xs text-on-tertiary-container leading-relaxed">
+                        <span className="font-semibold">
+                          Transaksi di bawah {formatRupiah(qrisOnlyBelowAmount)}
+                        </span>{" "}
+                        hanya bisa dibayar dengan QRIS — metode lain memerlukan nominal minimal{" "}
+                        {formatRupiah(qrisOnlyBelowAmount)}.
+                      </p>
+                    </div>
+                  )}
+
+                  {qrisChannels.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs uppercase tracking-wider text-on-surface-variant font-label mb-2">
+                        QRIS
+                      </p>
+                      <div className="space-y-2">
+                        {qrisChannels.map((channel) => (
+                          <ChannelOption
+                            key={`${channel.provider}-${channel.method}-${channel.code}`}
+                            channel={channel}
+                            selected={selectedChannel}
+                            onSelect={setSelectedChannel}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {vaChannels.length > 0 && (
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-on-surface-variant font-label mb-2">
+                        Virtual Account
+                      </p>
+                      <div className="space-y-2">
+                        {vaChannels.map((channel) => (
+                          <ChannelOption
+                            key={`${channel.provider}-${channel.method}-${channel.code}`}
+                            channel={channel}
+                            selected={selectedChannel}
+                            onSelect={setSelectedChannel}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {visibleChannels.length === 0 && (
+                    <p className="text-sm text-on-surface-variant">
+                      Metode pembayaran belum tersedia saat ini.
+                    </p>
+                  )}
+                </>
+              )}
+
+              {selectedGateway === "manual" && (
+                <div className="space-y-3">
+                  <p className="text-xs text-on-surface-variant">
+                    Setelah pesanan dibuat, kamu akan diarahkan ke halaman rekening tujuan untuk
+                    transfer manual dan unggah bukti pembayaran.
+                  </p>
+                  {manualAccounts.map((account) => (
+                    <div key={account.id} className="bg-surface-container rounded-xl p-4">
+                      <p className="font-headline font-semibold text-on-surface text-sm">
+                        {account.bank_name}
+                      </p>
+                      <p className="text-sm text-on-surface-variant">
+                        {account.account_number} — a.n. {account.account_holder}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {errors.payment_gateway && (
+                <p className="mt-2 text-xs text-error">{errors.payment_gateway}</p>
               )}
               {errors.payment_channel && (
                 <p className="mt-2 text-xs text-error">{errors.payment_channel}</p>
               )}
-            </section>
+            </SectionCard>
 
-            <section className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high">
-              <label className="block font-label text-sm font-medium text-on-surface mb-2">
-                Catatan untuk Penjual (opsional)
-              </label>
+            <SectionCard icon="edit_note" title="Catatan untuk Penjual" subtitle="opsional">
               <textarea
                 value={data.buyer_note}
                 onChange={(e) => setData("buyer_note", e.target.value)}
                 rows={3}
-                className="block w-full py-3 px-4 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm"
+                placeholder="Contoh: warna, ukuran, atau permintaan khusus lainnya"
+                className="block w-full py-3 px-4 bg-surface-container-high border-0 rounded-2xl focus:ring-2 focus:ring-primary/40 text-on-surface font-body text-sm placeholder:text-on-surface-variant/60"
               />
-            </section>
+            </SectionCard>
           </div>
 
-          <div className="space-y-4">
-            <OrderSummary
-              subtotal={summary.subtotal}
-              shippingCost={
-                summary.requires_shipping
-                  ? selectedMethod
-                    ? Number(selectedMethod.fee)
-                    : (shippingRate?.cost ?? null)
-                  : 0
-              }
-              paymentFee={selectedChannel?.fee ?? null}
-              requiresShipping={summary.requires_shipping}
-            />
-            {/* Inertia preserves scroll position on a validation-error response (it doesn't
-                jump back to top), and the submit button lives down here — so the alert has to
-                sit right next to it to be seen, not just at the top of the page. */}
-            {errorMessages.length > 0 && (
-              <div
-                role="alert"
-                className="flex items-start gap-3 rounded-2xl border border-error/30 bg-error-container px-4 py-3"
+          {/* Desktop sidebar — floats alongside the form as the buyer scrolls */}
+          <div className="hidden lg:block">
+            <div className="sticky top-24 space-y-4">
+              <OrderSummary
+                subtotal={summary.subtotal}
+                shippingCost={shippingCost}
+                paymentFee={selectedChannel?.fee ?? null}
+                requiresShipping={summary.requires_shipping}
+              />
+              {errorMessages.length > 0 && <ErrorBanner messages={errorMessages} />}
+              <button
+                type="button"
+                onClick={doSubmit}
+                disabled={!canSubmit || processing}
+                className="w-full bg-primary text-on-primary px-8 py-3.5 rounded-full font-label font-semibold hover:bg-primary-container hover:text-on-primary-container transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="material-symbols-outlined text-error text-xl shrink-0">error</span>
-                <div className="text-sm text-on-error-container">
-                  <p className="font-label font-semibold">Pesanan belum bisa dibuat</p>
-                  <ul className="mt-1 space-y-0.5">
-                    {errorMessages.map((message) => (
-                      <li key={message}>{message}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={doSubmit}
-              disabled={!canSubmit || processing}
-              className="w-full bg-primary text-on-primary px-8 py-3.5 rounded-full font-label font-semibold hover:bg-primary-container hover:text-on-primary-container transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Buat Pesanan
-            </button>
+                Buat Pesanan
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
       <Footer />
+
+      {/* Mobile floating summary bar */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-container-lowest border-t border-surface-container-high shadow-[0_-8px_30px_rgba(0,0,0,0.08)] pb-[env(safe-area-inset-bottom,0px)]">
+        {errorMessages.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowMobileSummary(true)}
+            className="w-full flex items-center gap-2 bg-error-container text-on-error-container px-4 py-2 text-xs font-label font-semibold text-left"
+          >
+            <span className="material-symbols-outlined text-base shrink-0">error</span>
+            Pesanan belum bisa dibuat — ketuk untuk lihat detail
+          </button>
+        )}
+        <div className="flex items-center gap-3 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setShowMobileSummary(true)}
+            className="flex-1 min-w-0 text-left"
+          >
+            <p className="text-xs text-on-surface-variant flex items-center gap-1">
+              Total
+              <span className="material-symbols-outlined text-sm text-primary">expand_less</span>
+            </p>
+            <p className="font-headline text-lg font-bold text-primary truncate">
+              {formatRupiah(total)}
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={doSubmit}
+            disabled={!canSubmit || processing}
+            className="shrink-0 bg-primary text-on-primary px-6 py-3 rounded-full font-label font-semibold hover:bg-primary-container hover:text-on-primary-container transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Buat Pesanan
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile slide-up order summary sheet */}
+      {showMobileSummary && (
+        <div className="lg:hidden">
+          <div
+            className="fixed inset-0 z-40 bg-on-surface/40 backdrop-blur-[2px]"
+            onClick={() => setShowMobileSummary(false)}
+          />
+          <div className="fixed bottom-0 inset-x-0 z-50 bg-surface rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto pb-[env(safe-area-inset-bottom,16px)]">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-9 h-1 rounded-full bg-outline-variant/40" />
+            </div>
+            <div className="flex items-center justify-between px-6 py-3 border-b border-outline-variant/10">
+              <span className="font-headline font-bold text-on-surface">Ringkasan Pesanan</span>
+              <button
+                type="button"
+                onClick={() => setShowMobileSummary(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {errorMessages.length > 0 && <ErrorBanner messages={errorMessages} />}
+              <OrderSummary
+                subtotal={summary.subtotal}
+                shippingCost={shippingCost}
+                paymentFee={selectedChannel?.fee ?? null}
+                requiresShipping={summary.requires_shipping}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detailMethod && (
+        <ShippingMethodDetailModal
+          method={detailMethod}
+          storeAddress={storeAddress}
+          onClose={() => setDetailMethod(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function SectionCard({
+  icon,
+  title,
+  subtitle,
+  children,
+}: {
+  icon: string;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high">
+      <div className="flex items-center gap-2.5 mb-4">
+        <span className="w-8 h-8 rounded-full bg-primary-container/25 text-primary flex items-center justify-center shrink-0">
+          <span className="material-symbols-outlined text-lg">{icon}</span>
+        </span>
+        <h2 className="font-headline text-base font-bold text-on-surface">
+          {title}
+          {subtitle && (
+            <span className="font-body text-xs font-normal text-on-surface-variant ml-1.5">
+              ({subtitle})
+            </span>
+          )}
+        </h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function ErrorBanner({ messages }: { messages: string[] }) {
+  return (
+    <div
+      role="alert"
+      className="flex items-start gap-3 rounded-2xl border border-error/30 bg-error-container px-4 py-3"
+    >
+      <span className="material-symbols-outlined text-error text-xl shrink-0">error</span>
+      <div className="text-sm text-on-error-container">
+        <p className="font-label font-semibold">Pesanan belum bisa dibuat</p>
+        <ul className="mt-1 space-y-0.5">
+          {messages.map((message) => (
+            <li key={message}>{message}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
@@ -377,20 +663,53 @@ function ChannelOption({
           : "border-outline-variant/20 hover:border-outline-variant"
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <input
           type="radio"
           name="payment_channel"
           checked={isSelected}
           onChange={() => onSelect(channel)}
-          className="text-primary focus:ring-primary"
+          className="shrink-0 text-primary focus:ring-primary"
         />
-        {channel.image && <img src={channel.image} alt={channel.name} className="h-6" />}
-        <span className="text-sm font-medium text-on-surface">{channel.name}</span>
+        {channel.image && <img src={channel.image} alt={channel.name} className="h-6 shrink-0" />}
+        <span className="text-sm font-medium text-on-surface truncate">{channel.name}</span>
       </div>
-      <span className="text-xs text-on-surface-variant">
+      <span className="text-xs text-on-surface-variant shrink-0">
         {channel.fee > 0 ? `+Rp ${channel.fee.toLocaleString("id-ID")}` : "Gratis"}
       </span>
     </label>
+  );
+}
+
+function EmptyCheckout({ store }: { store: Store }) {
+  return (
+    <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
+      <Header />
+      <Head title={`Checkout - ${store.name}`} />
+
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 lg:py-24">
+        <div className="bg-surface-container-lowest rounded-3xl p-12 text-center border border-surface-container-high">
+          <span className="material-symbols-outlined text-5xl text-on-surface-variant/40">
+            remove_shopping_cart
+          </span>
+          <p className="mt-4 font-headline text-lg font-bold text-on-surface">
+            Belum ada produk untuk dibayar
+          </p>
+          <p className="mt-1.5 text-sm text-on-surface-variant max-w-sm mx-auto">
+            Keranjangmu di {store.name} kosong, jadi belum ada yang bisa di-checkout. Pilih dulu
+            produk yang ingin dibeli.
+          </p>
+          <Link
+            href={`/stores/${store.slug}`}
+            className="inline-flex items-center gap-2 mt-6 bg-primary text-on-primary px-6 py-3 rounded-full font-label font-semibold hover:bg-primary-container hover:text-on-primary-container transition-all"
+          >
+            <span className="material-symbols-outlined text-lg">storefront</span>
+            Lihat Produk {store.name}
+          </Link>
+        </div>
+      </div>
+
+      <Footer />
+    </div>
   );
 }

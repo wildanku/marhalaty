@@ -11,6 +11,13 @@ di dokumen bernomor di folder yang sama.
 | [3-cart-checkout-shipping.md](./3-cart-checkout-shipping.md) | Fase 3 | Cart, alamat pembeli, integrasi RajaOngkir (cek ongkir), pembuatan order |
 | [4-payment-satutera.md](./4-payment-satutera.md) | Fase 4 | Satutera Payment Service (channel, create payment, halaman VA/QRIS, WebSocket, callback) |
 | [5-fulfillment-and-admin.md](./5-fulfillment-and-admin.md) | Fase 5 | Fulfillment fisik & digital, notifikasi, panel god-mode, expiry job |
+| [6-store-badges.md](./6-store-badges.md) | Fase 6 | Badge toko (Official/Top Seller/Trusted, bisa ditambah) yang dikelola admin |
+| [7-payment-settings.md](./7-payment-settings.md) | Fase 7 | Pengaturan pembayaran global: toggle & kredensial gateway, transfer manual + rekening |
+| [8-event-product-integration.md](./8-event-product-integration.md) | Fase 8 | Produk toko jadi addon/paket event (stok tunggal, reservasi, tanpa pengiriman) |
+| [9-event-payment-satutera.md](./9-event-payment-satutera.md) | Fase 9 | Satutera & transfer manual jadi opsi pembayaran pendaftaran event |
+
+Fase 1–5 berasal dari bagian "Idea" catatan kebutuhan; fase 6–7 dari bagian **"Idea Part 2"**, dan
+fase 8–9 dari bagian **"Idea Part 3"** di catatan yang sama.
 
 Sumber kebutuhan: [`docs/human-notes/ecommerce-note.txt`](../../human-notes/ecommerce-note.txt) dan
 [`docs/guidance/payment-guidance.md`](../../guidance/payment-guidance.md).
@@ -65,6 +72,14 @@ Stack runtime: **PostgreSQL**, `QUEUE_CONNECTION=database`, `BROADCAST_CONNECTIO
    fee channel masuk ke total tagihan.
 7. Halaman pembayaran realtime (WebSocket Satutera) + polling fallback.
 8. Fulfillment sederhana: input resi untuk produk fisik, link download untuk produk digital.
+9. **(Idea Part 2)** Badge toko yang dikelola admin — katalog badge bisa ditambah tanpa deploy.
+10. **(Idea Part 2)** Pengaturan pembayaran global di god-mode: toggle & kredensial per gateway,
+    transfer manual + daftar rekening, berlaku untuk checkout toko maupun pendaftaran event.
+11. **(Idea Part 3)** Produk toko bisa ditarik jadi addon event dan di-*include* ke paket event —
+    stok tunggal di produk, dicatat lewat `product_reservations`, tanpa opsi pengiriman (diambil
+    saat acara).
+12. **(Idea Part 3)** Pendaftaran event bisa dibayar lewat Satutera (VA/QRIS + status realtime) dan
+    transfer manual sesuai pengaturan god-mode.
 
 **Tidak termasuk (ditunda)**
 
@@ -179,6 +194,18 @@ beneran untuk order toko.
 dapat halaman sendiri (`Pages/Store/PaymentPage.tsx`) yang memakai `payment_hash` yang sama.
 Konsolidasi keduanya dicatat sebagai utang teknis, bukan pekerjaan MVP 2.
 
+### D15–D17 (badge) dan D18–D23 (pengaturan pembayaran)
+
+Keputusan untuk dua fase "Idea Part 2" ditulis di dokumennya masing-masing supaya konteksnya rapat
+dengan detail teknisnya: [6-store-badges.md](./6-store-badges.md) §2 dan
+[7-payment-settings.md](./7-payment-settings.md) §2. Dua yang paling berdampak lintas fase:
+
+- **D20** — kredensial gateway dari database menimpa `.env`, dan `.env` tetap jadi fallback, jadi
+  deploy yang ada tidak perlu diubah saat migration jalan.
+- **D22** — `->whereNotNull('rsvp_id')` di `GodMode\PaymentController` (dipasang sebagai penjagaan di
+  fase 5 §4) **wajib** dicabut begitu order toko bisa memakai transfer manual; kalau tidak, transaksi
+  toko yang menunggu verifikasi tidak akan pernah muncul di halaman admin.
+
 ---
 
 ## 4. Peta data (ringkas)
@@ -201,6 +228,23 @@ Tabel baru: `stores`, `store_members`, `store_addresses`, `user_addresses`, `pro
 `product_variants`, `carts`, `cart_items`, `store_orders`, `store_order_items`,
 `digital_deliveries`, `shipping_destinations`, `payment_webhook_events`.
 Tabel diubah: `transactions` (aditif, lihat D3).
+
+Tambahan dari fase 6–7: `store_badges` + `store_badge_assignments` (pivot ke `stores`),
+`payment_gateways` + `payment_manual_accounts`. Fase 7 **tidak** menambah kolom di `transactions` —
+`payment_provider` yang sudah ada (`manual`/`ipaymu`/`satutera`) langsung dipakai sebagai kode
+gateway.
+
+Tambahan dari fase 8: `product_reservations` (buku besar stok lintas modul) plus kolom tautan di
+`event_addons` (`product_id`, `product_variant_id`, `stock_source`) — pembelian produk lewat event
+**tidak** membuat `store_orders` dan tidak menyentuh ongkir sama sekali:
+
+```
+event_addons ──> products / product_variants        (tautan katalog + sumber stok)
+rsvps ──< product_reservations >── products         (reserved → fulfilled / released)
+```
+
+Fase 9 tidak menambah tabel: transaksi RSVP Satutera mengisi `rsvp_id` **dan** `payable_*` pada
+`transactions` yang sudah polimorfik sejak D3.
 
 ---
 
@@ -229,6 +273,9 @@ STORE_DIGITAL_DOWNLOAD_MAX=5
 Semua dibaca lewat `config/services.php` (pola yang sudah dipakai `ipaymu`, `brevo`, `telegram`),
 plus `config/store.php` untuk aturan bisnis (expiry, batas download, batas varian).
 
+Fase 7 **tidak menambah variabel env baru**: variabel di atas (dan `IPAYMU_*`) berubah peran jadi
+*fallback* ketika kredensial di database belum diisi (D20).
+
 ---
 
 ## 6. Urutan pengerjaan & Definition of Done
@@ -240,9 +287,20 @@ plus `config/store.php` untuk aturan bisnis (expiry, batas download, batas varia
 | 3 | Cart + ongkir | Tambah ke cart, pilih alamat, tarif kurir muncul dari RajaOngkir, order `pending_payment` terbentuk dengan stok terkunci |
 | 4 | Pembayaran | Pilih channel, VA/QRIS tampil, status berubah realtime, callback tervalidasi menandai order `paid` |
 | 5 | Fulfillment + admin | Resi diinput, link download digital terkirim, god-mode bisa kelola store & order, order kedaluwarsa mengembalikan stok |
+| 6 | Badge toko | Admin membuat jenis badge baru dari god-mode, memasang/mencabutnya per toko, badge tampil di direktori & etalase |
+| 7 | Pengaturan pembayaran | Admin mengatur toggle + kredensial gateway dan rekening transfer manual dari god-mode; checkout toko bisa transfer manual dengan verifikasi admin |
+| 8 | Produk toko di event | Admin menarik produk toko jadi addon/isi paket, stok berkurang dari inventori toko saat RSVP dibuat dan kembali saat RSVP batal/kedaluwarsa, tanpa jalur pengiriman |
+| 9 | Pembayaran event | Pendaftaran event bisa dibayar lewat Satutera (VA/QRIS + status realtime) maupun transfer manual, mengikuti toggle god-mode |
 
 Fase 1–2 dan 3–4 punya ketergantungan berurutan; fase 4 bisa mulai paralel dengan fase 3 karena
-`SatuteraPaymentService` tidak bergantung pada cart.
+`SatuteraPaymentService` tidak bergantung pada cart. Fase 6 berdiri sendiri (tidak menyentuh alur
+uang) dan bisa dikerjakan kapan saja setelah fase 1. Fase 7 menyentuh alur produksi yang sudah
+jalan, jadi dipecah tiga langkah rilis terpisah — lihat [7-payment-settings.md](./7-payment-settings.md) §7.
+
+Fase 8 hanya bergantung pada fase 2 (katalog produk) dan tidak menyentuh satu pun berkas pembayaran,
+jadi boleh berjalan paralel dengan fase 7. Fase 9 sebaliknya: **wajib** menunggu fase 7 langkah 7b,
+karena keduanya mengubah validasi pembayaran di `RsvpController`. Urutan rilis yang aman untuk
+jalur event: 7b → 8c → 9c.
 
 **DoD keseluruhan MVP 2**
 

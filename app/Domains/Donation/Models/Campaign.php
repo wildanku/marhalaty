@@ -2,16 +2,17 @@
 
 namespace App\Domains\Donation\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Support\Eloquent\HasTypeSafeMorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Spatie\Sluggable\HasSlug;
-use Spatie\Sluggable\SlugOptions;
+use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\Sluggable\HasSlug;
+use Spatie\Sluggable\SlugOptions;
 
 class Campaign extends Model implements HasMedia
 {
-    use HasFactory, HasSlug, InteractsWithMedia;
+    use HasFactory, HasSlug, HasTypeSafeMorphMany, InteractsWithMedia;
 
     protected $fillable = [
         'title',
@@ -30,7 +31,7 @@ class Campaign extends Model implements HasMedia
         'end_date' => 'date',
     ];
 
-    public function getSlugOptions() : SlugOptions
+    public function getSlugOptions(): SlugOptions
     {
         return SlugOptions::create()
             ->generateSlugsFrom('title')

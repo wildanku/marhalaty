@@ -2,11 +2,19 @@
 
 namespace App\Domains\GodMode\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Domains\Event\Models\Event;
+use App\Domains\Event\Models\EventAddon;
 use App\Domains\Event\Models\Rsvp;
 use App\Domains\Event\Models\Transaction;
+use App\Domains\GodMode\Exports\AddonsSheet;
 use App\Domains\GodMode\Exports\EventParticipantsExport;
+use App\Domains\GodMode\Exports\InfakSheet;
+use App\Domains\GodMode\Exports\ParticipantsSheet;
+use App\Domains\Shared\Services\HtmlSanitizerService;
+use App\Domains\Store\Models\ProductReservation;
+use App\Domains\Store\Services\ProductStockService;
+use App\Http\Controllers\Controller;
+use App\Models\Scopes\MarhalahScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -15,6 +23,8 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class EventController extends Controller
 {
+    public function __construct(private readonly HtmlSanitizerService $htmlSanitizer) {}
+
     public function index(Request $request)
     {
         $events = Event::with('packages')
@@ -22,7 +32,7 @@ class EventController extends Controller
             ->withSum([
                 'rsvps as total_revenue' => function ($q) {
                     $q->where('status', 'paid');
-                }
+                },
             ], 'total_amount')
             ->orderBy('event_date', 'asc')
             ->get();
@@ -44,6 +54,7 @@ class EventController extends Controller
 
         $manualPendingCount = $rsvps->filter(function ($r) {
             $tx = $r->latestTransaction;
+
             return $tx && $tx->payment_provider === 'manual' && $tx->status === 'pending';
         })->count();
 
@@ -57,7 +68,7 @@ class EventController extends Controller
             'total_revenue' => $paidRsvps->sum('total_amount'),
             'manual_pending' => $manualPendingCount,
             'total_infak' => $paidRsvps->sum('infak_amount'),
-            'infak_count' => $paidRsvps->filter(fn($r) => (float) $r->infak_amount > 0)->count(),
+            'infak_count' => $paidRsvps->filter(fn ($r) => (float) $r->infak_amount > 0)->count(),
         ];
 
         // Package statistics
@@ -65,6 +76,7 @@ class EventController extends Controller
             ->groupBy('event_package_id')
             ->map(function ($group) {
                 $first = $group->first();
+
                 return [
                     'package_id' => $first->event_package_id,
                     'package_name' => optional($first->package)->name ?? 'Unknown',
@@ -78,12 +90,12 @@ class EventController extends Controller
         $addonStats = [];
 
         foreach ($paidRsvps as $rsvp) {
-            $snapshotIds = collect($rsvp->add_ons_snapshot ?? [])->pluck('id')->map(fn($id) => (int) $id)->toArray();
+            $snapshotIds = collect($rsvp->add_ons_snapshot ?? [])->pluck('id')->map(fn ($id) => (int) $id)->toArray();
 
             // From snapshot (both purchased and included-with-variants)
             foreach (($rsvp->add_ons_snapshot ?? []) as $addon) {
                 $key = (int) $addon['id'];
-                if (!isset($addonStats[$key])) {
+                if (! isset($addonStats[$key])) {
                     $addonStats[$key] = [
                         'addon_id' => $key,
                         'addon_name' => $addon['name'],
@@ -104,7 +116,7 @@ class EventController extends Controller
                         continue; // already counted from snapshot
                     }
                     $key = (int) $bundledAddon->id;
-                    if (!isset($addonStats[$key])) {
+                    if (! isset($addonStats[$key])) {
                         $addonStats[$key] = [
                             'addon_id' => $key,
                             'addon_name' => $bundledAddon->name,
@@ -191,7 +203,8 @@ class EventController extends Controller
         $event = Event::findOrFail($eventId);
         $rsvp = Rsvp::where('event_id', $eventId)->findOrFail($rsvpId);
 
-        // Delete will trigger the observer to decrement package quota if paid
+        // Delete triggers RsvpObserver::deleted(): decrements package quota if paid, and releases
+        // any product reservations this RSVP was holding (docs/plan/mvp2/8-event-product-integration.md).
         $userName = $rsvp->user?->name ?? 'Unknown';
         $rsvp->delete();
 
@@ -258,7 +271,7 @@ class EventController extends Controller
         $addOnsSnapshot = [];
         $totalAddOnsAmount = 0;
 
-        if (!empty($validated['addons'])) {
+        if (! empty($validated['addons'])) {
             $purchasedAddonVariants = $validated['purchased_addon_variants'] ?? [];
             $purchasedAddonForms = $validated['purchased_addon_forms'] ?? [];
 
@@ -293,13 +306,14 @@ class EventController extends Controller
         $includedAddonForms = $validated['included_addon_forms'] ?? [];
         $includedAddonIds = array_unique(array_merge(array_keys($includedAddonVariants), array_keys($includedAddonForms)));
 
-        if (!empty($includedAddonIds) && !empty($validated['event_package_id'])) {
+        if (! empty($includedAddonIds) && ! empty($validated['event_package_id'])) {
             $packageWithAddons = $event->packages()->with('includedAddons')->find($validated['event_package_id']);
 
             foreach ($includedAddonIds as $addonId) {
                 $includedAddon = $packageWithAddons?->includedAddons?->firstWhere('id', $addonId);
-                if (!$includedAddon)
+                if (! $includedAddon) {
                     continue;
+                }
 
                 $addOnsSnapshot[] = [
                     'id' => (int) $addonId,
@@ -368,7 +382,7 @@ class EventController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        $filename = 'peserta-' . Str::slug($event->title) . '-' . now()->format('Ymd') . '.xlsx';
+        $filename = 'peserta-'.Str::slug($event->title).'-'.now()->format('Ymd').'.xlsx';
 
         return Excel::download(new EventParticipantsExport($event, $rsvps), $filename);
     }
@@ -379,7 +393,7 @@ class EventController extends Controller
     public function exportCsv($id, $type)
     {
         // Force autoload of the file containing the sheet classes
-        class_exists(\App\Domains\GodMode\Exports\EventParticipantsExport::class);
+        class_exists(EventParticipantsExport::class);
 
         $event = Event::with(['addons', 'packages'])->findOrFail($id);
 
@@ -388,17 +402,75 @@ class EventController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        $filename = 'peserta-' . Str::slug($event->title) . '-' . $type . '-' . now()->format('Ymd') . '.csv';
+        $filename = 'peserta-'.Str::slug($event->title).'-'.$type.'-'.now()->format('Ymd').'.csv';
 
         if ($type === 'peserta') {
-            return Excel::download(new \App\Domains\GodMode\Exports\ParticipantsSheet($event, $rsvps), $filename, \Maatwebsite\Excel\Excel::CSV);
+            return Excel::download(new ParticipantsSheet($event, $rsvps), $filename, \Maatwebsite\Excel\Excel::CSV);
         } elseif ($type === 'addon') {
-            return Excel::download(new \App\Domains\GodMode\Exports\AddonsSheet($event, $rsvps), $filename, \Maatwebsite\Excel\Excel::CSV);
+            return Excel::download(new AddonsSheet($event, $rsvps), $filename, \Maatwebsite\Excel\Excel::CSV);
         } elseif ($type === 'infak') {
-            return Excel::download(new \App\Domains\GodMode\Exports\InfakSheet($event, $rsvps), $filename, \Maatwebsite\Excel\Excel::CSV);
+            return Excel::download(new InfakSheet($event, $rsvps), $filename, \Maatwebsite\Excel\Excel::CSV);
         }
 
         abort(404);
+    }
+
+    public function create()
+    {
+        return Inertia::render('GodMode/Events/Create', [
+            'admin' => auth('admin')->user(),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:events,slug',
+            'description' => 'required|string',
+            'location' => 'required|string',
+            'event_date' => 'required|date',
+            'visibility_scope' => 'nullable|string',
+            'infak_rules' => 'nullable|string',
+            'metadata' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
+        ]);
+
+        // Same normalize-then-recheck pattern as update() — empty slug falls through to the
+        // model's own HasSlug generation from `title` (getSlugOptions() only skips regeneration
+        // on *update*, so create-time generation still happens automatically).
+        if (! empty($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['slug']);
+
+            if (Event::where('slug', $validated['slug'])->exists()) {
+                return back()->withErrors(['slug' => 'Slug sudah digunakan oleh event lain.']);
+            }
+        }
+
+        $infakRules = ! empty($validated['infak_rules']) ? json_decode($validated['infak_rules'], true) : null;
+        $metadata = ! empty($validated['metadata']) ? json_decode($validated['metadata'], true) : null;
+
+        $event = Event::create([
+            'title' => $validated['title'],
+            'slug' => $validated['slug'] ?? null,
+            // description is rendered raw via dangerouslySetInnerHTML on the public Event page,
+            // so it must go through the same HTMLPurifier allow-list as Store product descriptions
+            // (RichTextEditor's toolbar is kept in lockstep with this allow-list).
+            'description' => $this->htmlSanitizer->sanitize($validated['description']) ?? '',
+            'location' => $validated['location'],
+            'event_date' => $validated['event_date'],
+            'visibility_scope' => $validated['visibility_scope'] ?? null,
+            'infak_rules' => $infakRules,
+            'metadata' => $metadata,
+            'is_registration_enabled' => true,
+        ]);
+
+        if ($request->hasFile('image')) {
+            $event->addMediaFromRequest('image')->toMediaCollection('event-images');
+        }
+
+        return redirect()->route('god-mode.events.show', $event->id)
+            ->with('success', 'Event berhasil dibuat.');
     }
 
     public function edit($id)
@@ -418,7 +490,7 @@ class EventController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:events,slug,' . $event->id,
+            'slug' => 'required|string|max:255|unique:events,slug,'.$event->id,
             'description' => 'required|string',
             'location' => 'required|string',
             'event_date' => 'required|date',
@@ -448,7 +520,7 @@ class EventController extends Controller
         $event->update([
             'title' => $validated['title'],
             'slug' => $validated['slug'],
-            'description' => $validated['description'],
+            'description' => $this->htmlSanitizer->sanitize($validated['description']) ?? '',
             'location' => $validated['location'],
             'event_date' => $validated['event_date'],
             'visibility_scope' => $validated['visibility_scope'],
@@ -480,5 +552,81 @@ class EventController extends Controller
         ]);
 
         return back()->with('success', 'Status pendaftaran event berhasil diubah.');
+    }
+
+    /**
+     * "Barang yang harus disiapkan" recap (docs/plan/mvp2/8-event-product-integration.md §5.3) —
+     * every product-linked addon reservation for this event, grouped by product/variant so an
+     * admin (or the seller, via StoreEventReservationController's sibling endpoint) can answer
+     * "how many size-L shirts do I need to bring" with one glance instead of parsing every RSVP's
+     * add_ons_snapshot JSON.
+     */
+    public function apiProductReservations($eventId)
+    {
+        $event = Event::findOrFail($eventId);
+
+        $addonIds = EventAddon::where('event_id', $event->id)
+            ->where('stock_source', 'product')
+            ->pluck('id');
+
+        $reservations = ProductReservation::with(['product.store', 'variant'])
+            ->whereIn('event_addon_id', $addonIds)
+            ->get();
+
+        // reservable_type is always Rsvp today (D27) — resolved as one extra query rather than
+        // eager-loading through the polymorphic `reservable` relation, so the MarhalahScope on
+        // User (README §7 risk) can be dropped explicitly instead of silently hiding participants
+        // outside the pilot cohort from this recap.
+        $rsvpIds = $reservations->pluck('reservable_id')->unique()->all();
+        $rsvps = Rsvp::withoutGlobalScope(MarhalahScope::class)
+            ->with(['user' => fn ($q) => $q->withoutGlobalScope(MarhalahScope::class)])
+            ->whereIn('id', $rsvpIds)
+            ->get()
+            ->keyBy(fn ($rsvp) => (string) $rsvp->id);
+
+        $rows = $reservations
+            ->groupBy(fn ($r) => $r->product_id.'|'.($r->product_variant_id ?? 'none'))
+            ->map(function ($group) use ($rsvps) {
+                $first = $group->first();
+
+                $reservedRows = $group->where('status', 'reserved');
+                $pending = $reservedRows->filter(fn ($r) => ($rsvps->get($r->reservable_id)?->status) !== 'paid')->sum('quantity');
+                $paid = $reservedRows->filter(fn ($r) => ($rsvps->get($r->reservable_id)?->status) === 'paid')->sum('quantity');
+                $fulfilled = $group->where('status', 'fulfilled')->sum('quantity');
+
+                return [
+                    'product_id' => $first->product_id,
+                    'product_name' => $first->product?->name,
+                    'store_name' => $first->product?->store?->name,
+                    'variant_label' => $first->variant?->label,
+                    'pending' => $pending,
+                    'paid' => $paid,
+                    'fulfilled' => $fulfilled,
+                    'items' => $reservedRows->values()->map(fn ($r) => [
+                        'id' => $r->id,
+                        'quantity' => $r->quantity,
+                        'participant_name' => $rsvps->get($r->reservable_id)?->display_name,
+                        'rsvp_status' => $rsvps->get($r->reservable_id)?->status,
+                    ]),
+                ];
+            })
+            ->values();
+
+        return response()->json($rows);
+    }
+
+    /**
+     * Mark one reservation as handed over at the event. Per-reservation rather than bulk — the
+     * doc allows either, this is the minimum that makes the recap meaningful after the event.
+     */
+    public function fulfillProductReservation(ProductStockService $productStock, $eventId, $reservationId)
+    {
+        $addonIds = EventAddon::where('event_id', $eventId)->pluck('id');
+
+        $reservation = ProductReservation::whereIn('event_addon_id', $addonIds)->findOrFail($reservationId);
+
+        $productStock->fulfill($reservation);
+
+        return back()->with('success', 'Item ditandai sudah diserahkan.');
     }
 }

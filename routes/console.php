@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('store:expire-orders')->hourly();
 Schedule::command('store:complete-shipped')->dailyAt('02:00');
+Schedule::command('events:expire-unpaid-rsvps')->hourly();

@@ -3,6 +3,7 @@ import { Head, Link, router, usePage } from "@inertiajs/react";
 import { PageProps, Store } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import StoreBadgeList from "@/Components/Store/StoreBadgeList";
 
 interface DirectoryProps extends PageProps {
   stores: {
@@ -80,6 +81,7 @@ export default function Directory() {
                     </div>
                   </div>
                   <p className="font-headline font-semibold text-on-surface truncate">{store.name}</p>
+                  <StoreBadgeList badges={store.active_badges} size="sm" max={2} className="mt-1.5" />
                   <p className="text-sm text-on-surface-variant line-clamp-2 mt-1">{store.description}</p>
                   <p className="text-xs text-primary mt-3">{store.active_products_count ?? 0} produk</p>
                 </div>

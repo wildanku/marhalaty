@@ -3,6 +3,7 @@ import { PageProps, Store } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import StatusBadge from "@/Components/Store/StatusBadge";
+import StoreBadgeList from "@/Components/Store/StoreBadgeList";
 
 interface MyStoresProps extends PageProps {
   stores: Store[];
@@ -58,6 +59,7 @@ export default function MyStores() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-headline font-semibold text-on-surface truncate">{store.name}</p>
+                  <StoreBadgeList badges={store.active_badges} size="sm" className="mt-1" />
                   <p className="text-sm text-on-surface-variant truncate">{store.description}</p>
                   {store.status === "rejected" && store.rejection_reason && (
                     <p className="text-xs text-error mt-1">Alasan: {store.rejection_reason}</p>

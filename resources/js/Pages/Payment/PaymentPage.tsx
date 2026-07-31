@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 import { validateFile, MAX_FILE_SIZE_MB } from "@/Helpers/fileValidation";
+import SatuteraPanel, {
+  SatuteraLiveStatus,
+  SATUTERA_FINAL_STATUSES,
+} from "@/Components/Payment/SatuteraPanel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface BankAccount {
-  bank: string;
+  bank_name: string;
   account_number: string;
   account_holder: string;
 }
@@ -19,6 +23,11 @@ interface PaymentPageProps extends PageProps {
   rsvp: Rsvp;
   event: GontorEvent;
   bankAccounts: BankAccount[];
+  // Harmless/null for manual and ipaymu transactions — only meaningful when
+  // payment_provider === 'satutera'. See fase 9, Components/Payment/SatuteraPanel.tsx.
+  checkoutToken: string | null;
+  expiresAt: string | null;
+  satuteraWsUrl: string;
   hash: string;
 }
 
@@ -153,6 +162,14 @@ const statusConfig: Record<string, { label: string; color: string; icon: string;
     icon: "block",
     bg: "bg-surface-container border-surface-container-high",
   },
+  // Client-side-only status (fase 9) — Satutera's internal expiry window doesn't always emit a
+  // socket event, so SatuteraPanel sets this locally once the countdown hits zero.
+  local_expired: {
+    label: "Waktu Pembayaran Habis",
+    color: "text-red-700",
+    icon: "timer_off",
+    bg: "bg-red-50 border-red-200",
+  },
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -163,12 +180,45 @@ export default function PaymentPage({
   rsvp,
   event,
   bankAccounts,
+  checkoutToken,
+  expiresAt,
+  satuteraWsUrl,
   hash,
 }: PaymentPageProps): ReactElement {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [copiedVa, setCopiedVa] = useState(false);
   const [fileValidationError, setFileValidationError] = useState<string | null>(null);
   const [cancelConfirm, setCancelConfirm] = useState(false);
+
+  // Starts equal to the server-rendered `transaction.status` — updated by SatuteraPanel's
+  // socket/countdown for a `satutera` transaction, and by the polling fallback below for any
+  // provider (manual included, since a god-mode approve/reject changes status server-side with no
+  // socket involved at all).
+  const [liveStatus, setLiveStatus] = useState<SatuteraLiveStatus>(transaction.status);
+  const isFinal = SATUTERA_FINAL_STATUSES.includes(liveStatus);
+
+  // Polling fallback every 7s while pending — matches Satutera's own frontend interval and mirrors
+  // `Store/PaymentPage.tsx`. WebSocket delivery isn't guaranteed (network, proxy, backgrounded
+  // tab), so this is the only reliable way this page ever learns a payment succeeded/failed
+  // without a manual reload. Reuses the same `/payment/{hash}/status` endpoint SatuteraPanel's
+  // local-expiry check does not cover.
+  useEffect(() => {
+    if (isFinal) return;
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/payment/${hash}/status`);
+        if (!response.ok) return;
+        const body = await response.json();
+        if (body.status) setLiveStatus(body.status);
+      } catch {
+        // Silent — the next tick (or the socket, for satutera) will pick it up.
+      }
+    };
+
+    const interval = setInterval(poll, 7000);
+    return () => clearInterval(interval);
+  }, [isFinal, hash]);
 
   const cancelForm = useForm();
 
@@ -182,9 +232,10 @@ export default function PaymentPage({
     }
   };
 
-  const status = statusConfig[transaction.status] ?? statusConfig.pending;
+  const status = statusConfig[liveStatus] ?? statusConfig.pending;
   const isManual = transaction.payment_provider === "manual";
-  const isPending = transaction.status === "pending";
+  const isSatutera = transaction.payment_provider === "satutera";
+  const isPending = liveStatus === "pending";
   const channel = transaction.payment_channel ?? "";
   const channelName = CHANNEL_NAMES[channel] ?? channel;
   const isQris = channel === "qris";
@@ -424,7 +475,7 @@ export default function PaymentPage({
           </div>
 
           {/* ─── iPaymu: QRIS ─── */}
-          {!isManual && isPending && isQris && (
+          {!isManual && !isSatutera && isPending && isQris && (
             <div className="bg-surface-container-lowest rounded-2xl border border-surface-container-high p-6 shadow-sm mb-6">
               <h2 className="font-headline font-bold text-on-surface mb-1 flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-[20px]">
@@ -477,7 +528,7 @@ export default function PaymentPage({
           )}
 
           {/* ─── iPaymu: Virtual Account ─── */}
-          {!isManual && isPending && !isQris && transaction.va_number && (
+          {!isManual && !isSatutera && isPending && !isQris && transaction.va_number && (
             <div className="bg-surface-container-lowest rounded-2xl border border-surface-container-high p-6 shadow-sm mb-6">
               <h2 className="font-headline font-bold text-on-surface mb-1 flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-[20px]">
@@ -556,7 +607,7 @@ export default function PaymentPage({
           )}
 
           {/* ─── iPaymu: pending but no VA/QR yet ─── */}
-          {!isManual && isPending && !transaction.va_number && !isQris && (
+          {!isManual && !isSatutera && isPending && !transaction.va_number && !isQris && (
             <div className="bg-surface-container-lowest rounded-2xl border border-amber-200 p-6 shadow-sm mb-6 text-center">
               <span className="material-symbols-outlined text-5xl text-amber-500 block mb-3">
                 hourglass_top
@@ -569,6 +620,18 @@ export default function PaymentPage({
                 pembayaran.
               </p>
             </div>
+          )}
+
+          {/* ─── Satutera: VA/QRIS + realtime status (fase 9, D37) ─── */}
+          {isSatutera && (
+            <SatuteraPanel
+              status={liveStatus}
+              onStatusChange={setLiveStatus}
+              paymentDetail={transaction.payment_detail}
+              checkoutToken={checkoutToken}
+              expiresAt={expiresAt}
+              satuteraWsUrl={satuteraWsUrl}
+            />
           )}
 
           {/* ─── Manual: Bank Info ─── */}
@@ -591,7 +654,7 @@ export default function PaymentPage({
                     <div key={idx} className="bg-surface-container rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <p className="font-headline font-bold text-on-surface text-lg">
-                          {acc.bank}
+                          {acc.bank_name}
                         </p>
                         {bankAccounts.length > 1 && (
                           <span className="text-[10px] font-bold bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full uppercase">
@@ -747,7 +810,7 @@ export default function PaymentPage({
           )}
 
           {/* ─── Paid ─── */}
-          {transaction.status === "paid" && (
+          {liveStatus === "paid" && (
             <div className="bg-surface-container-lowest rounded-2xl border border-emerald-200 p-6 shadow-sm mb-6 text-center">
               <span
                 className="material-symbols-outlined text-5xl text-emerald-600 mb-3 block"

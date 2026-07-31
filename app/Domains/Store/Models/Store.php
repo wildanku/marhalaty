@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\MediaLibrary\HasMedia;
@@ -100,6 +101,28 @@ class Store extends Model implements HasMedia
     public function shippingMethods(): HasMany
     {
         return $this->hasMany(StoreShippingMethod::class);
+    }
+
+    public function badges(): BelongsToMany
+    {
+        return $this->belongsToMany(StoreBadge::class, 'store_badge_assignments')
+            ->withPivot(['id', 'assigned_at', 'expires_at', 'note', 'assigned_by'])
+            ->withTimestamps()
+            ->orderBy('store_badges.sort_order');
+    }
+
+    /**
+     * Badges actually safe to show publicly: the badge type is still active and this particular
+     * grant hasn't expired. This is what every public-facing controller must eager-load.
+     */
+    public function activeBadges(): BelongsToMany
+    {
+        return $this->badges()
+            ->where('store_badges.is_active', true)
+            ->where(function (Builder $q) {
+                $q->whereNull('store_badge_assignments.expires_at')
+                    ->orWhere('store_badge_assignments.expires_at', '>', now());
+            });
     }
 
     public function scopePubliclyVisible(Builder $q): Builder

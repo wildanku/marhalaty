@@ -20,6 +20,16 @@ class ExpireStoreOrders extends Command
 
         StoreOrder::where('status', 'pending_payment')
             ->where('expires_at', '<', now())
+            // A buyer who already transferred and uploaded proof must not lose the order just
+            // because admin review is running behind — only orders with no proof waiting on
+            // review are fair game here (docs/plan/mvp2/7-payment-settings.md §6a). A *reviewed*
+            // (approved/rejected) manual transaction never blocks this: approval already moved the
+            // order out of pending_payment, and rejection already pushed expires_at into the future.
+            ->whereDoesntHave('transactions', function ($query) {
+                $query->where('payment_provider', 'manual')
+                    ->where('status', 'pending')
+                    ->whereHas('proof', fn ($proof) => $proof->whereNull('reviewed_at'));
+            })
             ->chunkById(100, function ($orders) use ($fulfillment, &$count) {
                 foreach ($orders as $order) {
                     DB::transaction(function () use ($order, $fulfillment) {

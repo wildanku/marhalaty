@@ -49,4 +49,25 @@ existing `PaymentProviderInterface` (that contract is RSVP/event-specific and un
 
 ### Bugs found and fixed during implementation (not in the original plan)
 
-- None specific to Phase 4 beyond the cross-cutting ULID/media fixes already covered in the Phase 1/2 checklists.
+- **Double-counted payment channel fee.** `CheckoutService::initiateSatuteraPayment()` sent
+  `amount = transaction->amount` (subtotal + shipping + payment_fee) as the create-payment
+  `amount`, but per `payment-guidance.md` §3 (confirmed against `satutera-payment`'s own source —
+  `payments.service.ts` passes `dto.amount` straight to the gateway adapter, and
+  `ipaymu.adapter.ts` computes `total = amount + fee` from iPaymu's own response) Satutera adds the
+  channel's fee **on top of** `amount` itself. Sending an amount that already includes the fee
+  meant the real VA/QRIS total the customer had to pay was inflated by one extra fee, silently
+  mismatched against everything we displayed/stored. Never caught earlier because the only live
+  test used QRIS, whose fee is 0. Fixed by sending `amount - payment_fee`, and updated
+  `SatuteraWebhookController`'s amount-mismatch check to compare against the same
+  amount-excluding-fee value (it previously compared against the fee-inclusive `transaction->amount`,
+  which would have started rejecting every real callback as a "mismatch" once the send-side fix
+  landed). `docs/plan/mvp2/4-payment-satutera.md` also had this wrong in its payload spec — corrected there too.
+- **No recovery path when `createPayment()` fails at checkout.** The original code caught the
+  exception and left the transaction without a `checkout_token`, with a comment claiming "the
+  payment page can retry payment creation" — but no such retry existed anywhere. Added
+  `CheckoutService::retryPaymentInitiation()` (reuses the same deterministic Idempotency-Key, so a
+  retry after a lost response fetches the already-created payment instead of duplicating it) and
+  wired it into `StorePaymentPageController::show()` so opening/refreshing the payment page
+  recovers automatically. Needed a new `metadata.payment_request` bag on the transaction (stored at
+  creation time) since `payment_method` wasn't persisted anywhere on `Transaction` and the retry
+  path has no access to the original HTTP request.

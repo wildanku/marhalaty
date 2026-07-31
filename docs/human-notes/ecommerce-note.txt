@@ -29,3 +29,8 @@ Idea:
 Idea Part 2:
 - Untuk store kita ada tambahan badge "Official", "Top Seller", "Trusted" dan mungkin ada tambahan badge lainnya. Untuk mengatur badge tersebut hanya admin yg bisa melalui god-mode
 - Sistem payment bisa kita set, saat ini kan kita pake payment dari satutera, buat admin bisa set untuk masukin payment gateway sendiri dan bisa atur pembayaran manual mulai dari toggle on-off, set nomor rekening pembayaran, dsb. Konsep payment atau setingan payment ini berlaku global baik itu untuk checkout store ataupun beli event.
+
+Idea Part 3:
+- Integerasikan produk di modul event, di modul event saat ini ada model addons dan paket, dimana user bisa tambah addon ketika daftar event, begitupun user jg bisa pilih paket pendaftaran yg include beberapa addon. Nah aku ingin product dari store bisa di integerasikan ke event, flownya ketika user tambah event kemudian buat addon bisa attach atau ambil addon dari semua produk yg ada di database, kemudian jg bisa buat paket event dan include dari produk yg ada di database. 
+- Jika produk ada yg di initegerasikan ke event, maka gak ada opsi pengiriman, karena semua produk yg di beli lewat paket event sudah pasti pengambilan barang ketika event jadi gak ada handler untuk pengiriman.
+- Payment by satutera yg barusan kita garap jg applied di pendaftaran dan pembayaran event, ditambah jika user admin ada set manual payment berati jg akan tersedia di opsi pembayaran event.

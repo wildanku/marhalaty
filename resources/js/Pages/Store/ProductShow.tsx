@@ -4,6 +4,7 @@ import { PageProps, Product, ProductVariant, Store } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import VariantPicker from "@/Components/Store/VariantPicker";
+import StoreBadgeList from "@/Components/Store/StoreBadgeList";
 
 interface ProductShowProps extends PageProps {
   store: Store;
@@ -47,10 +48,13 @@ export default function ProductShow() {
       <Head title={product.name} />
 
       <div className="max-w-5xl mx-auto px-6 py-12">
-        <Link href={`/stores/${store.slug}`} className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-6">
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          {store.name}
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap mb-6">
+          <Link href={`/stores/${store.slug}`} className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            {store.name}
+          </Link>
+          <StoreBadgeList badges={store.active_badges} size="sm" />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div>

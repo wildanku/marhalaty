@@ -2,6 +2,7 @@ import { Head, Link, usePage } from "@inertiajs/react";
 import { PageProps, Product, Store } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import StoreBadgeList from "@/Components/Store/StoreBadgeList";
 
 interface StoreShowProps extends PageProps {
   store: Store;
@@ -35,7 +36,10 @@ export default function StoreShow() {
             )}
           </div>
           <div className="pb-2">
-            <h1 className="font-headline text-2xl font-bold text-on-surface">{store.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="font-headline text-2xl font-bold text-on-surface">{store.name}</h1>
+              <StoreBadgeList badges={store.active_badges} />
+            </div>
             <p className="text-on-surface-variant text-sm mt-1 max-w-xl">{store.description}</p>
           </div>
         </div>
