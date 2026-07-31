@@ -399,6 +399,14 @@ export interface UserAddress {
   village?: IndonesiaVillage & { district?: IndonesiaDistrict };
 }
 
+export interface FeaturedProduct {
+  id: number;
+  product_id: string;
+  sort_order: number;
+  is_active: boolean;
+  product?: Product;
+}
+
 export interface CartItem {
   id: number;
   cart_id: string;
@@ -539,4 +547,5 @@ export type PageProps<T extends Record<string, unknown> = Record<string, unknown
   auth: {
     user: User | null;
   };
+  cart?: { item_count: number } | null;
 };

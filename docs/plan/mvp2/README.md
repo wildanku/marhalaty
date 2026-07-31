@@ -15,9 +15,12 @@ di dokumen bernomor di folder yang sama.
 | [7-payment-settings.md](./7-payment-settings.md) | Fase 7 | Pengaturan pembayaran global: toggle & kredensial gateway, transfer manual + rekening |
 | [8-event-product-integration.md](./8-event-product-integration.md) | Fase 8 | Produk toko jadi addon/paket event (stok tunggal, reservasi, tanpa pengiriman) |
 | [9-event-payment-satutera.md](./9-event-payment-satutera.md) | Fase 9 | Satutera & transfer manual jadi opsi pembayaran pendaftaran event |
+| [10-storefront-frontside-ux.md](./10-storefront-frontside-ux.md) | Fase 10 | Highlight produk di beranda (kurasi admin), menu Store, tombol Beli/Keranjang, floating cart button |
 
 Fase 1–5 berasal dari bagian "Idea" catatan kebutuhan; fase 6–7 dari bagian **"Idea Part 2"**, dan
-fase 8–9 dari bagian **"Idea Part 3"** di catatan yang sama.
+fase 8–9 dari bagian **"Idea Part 3"** di catatan yang sama. Fase 10 berasal dari permintaan langsung
+di sesi kerja terpisah (2026-07-31), bukan dari catatan kebutuhan awal — murni perbaikan sisi frontside,
+tidak ada kapabilitas backend baru.
 
 Sumber kebutuhan: [`docs/human-notes/ecommerce-note.txt`](../../human-notes/ecommerce-note.txt) dan
 [`docs/guidance/payment-guidance.md`](../../guidance/payment-guidance.md).
@@ -80,6 +83,9 @@ Stack runtime: **PostgreSQL**, `QUEUE_CONNECTION=database`, `BROADCAST_CONNECTIO
     saat acara).
 12. **(Idea Part 3)** Pendaftaran event bisa dibayar lewat Satutera (VA/QRIS + status realtime) dan
     transfer manual sesuai pengaturan god-mode.
+13. **(Fase 10)** Section highlight produk terkurasi admin di beranda, link Store di menu utama, dan
+    flow beli/keranjang yang lebih jelas (tombol Beli + Keranjang, floating cart button) — perbaikan
+    sisi frontside, bukan kapabilitas backend baru.
 
 **Tidak termasuk (ditunda)**
 
@@ -246,6 +252,9 @@ rsvps ──< product_reservations >── products         (reserved → fulfil
 Fase 9 tidak menambah tabel: transaksi RSVP Satutera mengisi `rsvp_id` **dan** `payable_*` pada
 `transactions` yang sudah polimorfik sejak D3.
 
+Tambahan dari fase 10: `featured_products` (produk yang dikurasi admin untuk tampil di beranda —
+`product_id` ulid, `sort_order`, `is_active`). Tidak mengubah tabel lain.
+
 ---
 
 ## 5. Variabel environment baru
@@ -268,6 +277,7 @@ RAJAONGKIR_CACHE_TTL=21600
 # Store module
 STORE_ORDER_EXPIRY_MINUTES=1440
 STORE_DIGITAL_DOWNLOAD_MAX=5
+STORE_MAX_HOMEPAGE_HIGHLIGHTS=8
 ```
 
 Semua dibaca lewat `config/services.php` (pola yang sudah dipakai `ipaymu`, `brevo`, `telegram`),
@@ -291,11 +301,18 @@ Fase 7 **tidak menambah variabel env baru**: variabel di atas (dan `IPAYMU_*`) b
 | 7 | Pengaturan pembayaran | Admin mengatur toggle + kredensial gateway dan rekening transfer manual dari god-mode; checkout toko bisa transfer manual dengan verifikasi admin |
 | 8 | Produk toko di event | Admin menarik produk toko jadi addon/isi paket, stok berkurang dari inventori toko saat RSVP dibuat dan kembali saat RSVP batal/kedaluwarsa, tanpa jalur pengiriman |
 | 9 | Pembayaran event | Pendaftaran event bisa dibayar lewat Satutera (VA/QRIS + status realtime) maupun transfer manual, mengikuti toggle god-mode |
+| 10 | Frontside beranda & cart UX | Admin mengurasi produk highlight beranda dari god-mode, beranda & menu utama menampilkan Store, halaman produk punya tombol Beli/Keranjang + stepper kuantitas, floating cart button muncul begitu keranjang terisi |
+| 11 | Catatan produk, status pesanan, dashboard toko | Pembeli mengisi catatan per produk saat checkout (tersimpan presisi, tampil di admin-store & god-mode), admin-store dan god-mode bisa mengubah status pesanan (pending/paid/processing/shipped/completed/cancelled) lewat jalur override yang tercatat, semua halaman kelola toko memakai satu dashboard/sidebar terdedikasi |
 
 Fase 1–2 dan 3–4 punya ketergantungan berurutan; fase 4 bisa mulai paralel dengan fase 3 karena
 `SatuteraPaymentService` tidak bergantung pada cart. Fase 6 berdiri sendiri (tidak menyentuh alur
 uang) dan bisa dikerjakan kapan saja setelah fase 1. Fase 7 menyentuh alur produksi yang sudah
 jalan, jadi dipecah tiga langkah rilis terpisah — lihat [7-payment-settings.md](./7-payment-settings.md) §7.
+Fase 10 juga berdiri sendiri (murni frontside + satu tabel kurasi, tidak menyentuh pembayaran) dan
+bisa dikerjakan kapan saja setelah fase 2 — lihat [10-storefront-frontside-ux.md](./10-storefront-frontside-ux.md) §8.
+Fase 11 hanya bergantung pada fase 5 (order lifecycle sudah ada) dan bisa dikerjakan kapan saja
+setelahnya, independen dari fase 6–10 — lihat [11-order-notes-status-and-store-dashboard.md](./11-order-notes-status-and-store-dashboard.md) §0
+untuk saran memecahnya jadi tiga langkah rilis (catatan produk → dashboard toko → status pesanan).
 
 Fase 8 hanya bergantung pada fase 2 (katalog produk) dan tidak menyentuh satu pun berkas pembayaran,
 jadi boleh berjalan paralel dengan fase 7. Fase 9 sebaliknya: **wajib** menunggu fase 7 langkah 7b,

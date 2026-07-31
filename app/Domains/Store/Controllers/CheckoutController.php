@@ -41,7 +41,6 @@ class CheckoutController extends Controller
 
         $enabledGateways = $paymentSettings->gatewaysFor('store');
         $gatewayCodes = collect($enabledGateways)->pluck('code');
-
         return Inertia::render('Store/Checkout', [
             'store' => $store->load(['primaryAddress', 'activeBadges']),
             'isEmpty' => false,

@@ -26,4 +26,8 @@ return [
 
     'badge_colors' => ['primary', 'secondary', 'tertiary', 'error', 'neutral'],
 
+    // Fase 10 (docs/plan/mvp2/10-storefront-frontside-ux.md, D43) — homepage "Produk Pilihan"
+    // section slot limit, kept intentionally small so the section stays curated.
+    'max_homepage_highlights' => (int) env('STORE_MAX_HOMEPAGE_HIGHLIGHTS', 8),
+
 ];

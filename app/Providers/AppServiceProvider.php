@@ -19,6 +19,7 @@ use App\Domains\Event\Observers\RsvpObserver;
 use App\Domains\Shared\Services\IPaymuService;
 use App\Domains\Shared\Services\RajaOngkirService;
 use App\Domains\Store\Models\DigitalDelivery;
+use App\Domains\Store\Models\FeaturedProduct;
 use App\Domains\Store\Models\Product;
 use App\Domains\Store\Models\ProductReservation;
 use App\Domains\Store\Models\ProductVariant;
@@ -106,6 +107,7 @@ class AppServiceProvider extends ServiceProvider
         StoreBadge::observe(DeletedItemObserver::class);
         StoreBadgeAssignment::observe(DeletedItemObserver::class);
         ProductReservation::observe(DeletedItemObserver::class);
+        FeaturedProduct::observe(DeletedItemObserver::class);
 
         PaymentGateway::observe(DeletedItemObserver::class);
         PaymentManualAccount::observe(DeletedItemObserver::class);

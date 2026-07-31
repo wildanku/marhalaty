@@ -25,6 +25,7 @@ const navItems = [
   { href: "/god-mode/stores", label: "Stores", icon: "storefront" },
   { href: "/god-mode/store-orders", label: "Store Orders", icon: "shopping_bag" },
   { href: "/god-mode/store-badges", label: "Store Badges", icon: "verified" },
+  { href: "/god-mode/homepage-highlights", label: "Homepage Highlights", icon: "auto_awesome" },
   { href: "/god-mode/settings/payments", label: "Payment Settings", icon: "credit_card" },
   { href: "/god-mode/consulates", label: "Consulates", icon: "location_city" },
 ];

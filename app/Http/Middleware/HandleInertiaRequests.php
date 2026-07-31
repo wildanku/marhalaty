@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domains\Store\Models\CartItem;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -46,6 +47,13 @@ class HandleInertiaRequests extends Middleware
             ],
             'locale' => $locale,
             'translations' => $translations,
+            // Fase 10 (docs/plan/mvp2/10-storefront-frontside-ux.md, D44) — one cheap indexed SUM,
+            // only run for logged-in users, so the floating cart button always has a fresh count.
+            'cart' => $request->user()
+                ? ['item_count' => (int) CartItem::whereHas(
+                    'cart', fn ($q) => $q->where('user_id', $request->user()->id)
+                )->sum('quantity')]
+                : null,
         ];
     }
 }

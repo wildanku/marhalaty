@@ -59,6 +59,12 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
               {t("Events")}
             </Link>
             <Link
+              href="/stores"
+              className="text-[#444840] hover:text-[#775a19] transition-colors duration-300"
+            >
+              {t("Store")}
+            </Link>
+            <Link
               href="/maal"
               className="text-[#444840] hover:text-[#775a19] transition-colors duration-300"
             >
@@ -302,6 +308,15 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                 </Link>
 
                 <Link
+                  href="/stores"
+                  className="flex items-center gap-3 px-4 py-2.5 text-on-surface hover:bg-surface-container-high rounded-xl transition-colors font-body text-sm"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  <span className="material-symbols-outlined text-lg">storefront</span>
+                  {t("Store")}
+                </Link>
+
+                <Link
                   href="/maal"
                   className="flex items-center gap-3 px-4 py-2.5 text-on-surface hover:bg-surface-container-high rounded-xl transition-colors font-body text-sm"
                   onClick={() => setIsDropdownOpen(false)}
@@ -434,6 +449,15 @@ export default function Header({ hideNavLinks = false }: HeaderProps) {
                 >
                   <span className="material-symbols-outlined text-lg">calendar_month</span>
                   {t("Events")}
+                </Link>
+
+                <Link
+                  href="/stores"
+                  className="flex items-center gap-3 px-4 py-2.5 text-on-surface hover:bg-surface-container-high rounded-xl transition-colors font-body text-sm"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  <span className="material-symbols-outlined text-lg">storefront</span>
+                  {t("Store")}
                 </Link>
 
                 <Link

@@ -1,15 +1,23 @@
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import UpcomingEvents from "@/Components/UpcomingEvents";
+import FeaturedProductsSection from "@/Components/Store/FeaturedProductsSection";
 import { useTranslate } from "@/hooks/useTranslate";
-import { GontorEvent, PageProps } from "@/types";
+import { GontorEvent, PageProps, Product } from "@/types";
 import { Link, Head } from "@inertiajs/react";
 
 interface WelcomeProps extends PageProps {
   upcomingEvents: GontorEvent[];
+  featuredProducts: Product[];
+  hasPubliclyVisibleStore: boolean;
 }
 
-export default function Welcome({ upcomingEvents, auth }: WelcomeProps) {
+export default function Welcome({
+  upcomingEvents,
+  featuredProducts,
+  hasPubliclyVisibleStore,
+  auth,
+}: WelcomeProps) {
   const { t } = useTranslate();
 
   return (
@@ -177,6 +185,11 @@ export default function Welcome({ upcomingEvents, auth }: WelcomeProps) {
             </div>
           </section>
         </main>
+
+        <FeaturedProductsSection
+          featuredProducts={featuredProducts}
+          hasPubliclyVisibleStore={hasPubliclyVisibleStore}
+        />
 
         <UpcomingEvents events={upcomingEvents} />
 

@@ -15,6 +15,7 @@ use App\Domains\GodMode\Controllers\ConsulateController;
 use App\Domains\GodMode\Controllers\EmailTesterController;
 use App\Domains\GodMode\Controllers\EventAddonController;
 use App\Domains\GodMode\Controllers\EventPackageController;
+use App\Domains\GodMode\Controllers\HomepageHighlightController;
 use App\Domains\GodMode\Controllers\PaymentSettingController;
 use App\Domains\GodMode\Controllers\ProductSearchController;
 use App\Domains\GodMode\Controllers\StoreBadgeController;
@@ -346,5 +347,11 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         Route::get('/store-orders', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'index'])->name('store-orders.index');
         Route::get('/store-orders/{id}', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'show'])->name('store-orders.show');
         Route::get('/store-orders-export', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'exportExcel'])->name('store-orders.export');
+
+        // Homepage Highlights (fase 10 — docs/plan/mvp2/10-storefront-frontside-ux.md)
+        Route::get('/homepage-highlights', [HomepageHighlightController::class, 'index'])->name('homepage-highlights.index');
+        Route::post('/homepage-highlights', [HomepageHighlightController::class, 'store'])->name('homepage-highlights.store');
+        Route::patch('/homepage-highlights/{id}', [HomepageHighlightController::class, 'update'])->name('homepage-highlights.update');
+        Route::delete('/homepage-highlights/{id}', [HomepageHighlightController::class, 'destroy'])->name('homepage-highlights.destroy');
     });
 });
