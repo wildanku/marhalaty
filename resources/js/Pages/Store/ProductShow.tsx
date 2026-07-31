@@ -4,7 +4,7 @@ import { PageProps, Product, ProductVariant, Store } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import VariantPicker from "@/Components/Store/VariantPicker";
-import StoreBadgeList from "@/Components/Store/StoreBadgeList";
+import StoreBadgeIcons from "@/Components/Store/StoreBadgeIcons";
 
 interface ProductShowProps extends PageProps {
   store: Store;
@@ -65,7 +65,7 @@ export default function ProductShow() {
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>
             {store.name}
           </Link>
-          <StoreBadgeList badges={store.active_badges} size="sm" />
+          <StoreBadgeIcons badges={store.active_badges} size="sm" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">

@@ -3,7 +3,7 @@ import { PageProps, Store } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import StatusBadge from "@/Components/Store/StatusBadge";
-import StoreBadgeList from "@/Components/Store/StoreBadgeList";
+import StoreBadgeIcons from "@/Components/Store/StoreBadgeIcons";
 
 interface MyStoresProps extends PageProps {
   stores: Store[];
@@ -36,8 +36,12 @@ export default function MyStores() {
 
         {stores.length === 0 ? (
           <div className="bg-surface-container-lowest rounded-3xl p-12 text-center border border-surface-container-high">
-            <span className="material-symbols-outlined text-5xl text-on-surface-variant/40">storefront</span>
-            <p className="mt-4 font-headline text-lg font-semibold text-on-surface">Belum ada toko</p>
+            <span className="material-symbols-outlined text-5xl text-on-surface-variant/40">
+              storefront
+            </span>
+            <p className="mt-4 font-headline text-lg font-semibold text-on-surface">
+              Belum ada toko
+            </p>
             <p className="text-on-surface-variant mt-1 text-sm">
               Ajukan toko pertamamu dan mulai jualan ke sesama alumni.
             </p>
@@ -52,21 +56,31 @@ export default function MyStores() {
               >
                 <div className="w-14 h-14 rounded-xl bg-surface-container-high flex items-center justify-center overflow-hidden shrink-0">
                   {store.logo_url ? (
-                    <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
+                    <img
+                      src={store.logo_url}
+                      alt={store.name}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <span className="material-symbols-outlined text-2xl text-on-surface-variant">storefront</span>
+                    <span className="material-symbols-outlined text-2xl text-on-surface-variant">
+                      storefront
+                    </span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-headline font-semibold text-on-surface truncate">{store.name}</p>
-                  <StoreBadgeList badges={store.active_badges} size="sm" className="mt-1" />
+                  <p className="font-headline font-semibold text-on-surface truncate flex items-center gap-1.5">
+                    <span className="truncate">{store.name}</span>
+                    <StoreBadgeIcons badges={store.active_badges} size="sm" />
+                  </p>
                   <p className="text-sm text-on-surface-variant truncate">{store.description}</p>
                   {store.status === "rejected" && store.rejection_reason && (
                     <p className="text-xs text-error mt-1">Alasan: {store.rejection_reason}</p>
                   )}
                 </div>
                 <StatusBadge status={store.status} />
-                <span className="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+                <span className="material-symbols-outlined text-on-surface-variant">
+                  chevron_right
+                </span>
               </Link>
             ))}
           </div>

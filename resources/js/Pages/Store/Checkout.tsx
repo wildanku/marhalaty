@@ -15,7 +15,7 @@ import AddressPicker from "@/Components/Store/AddressPicker";
 import ShippingRatePicker from "@/Components/Store/ShippingRatePicker";
 import ShippingMethodDetailModal from "@/Components/Store/ShippingMethodDetailModal";
 import OrderSummary from "@/Components/Store/OrderSummary";
-import StoreBadgeList from "@/Components/Store/StoreBadgeList";
+import StoreBadgeIcons from "@/Components/Store/StoreBadgeIcons";
 
 interface CheckoutSummary {
   subtotal: number;
@@ -215,9 +215,9 @@ function CheckoutForm({
             Checkout
           </span>
           <h1 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface mt-3">
-            Selesaikan pesanan dari {store.name}
+            Selesaikan pesanan dari {store.name}{" "}
+            <StoreBadgeIcons badges={store.active_badges} size="md" />
           </h1>
-          <StoreBadgeList badges={store.active_badges} size="sm" className="mt-2" />
           <p className="text-sm text-on-surface-variant mt-1">
             Periksa detail pesananmu sebelum lanjut ke pembayaran.
           </p>

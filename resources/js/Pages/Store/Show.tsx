@@ -2,7 +2,7 @@ import { Head, Link, usePage } from "@inertiajs/react";
 import { PageProps, Product, Store } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
-import StoreBadgeList from "@/Components/Store/StoreBadgeList";
+import StoreBadgeIcons from "@/Components/Store/StoreBadgeIcons";
 
 interface StoreShowProps extends PageProps {
   store: Store;
@@ -23,7 +23,9 @@ export default function StoreShow() {
       <Head title={store.name} />
 
       <div className="h-48 sm:h-64 bg-surface-container-high overflow-hidden">
-        {store.banner_url && <img src={store.banner_url} alt={store.name} className="w-full h-full object-cover" />}
+        {store.banner_url && (
+          <img src={store.banner_url} alt={store.name} className="w-full h-full object-cover" />
+        )}
       </div>
 
       <div className="max-w-6xl mx-auto px-6">
@@ -32,13 +34,15 @@ export default function StoreShow() {
             {store.logo_url ? (
               <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="material-symbols-outlined text-4xl text-on-surface-variant">storefront</span>
+              <span className="material-symbols-outlined text-4xl text-on-surface-variant">
+                storefront
+              </span>
             )}
           </div>
           <div className="pb-2">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-headline text-2xl font-bold text-on-surface">{store.name}</h1>
-              <StoreBadgeList badges={store.active_badges} />
+              <StoreBadgeIcons badges={store.active_badges} size="md" />
             </div>
             <p className="text-on-surface-variant text-sm mt-1 max-w-xl">{store.description}</p>
           </div>
@@ -46,8 +50,12 @@ export default function StoreShow() {
 
         {products.data.length === 0 ? (
           <div className="bg-surface-container-lowest rounded-3xl p-12 text-center border border-surface-container-high mb-12">
-            <span className="material-symbols-outlined text-5xl text-on-surface-variant/40">inventory_2</span>
-            <p className="mt-4 font-headline text-lg font-semibold text-on-surface">Belum ada produk</p>
+            <span className="material-symbols-outlined text-5xl text-on-surface-variant/40">
+              inventory_2
+            </span>
+            <p className="mt-4 font-headline text-lg font-semibold text-on-surface">
+              Belum ada produk
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 mb-12">
@@ -59,9 +67,15 @@ export default function StoreShow() {
               >
                 <div className="aspect-square bg-surface-container-high flex items-center justify-center overflow-hidden">
                   {product.primary_image_url ? (
-                    <img src={product.primary_image_url} alt={product.name} className="w-full h-full object-cover" />
+                    <img
+                      src={product.primary_image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <span className="material-symbols-outlined text-3xl text-on-surface-variant/40">image</span>
+                    <span className="material-symbols-outlined text-3xl text-on-surface-variant/40">
+                      image
+                    </span>
                   )}
                 </div>
                 <div className="p-4">
@@ -86,7 +100,11 @@ export default function StoreShow() {
                   dangerouslySetInnerHTML={{ __html: link.label }}
                 />
               ) : (
-                <span key={i} className="px-3 py-1.5 rounded-lg text-sm text-on-surface-variant/40" dangerouslySetInnerHTML={{ __html: link.label }} />
+                <span
+                  key={i}
+                  className="px-3 py-1.5 rounded-lg text-sm text-on-surface-variant/40"
+                  dangerouslySetInnerHTML={{ __html: link.label }}
+                />
               )
             )}
           </div>

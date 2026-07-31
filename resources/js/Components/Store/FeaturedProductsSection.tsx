@@ -1,7 +1,7 @@
 import { Link } from "@inertiajs/react";
 import { Product } from "@/types";
 import { useTranslate } from "@/hooks/useTranslate";
-import StoreBadgeList from "@/Components/Store/StoreBadgeList";
+import StoreBadgeIcons from "@/Components/Store/StoreBadgeIcons";
 
 interface FeaturedProductsSectionProps {
   featuredProducts: Product[];
@@ -59,8 +59,9 @@ export default function FeaturedProductsSection({
                   )}
                 </div>
                 <div className="p-4">
-                  <p className="text-xs text-on-surface-variant font-label truncate mb-1">
-                    {product.store?.name}
+                  <p className="text-xs text-on-surface-variant font-label truncate mb-1 flex items-center gap-1">
+                    <span className="truncate">{product.store?.name}</span>
+                    <StoreBadgeIcons badges={product.store?.active_badges} size="sm" />
                   </p>
                   <h3 className="font-headline font-semibold text-on-surface text-sm truncate mb-2">
                     {product.name}
@@ -68,7 +69,6 @@ export default function FeaturedProductsSection({
                   <p className="font-headline font-bold text-primary text-sm mb-2">
                     Rp {Number(product.display_price).toLocaleString("id-ID")}
                   </p>
-                  <StoreBadgeList badges={product.store?.active_badges} size="sm" max={2} />
                 </div>
               </Link>
             ))}
