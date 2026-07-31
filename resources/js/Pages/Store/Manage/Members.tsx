@@ -1,14 +1,17 @@
 import { FormEventHandler } from "react";
-import { router, useForm } from "@inertiajs/react";
-import { Store } from "@/types";
+import { Head, router, useForm, usePage } from "@inertiajs/react";
+import { PageProps, Store } from "@/types";
 import StatusBadge from "@/Components/Store/StatusBadge";
+import StoreManageLayout from "@/Layouts/StoreManageLayout";
 
-interface MembersTabProps {
+interface MembersPageProps extends PageProps {
   store: Store;
-  isOwner: boolean;
+  role: "owner" | "admin" | null;
 }
 
-export default function MembersTab({ store, isOwner }: MembersTabProps) {
+export default function StoreMembers() {
+  const { store, role } = usePage<MembersPageProps>().props;
+  const isOwner = role === "owner";
   const { data, setData, post, processing, errors, reset } = useForm({ email: "" });
   const members = store.members ?? [];
 
@@ -23,7 +26,10 @@ export default function MembersTab({ store, isOwner }: MembersTabProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <StoreManageLayout store={store} role={role} activeNav="members">
+      <Head title={`Anggota - ${store.name}`} />
+      <h1 className="font-headline text-2xl font-bold text-on-surface mb-6">Anggota</h1>
+      <div className="space-y-6">
       {isOwner && (
         <form
           onSubmit={submit}
@@ -86,6 +92,7 @@ export default function MembersTab({ store, isOwner }: MembersTabProps) {
           ))}
         </ul>
       </div>
-    </div>
+      </div>
+    </StoreManageLayout>
   );
 }

@@ -1,17 +1,17 @@
 import { FormEventHandler } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { PageProps, Store, StoreShippingMethod } from "@/types";
-import Header from "@/Components/Header";
-import Footer from "@/Components/Footer";
 import CurrencyInput from "@/Components/CurrencyInput";
+import StoreManageLayout from "@/Layouts/StoreManageLayout";
 
 interface ShippingMethodFormProps extends PageProps {
   store: Store;
+  role: "owner" | "admin" | null;
   method: StoreShippingMethod | null;
 }
 
 export default function ShippingMethodForm() {
-  const { store, method } = usePage<ShippingMethodFormProps>().props;
+  const { store, role, method } = usePage<ShippingMethodFormProps>().props;
   const isEdit = method !== null;
 
   const { data, setData, post, put, processing, errors } = useForm({
@@ -32,11 +32,10 @@ export default function ShippingMethodForm() {
   };
 
   return (
-    <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
-      <Header />
+    <StoreManageLayout store={store} role={role} activeNav="shipping">
       <Head title={isEdit ? `Edit ${method!.name}` : "Tambah Metode Pengiriman"} />
 
-      <div className="max-w-2xl mx-auto px-6 py-12">
+      <div className="max-w-2xl">
         <Link
           href={`/my/stores/${store.id}/shipping-methods`}
           className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-4"
@@ -143,7 +142,7 @@ export default function ShippingMethodForm() {
             />
             {data.type === "pickup" && (
               <p className="mt-1.5 text-xs text-on-surface-variant">
-                Alamat pengambilan otomatis mengikuti alamat toko di tab "Alamat" — tidak perlu
+                Alamat pengambilan otomatis mengikuti alamat toko di halaman "Alamat" — tidak perlu
                 ditulis ulang di sini.
               </p>
             )}
@@ -173,7 +172,6 @@ export default function ShippingMethodForm() {
           </div>
         </form>
       </div>
-      <Footer />
-    </div>
+    </StoreManageLayout>
   );
 }

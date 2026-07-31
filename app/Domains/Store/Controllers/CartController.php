@@ -66,9 +66,17 @@ class CartController extends Controller
     {
         $item = CartItem::whereHas('cart', fn ($q) => $q->where('user_id', $request->user()->id))->findOrFail($id);
 
-        $validated = $request->validate(['quantity' => 'required|integer|min:0|max:99']);
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:0|max:99',
+            'note' => 'nullable|string|max:250',
+        ]);
 
-        $this->cartService->updateQty($item, $validated['quantity']);
+        // `note` is only sent by the Cart page's note field (auto-save onBlur); the qty
+        // +/- buttons omit it entirely, so an absent key must keep the item's existing note
+        // rather than wipe it.
+        $note = $request->has('note') ? ($validated['note'] ?? null) : $item->note;
+
+        $this->cartService->updateQty($item, $validated['quantity'], $note);
 
         return redirect()->back();
     }

@@ -11,22 +11,24 @@ use Inertia\Inertia;
 
 class StoreShippingMethodController extends Controller
 {
-    public function index(Store $store)
+    public function index(Request $request, Store $store)
     {
         $this->authorize('manageShipping', $store);
 
         return Inertia::render('Store/Manage/ShippingMethods/Index', [
             'store' => $store,
+            'role' => $store->roleFor($request->user()),
             'methods' => $store->shippingMethods()->orderByDesc('created_at')->get(),
         ]);
     }
 
-    public function create(Store $store)
+    public function create(Request $request, Store $store)
     {
         $this->authorize('manageShipping', $store);
 
         return Inertia::render('Store/Manage/ShippingMethods/Form', [
             'store' => $store,
+            'role' => $store->roleFor($request->user()),
             'method' => null,
         ]);
     }
@@ -40,13 +42,14 @@ class StoreShippingMethodController extends Controller
         return redirect()->route('stores.shipping-methods.index', $store)->with('success', 'Metode pengiriman berhasil dibuat.');
     }
 
-    public function edit(Store $store, StoreShippingMethod $shippingMethod)
+    public function edit(Request $request, Store $store, StoreShippingMethod $shippingMethod)
     {
         $this->authorize('manageShipping', $store);
         abort_unless($shippingMethod->store_id === $store->id, 404);
 
         return Inertia::render('Store/Manage/ShippingMethods/Form', [
             'store' => $store,
+            'role' => $store->roleFor($request->user()),
             'method' => $shippingMethod,
         ]);
     }

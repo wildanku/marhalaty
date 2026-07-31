@@ -1,12 +1,15 @@
 import { FormEventHandler, useState } from "react";
-import { useForm } from "@inertiajs/react";
-import { Store } from "@/types";
+import { Head, useForm, usePage } from "@inertiajs/react";
+import { PageProps, Store } from "@/types";
+import StoreManageLayout from "@/Layouts/StoreManageLayout";
 
-interface SettingsTabProps {
+interface SettingsPageProps extends PageProps {
   store: Store;
+  role: "owner" | "admin" | null;
 }
 
-export default function SettingsTab({ store }: SettingsTabProps) {
+export default function StoreSettings() {
+  const { store, role } = usePage<SettingsPageProps>().props;
   const { data, setData, post, processing, errors } = useForm({
     _method: "patch" as const,
     name: store.name,
@@ -26,7 +29,10 @@ export default function SettingsTab({ store }: SettingsTabProps) {
   };
 
   return (
-    <form onSubmit={submit} className="bg-surface-container-lowest rounded-3xl p-8 border border-surface-container-high space-y-6">
+    <StoreManageLayout store={store} role={role} activeNav="settings">
+      <Head title={`Profil Toko - ${store.name}`} />
+      <h1 className="font-headline text-2xl font-bold text-on-surface mb-6">Profil Toko</h1>
+      <form onSubmit={submit} className="bg-surface-container-lowest rounded-3xl p-8 border border-surface-container-high space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="sm:col-span-2">
           <label className="block font-label text-sm font-medium text-on-surface mb-2">Nama Toko</label>
@@ -118,6 +124,7 @@ export default function SettingsTab({ store }: SettingsTabProps) {
           Simpan Perubahan
         </button>
       </div>
-    </form>
+      </form>
+    </StoreManageLayout>
   );
 }

@@ -6,6 +6,7 @@ use App\Domains\Store\Models\Product;
 use App\Domains\Store\Models\ProductReservation;
 use App\Domains\Store\Models\Store;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 /**
@@ -21,12 +22,13 @@ class StoreEventReservationController extends Controller
      * Page shell — the actual list is fetched client-side from index() below (JSON, not an
      * Inertia prop) to stay consistent with CLAUDE.md's "no unbounded datasets as Inertia props".
      */
-    public function page(Store $store)
+    public function page(Request $request, Store $store)
     {
         $this->authorize('manageProducts', $store);
 
         return Inertia::render('Store/Manage/EventReservations/Index', [
             'store' => $store,
+            'role' => $store->roleFor($request->user()),
         ]);
     }
 

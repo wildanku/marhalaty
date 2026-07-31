@@ -25,16 +25,18 @@ class ProductController extends Controller
 
         return Inertia::render('Store/Manage/Products/Index', [
             'store' => $store,
+            'role' => $store->roleFor($request->user()),
             'products' => $products,
         ]);
     }
 
-    public function create(Store $store)
+    public function create(Request $request, Store $store)
     {
         $this->authorize('manageProducts', $store);
 
         return Inertia::render('Store/Manage/Products/Form', [
             'store' => $store,
+            'role' => $store->roleFor($request->user()),
             'product' => null,
         ]);
     }
@@ -51,7 +53,7 @@ class ProductController extends Controller
         return redirect()->route('stores.products.index', $store)->with('success', 'Produk berhasil dibuat.');
     }
 
-    public function edit(Store $store, Product $product)
+    public function edit(Request $request, Store $store, Product $product)
     {
         $this->authorize('manageProducts', $store);
         abort_unless($product->store_id === $store->id, 404);
@@ -60,6 +62,7 @@ class ProductController extends Controller
 
         return Inertia::render('Store/Manage/Products/Form', [
             'store' => $store,
+            'role' => $store->roleFor($request->user()),
             'product' => $product,
         ]);
     }

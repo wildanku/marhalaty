@@ -223,6 +223,7 @@ class CheckoutService
                 'product_variant_id' => $variant?->id,
                 'name_snapshot' => $product->name,
                 'variant_label_snapshot' => $variant?->label,
+                'note_snapshot' => $cartItem->note,
                 'sku_snapshot' => $variant?->sku ?? $product->sku,
                 'type_snapshot' => $product->type,
                 'unit_price' => $price,

@@ -82,6 +82,11 @@ export default function OrderShow() {
                     <p className="font-medium text-on-surface truncate">{item.name_snapshot}</p>
                     {item.variant_label_snapshot && <p className="text-xs text-on-surface-variant">{item.variant_label_snapshot}</p>}
                     <p className="text-xs text-on-surface-variant">× {item.quantity}</p>
+                    {item.note_snapshot && (
+                      <p className="text-xs text-on-surface-variant/80 italic mt-0.5">
+                        "{item.note_snapshot}"
+                      </p>
+                    )}
                     {item.type_snapshot === "digital" && canDownload && item.digital_deliveries && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {item.digital_deliveries.map((delivery) => {

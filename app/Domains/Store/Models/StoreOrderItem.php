@@ -14,6 +14,7 @@ class StoreOrderItem extends Model
         'product_variant_id',
         'name_snapshot',
         'variant_label_snapshot',
+        'note_snapshot',
         'sku_snapshot',
         'type_snapshot',
         'unit_price',

@@ -1,17 +1,20 @@
 import { useState } from "react";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import { PageProps, Store, StoreOrder } from "@/types";
-import Header from "@/Components/Header";
-import Footer from "@/Components/Footer";
 import StatusBadge from "@/Components/Store/StatusBadge";
+import OrderStatusControl from "@/Components/Store/OrderStatusControl";
+import OrderStatusTimeline from "@/Components/Store/OrderStatusTimeline";
+import StoreManageLayout from "@/Layouts/StoreManageLayout";
 
 interface OrderShowProps extends PageProps {
   store: Store;
+  role: "owner" | "admin" | null;
   order: StoreOrder;
+  paymentStatus: string | null;
 }
 
 export default function OrderShow() {
-  const { store, order } = usePage<OrderShowProps>().props;
+  const { store, role, order, paymentStatus } = usePage<OrderShowProps>().props;
   const [trackingNumber, setTrackingNumber] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelForm, setShowCancelForm] = useState(false);
@@ -56,11 +59,10 @@ export default function OrderShow() {
   };
 
   return (
-    <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
-      <Header />
+    <StoreManageLayout store={store} role={role} activeNav="orders">
       <Head title={order.order_number} />
 
-      <div className="max-w-3xl mx-auto px-6 py-12">
+      <div className="max-w-3xl">
         <Link
           href={`/my/stores/${store.id}/orders`}
           className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-6"
@@ -78,12 +80,26 @@ export default function OrderShow() {
               {order.buyer?.name} · {order.buyer?.email}
             </p>
           </div>
-          <StatusBadge status={order.status} />
+          <div className="flex items-center gap-2">
+            <StatusBadge status={order.status} />
+            {paymentStatus && (
+              <span className="text-[10px] uppercase tracking-wide font-label font-semibold text-on-surface-variant border border-outline-variant/40 rounded-full px-2.5 py-1">
+                Bayar: {paymentStatus}
+              </span>
+            )}
+          </div>
         </div>
 
         {order.status === "cancelled" && order.cancellation_reason && (
           <div className="mb-8 bg-error-container text-on-error-container rounded-2xl p-4 text-sm">
             <strong>Alasan pembatalan:</strong> {order.cancellation_reason}
+          </div>
+        )}
+
+        {order.buyer_note && (
+          <div className="mb-8 bg-tertiary-container text-on-tertiary-container rounded-2xl p-4 text-sm">
+            <p className="font-label font-semibold mb-1">Catatan untuk Penjual</p>
+            <p>{order.buyer_note}</p>
           </div>
         )}
 
@@ -99,6 +115,11 @@ export default function OrderShow() {
                   <p className="text-xs text-on-surface-variant">
                     × {item.quantity} · {item.type_snapshot === "digital" ? "Digital" : "Fisik"}
                   </p>
+                  {item.note_snapshot && (
+                    <p className="text-xs text-on-surface-variant/80 italic mt-1">
+                      "{item.note_snapshot}"
+                    </p>
+                  )}
                 </div>
                 <p className="font-headline font-semibold text-on-surface whitespace-nowrap">
                   Rp {Number(item.subtotal).toLocaleString("id-ID")}
@@ -220,8 +241,15 @@ export default function OrderShow() {
             )}
           </div>
         )}
+
+        <div className="mt-6 space-y-6">
+          <OrderStatusControl
+            order={order}
+            updateUrl={`/my/stores/${store.id}/orders/${order.id}/status`}
+          />
+          <OrderStatusTimeline histories={order.status_histories ?? []} />
+        </div>
       </div>
-      <Footer />
-    </div>
+    </StoreManageLayout>
   );
 }

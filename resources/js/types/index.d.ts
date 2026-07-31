@@ -413,6 +413,7 @@ export interface CartItem {
   product_id: string;
   product_variant_id: string | null;
   quantity: number;
+  note?: string | null;
   created_at: string;
   product?: Product;
   variant?: ProductVariant | null;
@@ -491,6 +492,7 @@ export interface StoreOrderItem {
   product_variant_id: string | null;
   name_snapshot: string;
   variant_label_snapshot: string | null;
+  note_snapshot: string | null;
   sku_snapshot: string | null;
   type_snapshot: "physical" | "digital";
   unit_price: string;
@@ -498,6 +500,17 @@ export interface StoreOrderItem {
   weight_grams: number;
   subtotal: string;
   digital_deliveries?: DigitalDelivery[];
+}
+
+export interface StoreOrderStatusHistory {
+  id: number;
+  store_order_id: string;
+  from_status: string;
+  to_status: string;
+  reason: string | null;
+  actor_type: "store_member" | "admin";
+  actor_id: number;
+  created_at: string;
 }
 
 export interface StoreOrder {
@@ -541,6 +554,7 @@ export interface StoreOrder {
   buyer?: User;
   items?: StoreOrderItem[];
   transactions?: Transaction[];
+  status_histories?: StoreOrderStatusHistory[];
 }
 
 export type PageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {

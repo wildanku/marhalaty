@@ -1,10 +1,10 @@
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import { PageProps, Store, StoreShippingMethod } from "@/types";
-import Header from "@/Components/Header";
-import Footer from "@/Components/Footer";
+import StoreManageLayout from "@/Layouts/StoreManageLayout";
 
 interface ShippingMethodsIndexProps extends PageProps {
   store: Store;
+  role: "owner" | "admin" | null;
   methods: StoreShippingMethod[];
 }
 
@@ -14,7 +14,7 @@ const TYPE_LABEL: Record<StoreShippingMethod["type"], string> = {
 };
 
 export default function ShippingMethodsIndex() {
-  const { store, methods } = usePage<ShippingMethodsIndexProps>().props;
+  const { store, role, methods } = usePage<ShippingMethodsIndexProps>().props;
 
   const toggleActive = (method: StoreShippingMethod) => {
     router.patch(
@@ -31,20 +31,12 @@ export default function ShippingMethodsIndex() {
   };
 
   return (
-    <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
-      <Header />
+    <StoreManageLayout store={store} role={role} activeNav="shipping">
       <Head title={`Metode Pengiriman - ${store.name}`} />
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div>
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <Link
-              href={`/my/stores/${store.id}`}
-              className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-2"
-            >
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-              {store.name}
-            </Link>
             <h1 className="font-headline text-2xl font-bold text-on-surface">Metode Pengiriman</h1>
             <p className="text-sm text-on-surface-variant mt-1">
               Tambahkan opsi pengiriman sendiri (mis. ambil di tempat, kurir toko) dengan tarif flat
@@ -146,7 +138,6 @@ export default function ShippingMethodsIndex() {
           )}
         </div>
       </div>
-      <Footer />
-    </div>
+    </StoreManageLayout>
   );
 }

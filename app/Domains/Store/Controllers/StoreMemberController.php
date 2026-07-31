@@ -12,6 +12,18 @@ use Inertia\Inertia;
 
 class StoreMemberController extends Controller
 {
+    public function index(Request $request, Store $store)
+    {
+        $this->authorize('manageMembers', $store);
+
+        $store->load('members.user');
+
+        return Inertia::render('Store/Manage/Members', [
+            'store' => $store,
+            'role' => $store->roleFor($request->user()),
+        ]);
+    }
+
     public function invite(Request $request, Store $store, InviteStoreMember $action)
     {
         $this->authorize('manageMembers', $store);

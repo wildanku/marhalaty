@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { Head, Link, usePage } from "@inertiajs/react";
+import { Head, usePage } from "@inertiajs/react";
 import { PageProps, Store } from "@/types";
-import Header from "@/Components/Header";
-import Footer from "@/Components/Footer";
+import StoreManageLayout from "@/Layouts/StoreManageLayout";
 
 interface EventReservationItem {
   product_name: string | null;
@@ -20,10 +19,11 @@ interface EventReservationGroup {
 
 interface EventReservationsPageProps extends PageProps {
   store: Store;
+  role: "owner" | "admin" | null;
 }
 
 export default function EventReservationsIndex() {
-  const { store } = usePage<EventReservationsPageProps>().props;
+  const { store, role } = usePage<EventReservationsPageProps>().props;
   const [groups, setGroups] = useState<EventReservationGroup[] | null>(null);
 
   useEffect(() => {
@@ -34,19 +34,11 @@ export default function EventReservationsIndex() {
   }, [store.id]);
 
   return (
-    <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
-      <Header />
+    <StoreManageLayout store={store} role={role} activeNav="event-reservations">
       <Head title={`Pesanan Event - ${store.name}`} />
 
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="max-w-4xl">
         <div className="mb-8">
-          <Link
-            href={`/my/stores/${store.id}`}
-            className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-2"
-          >
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            {store.name}
-          </Link>
           <h1 className="font-headline text-2xl font-bold text-on-surface">Pesanan Event</h1>
           <p className="text-sm text-on-surface-variant mt-1">
             Produkmu yang ditautkan admin sebagai addon event. Barang diserahkan langsung saat
@@ -102,7 +94,6 @@ export default function EventReservationsIndex() {
           </div>
         )}
       </div>
-      <Footer />
-    </div>
+    </StoreManageLayout>
   );
 }

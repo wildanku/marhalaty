@@ -1,4 +1,5 @@
-import { Head, Link } from "@inertiajs/react";
+import { useState } from "react";
+import { Head, Link, router } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
 import { StoreOrder } from "@/types";
 
@@ -13,22 +14,89 @@ interface Admin {
 interface StoreOrderShowProps {
   admin: Admin;
   order: StoreOrder;
+  paymentStatus: string | null;
 }
 
-export default function StoreOrderShow({ admin, order }: StoreOrderShowProps) {
+const OVERRIDE_TRANSITIONS: Record<string, string[]> = {
+  pending_payment: ["paid", "cancelled"],
+  paid: ["processing", "shipped", "completed", "cancelled"],
+  processing: ["shipped", "completed", "cancelled"],
+  shipped: ["completed"],
+  cancelled: ["pending_payment"],
+  expired: ["pending_payment"],
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  pending_payment: "Menunggu Bayar",
+  paid: "Dibayar",
+  processing: "Diproses",
+  shipped: "Dikirim",
+  completed: "Selesai",
+  cancelled: "Dibatalkan",
+  expired: "Kedaluwarsa",
+};
+
+export default function StoreOrderShow({ admin, order, paymentStatus }: StoreOrderShowProps) {
   const shippingAddress = order.shipping_address_snapshot;
+  const histories = order.status_histories ?? [];
+
+  const options = OVERRIDE_TRANSITIONS[order.status] ?? [];
+  const [target, setTarget] = useState("");
+  const [reason, setReason] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [processing, setProcessing] = useState(false);
+
+  const isReopen = target === "pending_payment";
+  const needsReason = target === "cancelled";
+  const needsTracking = target === "shipped";
+  const canSubmit = target !== "" && (!needsReason || reason.trim() !== "");
+
+  const submitStatus = () => {
+    if (!canSubmit) return;
+    setProcessing(true);
+    router.patch(
+      `/god-mode/store-orders/${order.id}/status`,
+      {
+        status: target,
+        reason: reason.trim() || null,
+        tracking_number: needsTracking ? trackingNumber.trim() || null : null,
+      },
+      {
+        preserveScroll: true,
+        onFinish: () => setProcessing(false),
+        onSuccess: () => {
+          setTarget("");
+          setReason("");
+          setTrackingNumber("");
+        },
+      }
+    );
+  };
 
   return (
     <GodModeLayout admin={admin} title={order.order_number}>
       <Head title={`God Mode - ${order.order_number}`} />
 
-      <Link href="/god-mode/store-orders" className="text-white/50 hover:text-white text-sm flex items-center gap-1 mb-6">
+      <Link href="/god-mode/store-orders" className="text-white/50 hover:text-white text-sm flex items-center gap-1 mb-4">
         <span className="material-symbols-outlined text-[18px]">arrow_back</span>
         Kembali ke daftar order
       </Link>
 
+      {paymentStatus && (
+        <span className="inline-flex items-center gap-1.5 mb-6 text-[10px] uppercase tracking-wide font-semibold text-white/60 border border-white/10 rounded-full px-2.5 py-1">
+          Status bayar: {paymentStatus}
+        </span>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {order.buyer_note && (
+            <div className="bg-[#161b22] border border-white/5 rounded-2xl p-6">
+              <h3 className="text-white font-semibold mb-2">Catatan untuk Penjual</h3>
+              <p className="text-white/70 text-sm">{order.buyer_note}</p>
+            </div>
+          )}
+
           <div className="bg-[#161b22] border border-white/5 rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-4">Item Pesanan</h3>
             <div className="divide-y divide-white/5">
@@ -40,6 +108,9 @@ export default function StoreOrderShow({ admin, order }: StoreOrderShowProps) {
                       {item.variant_label_snapshot ? ` (${item.variant_label_snapshot})` : ""}
                     </p>
                     <p className="text-white/50 text-xs">× {item.quantity} · {item.type_snapshot}</p>
+                    {item.note_snapshot && (
+                      <p className="text-white/40 text-xs italic mt-0.5">"{item.note_snapshot}"</p>
+                    )}
                   </div>
                   <span className="text-white">Rp {Number(item.subtotal).toLocaleString("id-ID")}</span>
                 </div>
@@ -107,6 +178,101 @@ export default function StoreOrderShow({ admin, order }: StoreOrderShowProps) {
               </div>
             )}
           </div>
+
+          {options.length > 0 && (
+            <div className="bg-[#161b22] border border-white/5 rounded-2xl p-6">
+              <h3 className="text-white font-semibold mb-4">Ubah Status Pesanan</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs text-white/50 mb-1.5">Status Baru</label>
+                  <select
+                    value={target}
+                    onChange={(e) => setTarget(e.target.value)}
+                    className="w-full bg-[#0f1117] border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                  >
+                    <option value="">Pilih status...</option>
+                    {options.map((status) => (
+                      <option key={status} value={status}>
+                        {status === "pending_payment"
+                          ? "Buka Lagi ke Menunggu Bayar"
+                          : STATUS_LABELS[status]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {isReopen && (
+                  <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                    Stok TIDAK otomatis dikunci ulang — verifikasi manual ketersediaan sebelum
+                    membuka order ini.
+                  </p>
+                )}
+
+                {needsTracking && (
+                  <div>
+                    <label className="block text-xs text-white/50 mb-1.5">
+                      Nomor Resi (opsional)
+                    </label>
+                    <input
+                      type="text"
+                      value={trackingNumber}
+                      onChange={(e) => setTrackingNumber(e.target.value)}
+                      className="w-full bg-[#0f1117] border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+                )}
+
+                {target !== "" && (
+                  <div>
+                    <label className="block text-xs text-white/50 mb-1.5">
+                      Alasan {needsReason ? "(wajib)" : "(opsional)"}
+                    </label>
+                    <textarea
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      rows={3}
+                      className="w-full bg-[#0f1117] border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={submitStatus}
+                  disabled={!canSubmit || processing}
+                  className="w-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </div>
+          )}
+
+          {histories.length > 0 && (
+            <div className="bg-[#161b22] border border-white/5 rounded-2xl p-6">
+              <h3 className="text-white font-semibold mb-4">Riwayat Status</h3>
+              <ul className="space-y-3">
+                {histories.map((history) => (
+                  <li key={history.id} className="text-sm">
+                    <p className="text-white">
+                      {STATUS_LABELS[history.from_status] ?? history.from_status}
+                      {" → "}
+                      <span className="font-semibold">
+                        {STATUS_LABELS[history.to_status] ?? history.to_status}
+                      </span>
+                    </p>
+                    <p className="text-white/40 text-xs">
+                      {new Date(history.created_at).toLocaleString("id-ID")} ·{" "}
+                      {history.actor_type === "admin" ? "Admin" : "Penjual"}
+                    </p>
+                    {history.reason && (
+                      <p className="text-white/40 text-xs italic mt-0.5">"{history.reason}"</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">

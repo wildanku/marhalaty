@@ -7,6 +7,7 @@ use App\Domains\Store\Models\DigitalDelivery;
 use App\Domains\Store\Models\Product;
 use App\Domains\Store\Models\ProductVariant;
 use App\Domains\Store\Models\StoreOrder;
+use App\Domains\Store\Models\StoreOrderStatusHistory;
 use App\Jobs\SendStoreNewOrderEmail;
 use App\Jobs\SendStoreOrderPaidEmail;
 use App\Jobs\SendStoreOrderShippedEmail;
@@ -25,6 +26,21 @@ class OrderFulfillmentService
         'paid' => ['processing', 'cancelled'],
         'processing' => ['shipped', 'cancelled'],
         'shipped' => ['completed'],
+    ];
+
+    /**
+     * A separate, deliberately looser matrix for the manual "Ubah Status Pesanan" admin control
+     * (fase 11, D50) — used only by `overrideStatus()`, never by the automatic transitions above.
+     * `cancelled`/`expired` → `pending_payment` ("buka lagi") is listed here but gated to god-mode
+     * only at the controller layer (D51) — it doesn't re-lock stock, see that method's docblock.
+     */
+    private const OVERRIDE_TRANSITIONS = [
+        'pending_payment' => ['paid', 'cancelled'],
+        'paid' => ['processing', 'shipped', 'completed', 'cancelled'],
+        'processing' => ['shipped', 'completed', 'cancelled'],
+        'shipped' => ['completed'],
+        'cancelled' => ['pending_payment'],
+        'expired' => ['pending_payment'],
     ];
 
     public function __construct(private TelegramService $telegram) {}
@@ -140,6 +156,105 @@ class OrderFulfillmentService
                 'order_number' => $locked->order_number,
             ]);
         });
+    }
+
+    /**
+     * Manual override used only by the "Ubah Status Pesanan" admin control (admin-store and
+     * god-mode) — a seller correcting a payment that happened outside the system, or an admin
+     * fixing a stuck order. Deliberately separate from `applyTransition()`'s automatic-flow
+     * matrix so the two never get confused, and every use is recorded in
+     * `store_order_status_histories` for audit (D50).
+     */
+    public function overrideStatus(
+        StoreOrder $order,
+        string $to,
+        ?string $reason,
+        string $actorType,
+        int|string $actorId,
+        ?string $trackingNumber = null,
+    ): StoreOrder {
+        return DB::transaction(function () use ($order, $to, $reason, $actorType, $actorId, $trackingNumber) {
+            $locked = StoreOrder::where('id', $order->id)->lockForUpdate()->firstOrFail();
+            $from = $locked->status;
+            $allowed = self::OVERRIDE_TRANSITIONS[$from] ?? [];
+
+            throw_unless(in_array($to, $allowed, true), ValidationException::withMessages([
+                'status' => "Status tidak bisa dipindahkan dari \"{$from}\" ke \"{$to}\".",
+            ]));
+
+            $extra = match ($to) {
+                'paid' => ['paid_at' => now()],
+                'shipped' => ['shipped_at' => now(), 'tracking_number' => $trackingNumber ?? $locked->tracking_number],
+                'completed' => ['completed_at' => now()],
+                'cancelled' => ['cancelled_at' => now(), 'cancellation_reason' => $reason],
+                // "Buka lagi" — stock is deliberately NOT re-locked here (D51); the UI that offers
+                // this transition must warn the operator to verify availability manually.
+                'pending_payment' => ['expires_at' => now()->addMinutes((int) config('store.order_expiry_minutes'))],
+                default => [],
+            };
+
+            $locked->update(array_merge(['status' => $to], $extra));
+            $fresh = $locked->fresh(['buyer', 'store.owner', 'items']);
+
+            // Side effects mirror the automatic transitions — one definition of "what happens when
+            // an order becomes X", whether it got there via webhook or manual override.
+            match ($to) {
+                'paid' => $this->handleOverrideToPaid($fresh),
+                'cancelled' => $this->handleOverrideToCancelled($fresh),
+                'shipped' => SendStoreOrderShippedEmail::dispatch($fresh->loadMissing(['buyer', 'store'])),
+                default => null,
+            };
+
+            StoreOrderStatusHistory::create([
+                'store_order_id' => $locked->id,
+                'from_status' => $from,
+                'to_status' => $to,
+                'reason' => $reason,
+                'actor_type' => $actorType,
+                'actor_id' => $actorId,
+            ]);
+
+            return $locked->fresh();
+        });
+    }
+
+    /**
+     * The transaction is marked `paid` (if it was still `pending`) before `onPaid()` runs, so a
+     * webhook that arrives after this override sees a non-`pending` transaction and skips
+     * reprocessing (see `SatuteraWebhookController`'s pending-only guard).
+     */
+    private function handleOverrideToPaid(StoreOrder $order): void
+    {
+        $this->syncTransactionPaid($order);
+        $this->onPaid($order);
+    }
+
+    private function handleOverrideToCancelled(StoreOrder $order): void
+    {
+        $this->releaseStock($order);
+        $this->voidPendingTransaction($order);
+    }
+
+    private function syncTransactionPaid(StoreOrder $order): void
+    {
+        $transaction = $order->latestTransaction();
+
+        if ($transaction && $transaction->status === 'pending') {
+            $transaction->update(['status' => 'paid', 'paid_at' => now()]);
+        }
+    }
+
+    /**
+     * Marks a still-`pending` transaction `cancelled` so a late webhook for it has nothing left
+     * to process (see the pending-only guard in `SatuteraWebhookController`).
+     */
+    private function voidPendingTransaction(StoreOrder $order): void
+    {
+        $transaction = $order->latestTransaction();
+
+        if ($transaction && $transaction->status === 'pending') {
+            $transaction->update(['status' => 'cancelled']);
+        }
     }
 
     private function applyTransition(StoreOrder $order, string $to, array $extra = []): StoreOrder

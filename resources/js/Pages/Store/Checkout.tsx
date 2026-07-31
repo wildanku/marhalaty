@@ -247,6 +247,11 @@ function CheckoutForm({
                           {item.variant.label}
                         </p>
                       )}
+                      {item.note && (
+                        <p className="text-xs text-on-surface-variant/80 italic mt-0.5 truncate">
+                          "{item.note}"
+                        </p>
+                      )}
                     </div>
                     <p className="text-sm text-on-surface-variant shrink-0">× {item.quantity}</p>
                   </div>

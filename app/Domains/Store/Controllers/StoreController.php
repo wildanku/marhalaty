@@ -17,12 +17,41 @@ class StoreController extends Controller
 
         $store->load(['primaryAddress.village.district.city.province', 'members.user']);
 
+        $recentOrders = StoreOrder::where('store_id', $store->id)
+            ->with('buyer')
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
         return Inertia::render('Store/Manage/Dashboard', [
             'store' => $store,
             'role' => $store->roleFor($request->user()),
             'productCount' => $store->products()->count(),
             'orderCount' => StoreOrder::where('store_id', $store->id)->count(),
             'shippingMethodCount' => $store->shippingMethods()->count(),
+            'recentOrders' => $recentOrders,
+        ]);
+    }
+
+    public function editSettings(Request $request, Store $store)
+    {
+        $this->authorize('update', $store);
+
+        return Inertia::render('Store/Manage/Settings', [
+            'store' => $store,
+            'role' => $store->roleFor($request->user()),
+        ]);
+    }
+
+    public function editAddress(Request $request, Store $store)
+    {
+        $this->authorize('update', $store);
+
+        $store->load('primaryAddress.village.district.city.province');
+
+        return Inertia::render('Store/Manage/Address', [
+            'store' => $store,
+            'role' => $store->roleFor($request->user()),
         ]);
     }
 

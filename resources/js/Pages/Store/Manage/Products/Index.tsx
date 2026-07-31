@@ -1,11 +1,11 @@
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import { PageProps, Product, Store } from "@/types";
-import Header from "@/Components/Header";
-import Footer from "@/Components/Footer";
 import StatusBadge from "@/Components/Store/StatusBadge";
+import StoreManageLayout from "@/Layouts/StoreManageLayout";
 
 interface ProductsIndexProps extends PageProps {
   store: Store;
+  role: "owner" | "admin" | null;
   products: {
     data: Product[];
     links: { url: string | null; label: string; active: boolean }[];
@@ -16,7 +16,7 @@ interface ProductsIndexProps extends PageProps {
 }
 
 export default function ProductsIndex() {
-  const { store, products } = usePage<ProductsIndexProps>().props;
+  const { store, role, products } = usePage<ProductsIndexProps>().props;
 
   const changeStatus = (product: Product, status: string) => {
     router.patch(`/my/stores/${store.id}/products/${product.id}/status`, { status }, { preserveScroll: true });
@@ -28,17 +28,12 @@ export default function ProductsIndex() {
   };
 
   return (
-    <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
-      <Header />
+    <StoreManageLayout store={store} role={role} activeNav="products">
       <Head title={`Produk - ${store.name}`} />
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div>
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <Link href={`/my/stores/${store.id}`} className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-2">
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-              {store.name}
-            </Link>
             <h1 className="font-headline text-2xl font-bold text-on-surface">Produk</h1>
           </div>
           <Link
@@ -152,7 +147,6 @@ export default function ProductsIndex() {
           )}
         </div>
       </div>
-      <Footer />
-    </div>
+    </StoreManageLayout>
   );
 }

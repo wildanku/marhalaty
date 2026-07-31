@@ -69,7 +69,7 @@ class CartService
         return $cart;
     }
 
-    public function updateQty(CartItem $item, int $qty): void
+    public function updateQty(CartItem $item, int $qty, ?string $note = null): void
     {
         if ($qty <= 0) {
             $this->remove($item);
@@ -77,7 +77,7 @@ class CartService
             return;
         }
 
-        $item->update(['quantity' => $qty]);
+        $item->update(['quantity' => $qty, 'note' => $note]);
     }
 
     public function remove(CartItem $item): void

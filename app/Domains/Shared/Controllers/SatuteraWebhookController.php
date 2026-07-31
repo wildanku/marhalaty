@@ -80,7 +80,12 @@ class SatuteraWebhookController extends Controller
                 return;
             }
 
-            if ($transaction->status === 'paid') {
+            // Not just `=== 'paid'`: a manual status override (fase 11, D50 — e.g. an admin
+            // cancelling an order and voiding its transaction) can also move a transaction off
+            // `pending` before this callback arrives. Whatever it moved to, this late callback
+            // must not re-process it — otherwise a callback for an order the seller already
+            // cancelled could resurrect it as paid.
+            if ($transaction->status !== 'pending') {
                 $event->update(['processed_at' => now()]);
 
                 return;

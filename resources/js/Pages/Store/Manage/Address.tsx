@@ -1,13 +1,16 @@
 import { FormEventHandler } from "react";
-import { useForm } from "@inertiajs/react";
-import { Store } from "@/types";
+import { Head, useForm, usePage } from "@inertiajs/react";
+import { PageProps, Store } from "@/types";
 import RegionPicker from "@/Components/Store/RegionPicker";
+import StoreManageLayout from "@/Layouts/StoreManageLayout";
 
-interface AddressTabProps {
+interface AddressPageProps extends PageProps {
   store: Store;
+  role: "owner" | "admin" | null;
 }
 
-export default function AddressTab({ store }: AddressTabProps) {
+export default function StoreAddressPage() {
+  const { store, role } = usePage<AddressPageProps>().props;
   const address = store.primary_address ?? null;
 
   const { data, setData, post, processing, errors } = useForm({
@@ -41,10 +44,13 @@ export default function AddressTab({ store }: AddressTabProps) {
     : undefined;
 
   return (
-    <form
-      onSubmit={submit}
-      className="bg-surface-container-lowest rounded-3xl p-8 border border-surface-container-high space-y-6"
-    >
+    <StoreManageLayout store={store} role={role} activeNav="address">
+      <Head title={`Alamat - ${store.name}`} />
+      <h1 className="font-headline text-2xl font-bold text-on-surface mb-6">Alamat</h1>
+      <form
+        onSubmit={submit}
+        className="bg-surface-container-lowest rounded-3xl p-8 border border-surface-container-high space-y-6"
+      >
       <p className="text-sm text-on-surface-variant">
         Alamat ini dipakai sebagai titik asal pengiriman dan perhitungan ongkos kirim.
       </p>
@@ -105,6 +111,7 @@ export default function AddressTab({ store }: AddressTabProps) {
           Simpan Alamat
         </button>
       </div>
-    </form>
+      </form>
+    </StoreManageLayout>
   );
 }

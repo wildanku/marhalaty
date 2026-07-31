@@ -110,8 +110,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/create', [StoreApplicationController::class, 'create'])->name('create');
         Route::post('/', [StoreApplicationController::class, 'store'])->name('store');
         Route::get('/{store}', [StoreController::class, 'show'])->name('manage');
+        Route::get('/{store}/settings', [StoreController::class, 'editSettings'])->name('settings');
         Route::patch('/{store}', [StoreController::class, 'update'])->name('update');
+        Route::get('/{store}/address', [StoreController::class, 'editAddress'])->name('address.edit');
         Route::post('/{store}/address', [StoreController::class, 'updateAddress'])->name('address.store');
+        Route::get('/{store}/members', [StoreMemberController::class, 'index'])->name('members.index');
         Route::post('/{store}/members', [StoreMemberController::class, 'invite'])->name('members.invite');
         Route::delete('/{store}/members/{member}', [StoreMemberController::class, 'revoke'])->name('members.revoke');
 
@@ -128,6 +131,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{store}/orders/{order}/process', [StoreOrderManagementController::class, 'process'])->name('orders.process');
         Route::post('/{store}/orders/{order}/ship', [StoreOrderManagementController::class, 'ship'])->name('orders.ship');
         Route::post('/{store}/orders/{order}/cancel', [StoreOrderManagementController::class, 'cancel'])->name('orders.cancel');
+        Route::patch('/{store}/orders/{order}/status', [StoreOrderManagementController::class, 'updateStatus'])->name('orders.status.update');
 
         Route::get('/{store}/shipping-methods', [StoreShippingMethodController::class, 'index'])->name('shipping-methods.index');
         Route::get('/{store}/shipping-methods/create', [StoreShippingMethodController::class, 'create'])->name('shipping-methods.create');
@@ -346,6 +350,7 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         // Store Orders
         Route::get('/store-orders', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'index'])->name('store-orders.index');
         Route::get('/store-orders/{id}', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'show'])->name('store-orders.show');
+        Route::patch('/store-orders/{id}/status', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'updateStatus'])->name('store-orders.status.update');
         Route::get('/store-orders-export', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'exportExcel'])->name('store-orders.export');
 
         // Homepage Highlights (fase 10 — docs/plan/mvp2/10-storefront-frontside-ux.md)

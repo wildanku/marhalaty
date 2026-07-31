@@ -88,6 +88,11 @@ class StoreOrder extends Model
         return $this->hasMany(StoreOrderItem::class);
     }
 
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(StoreOrderStatusHistory::class)->latest('id');
+    }
+
     public function transactions(): MorphMany
     {
         return $this->morphMany(Transaction::class, 'payable');

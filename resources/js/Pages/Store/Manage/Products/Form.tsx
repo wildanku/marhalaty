@@ -1,19 +1,19 @@
 import { FormEventHandler, useState } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { PageProps, Product, ProductOption, Store } from "@/types";
-import Header from "@/Components/Header";
-import Footer from "@/Components/Footer";
 import CurrencyInput from "@/Components/CurrencyInput";
 import RichTextEditor from "@/Components/RichTextEditor";
 import VariantEditor, { VariantDraft } from "@/Components/Store/VariantEditor";
+import StoreManageLayout from "@/Layouts/StoreManageLayout";
 
 interface ProductFormProps extends PageProps {
   store: Store;
+  role: "owner" | "admin" | null;
   product: Product | null;
 }
 
 export default function ProductForm() {
-  const { store, product } = usePage<ProductFormProps>().props;
+  const { store, role, product } = usePage<ProductFormProps>().props;
   const isEdit = product !== null;
 
   const initialOptions: ProductOption[] = product?.options ?? [];
@@ -54,11 +54,10 @@ export default function ProductForm() {
   };
 
   return (
-    <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
-      <Header />
+    <StoreManageLayout store={store} role={role} activeNav="products">
       <Head title={isEdit ? `Edit ${product!.name}` : "Tambah Produk"} />
 
-      <div className="max-w-3xl mx-auto px-6 py-12">
+      <div className="max-w-3xl">
         <Link href={`/my/stores/${store.id}/products`} className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-4">
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
           Produk
@@ -257,7 +256,6 @@ export default function ProductForm() {
           </div>
         </form>
       </div>
-      <Footer />
-    </div>
+    </StoreManageLayout>
   );
 }

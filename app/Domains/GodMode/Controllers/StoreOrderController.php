@@ -5,13 +5,18 @@ namespace App\Domains\GodMode\Controllers;
 use App\Domains\GodMode\Exports\StoreOrdersExport;
 use App\Domains\Store\Models\Store;
 use App\Domains\Store\Models\StoreOrder;
+use App\Domains\Store\Services\OrderFulfillmentService;
 use App\Http\Controllers\Controller;
+use App\Models\AdminActivityLog;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 
 class StoreOrderController extends Controller
 {
+    public function __construct(private OrderFulfillmentService $fulfillment) {}
+
     public function index(Request $request)
     {
         $filters = $request->only(['status', 'store_id', 'date_from', 'date_to']);
@@ -37,13 +42,51 @@ class StoreOrderController extends Controller
 
     public function show(string $id)
     {
-        $order = StoreOrder::with(['store', 'buyer', 'items', 'transactions'])
+        $order = StoreOrder::with(['store', 'buyer', 'items', 'transactions', 'statusHistories'])
             ->findOrFail($id);
 
         return Inertia::render('GodMode/StoreOrders/Show', [
             'admin' => auth('admin')->user(),
             'order' => $order,
+            'paymentStatus' => $order->latestTransaction()?->status,
         ]);
+    }
+
+    /**
+     * Manual "Ubah Status Pesanan" override (fase 11, D50) — the only place that also accepts
+     * `pending_payment` ("buka lagi" from `cancelled`/`expired`, D51: god-mode only, doesn't
+     * re-lock stock). Every successful call is also written to `admin_activity_logs`, in addition
+     * to the per-order timeline in `store_order_status_histories`.
+     */
+    public function updateStatus(Request $request, string $id)
+    {
+        $order = StoreOrder::findOrFail($id);
+
+        $validated = $request->validate([
+            'status' => ['required', Rule::in([
+                'pending_payment', 'paid', 'processing', 'shipped', 'completed', 'cancelled',
+            ])],
+            'reason' => 'nullable|required_if:status,cancelled|string|max:500',
+            'tracking_number' => 'nullable|required_if:status,shipped|string|max:100',
+        ]);
+
+        $admin = auth('admin')->user();
+
+        $this->fulfillment->overrideStatus(
+            $order,
+            $validated['status'],
+            $validated['reason'] ?? null,
+            'admin',
+            $admin->id,
+            $validated['tracking_number'] ?? null,
+        );
+
+        AdminActivityLog::create([
+            'admin_id' => $admin->id,
+            'action' => "update_store_order_status:{$order->id}:{$validated['status']}",
+        ]);
+
+        return redirect()->back()->with('success', 'Status pesanan berhasil diperbarui.');
     }
 
     public function exportExcel(Request $request)

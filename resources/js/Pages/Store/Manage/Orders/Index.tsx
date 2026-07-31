@@ -1,11 +1,11 @@
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import { PageProps, Store, StoreOrder } from "@/types";
-import Header from "@/Components/Header";
-import Footer from "@/Components/Footer";
 import StatusBadge from "@/Components/Store/StatusBadge";
+import StoreManageLayout from "@/Layouts/StoreManageLayout";
 
 interface OrdersIndexProps extends PageProps {
   store: Store;
+  role: "owner" | "admin" | null;
   orders: {
     data: StoreOrder[];
     links: { url: string | null; label: string; active: boolean }[];
@@ -27,22 +27,17 @@ const STATUS_TABS: { key: string | null; label: string }[] = [
 ];
 
 export default function OrdersIndex() {
-  const { store, orders, status } = usePage<OrdersIndexProps>().props;
+  const { store, role, orders, status } = usePage<OrdersIndexProps>().props;
 
   const setStatus = (value: string | null) => {
     router.get(`/my/stores/${store.id}/orders`, value ? { status: value } : {}, { preserveState: true, replace: true });
   };
 
   return (
-    <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
-      <Header />
+    <StoreManageLayout store={store} role={role} activeNav="orders">
       <Head title={`Pesanan - ${store.name}`} />
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        <Link href={`/my/stores/${store.id}`} className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-2">
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          {store.name}
-        </Link>
+      <div>
         <h1 className="font-headline text-2xl font-bold text-on-surface mb-6">Pesanan</h1>
 
         <div className="flex flex-wrap gap-1.5 mb-6 bg-surface-container-lowest p-1.5 rounded-full border border-surface-container-high w-fit">
@@ -124,7 +119,6 @@ export default function OrdersIndex() {
           )}
         </div>
       </div>
-      <Footer />
-    </div>
+    </StoreManageLayout>
   );
 }
