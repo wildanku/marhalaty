@@ -41,7 +41,7 @@ class SatuteraPaymentService
      * support `response_mode: raw_detail` are returned, since MVP2 shows VA/QRIS on our own page
      * rather than redirecting to a Satutera-hosted checkout.
      *
-     * @return array<int, array{provider:string, method:string, code:string, name:string, fee:int, image:?string, metadata:array}>
+     * @return array<int, array{provider:string, method:string, code:string, name:string, fee:float, fee_type:string, image:?string, metadata:array}>
      */
     public function getPaymentChannels(?string $method = null, ?string $provider = null): array
     {
@@ -92,6 +92,27 @@ class SatuteraPaymentService
         }
 
         return null;
+    }
+
+    /**
+     * Resolves a channel's `fee`/`fee_type` (payment-changes.md 2026-08-01) against a pre-fee
+     * amount into the rupiah amount we charge on top — `FIX` is a flat nominal, `PERCENT` is a
+     * decimal percentage of `$preFeeAmount` (e.g. `2.5` = 2.5%). This is our own local estimate
+     * used to build `transactions.payment_fee`/`amount` before calling Satutera; the amount
+     * Satutera actually bills the customer still comes from `payment_detail.fee` in the
+     * `POST /api/v1/payments` response (guidance §3), not from this calculation.
+     *
+     * @param  array{fee?: float|int|string, fee_type?: string}  $channel
+     */
+    public function resolveFee(array $channel, int $preFeeAmount): int
+    {
+        $fee = (float) ($channel['fee'] ?? 0);
+
+        if (($channel['fee_type'] ?? 'FIX') === 'PERCENT') {
+            return (int) round($preFeeAmount * $fee / 100);
+        }
+
+        return (int) round($fee);
     }
 
     /**

@@ -109,6 +109,7 @@ const { data, meta } = await response.json();
       "code": "bca",
       "name": "BCA Virtual Account",
       "fee": 4000,
+      "fee_type": "FIX",
       "currency": "IDR",
       "image": "https://payment.satutera.com/assets/channels/bca.png",
       "supports_payment_page": false,
@@ -128,6 +129,7 @@ const { data, meta } = await response.json();
       "code": "qris",
       "name": "QRIS",
       "fee": 0,
+      "fee_type": "FIX",
       "currency": "IDR",
       "image": null,
       "supports_payment_page": false,
@@ -150,6 +152,7 @@ Catatan penting:
 - Field `supports_direct_detail: true` menandakan channel tersebut boleh dipakai dengan `response_mode: "raw_detail"` (lihat bagian 3). Jika `false`, channel hanya bisa dipakai lewat `response_mode: "payment_page"`.
 - `metadata.instructions` berisi langkah pembayaran yang bisa ditampilkan langsung ke customer (juga otomatis ikut disisipkan ke `payment_detail.instructions` saat payment dibuat).
 - Response ini aman ditampilkan ke publik (tidak ada credential/secret provider di dalamnya).
+- `fee_type` menentukan cara membaca `fee`: `FIX` = nominal tetap dalam satuan `currency` (mis. `4000` = Rp4.000), `PERCENT` = persentase desimal dari jumlah pembayaran (mis. `2.5` = 2.5%). **Catatan:** nilai ini saat ini murni informasional/tampilan katalog channel — lihat catatan di bagian 3 soal `payment_detail.fee` yang sebenarnya ditagihkan.
 
 ---
 
@@ -292,6 +295,8 @@ Sama seperti VA, cukup ganti `payment_method` menjadi `qris` (dan `payment_chann
 ```
 
 Untuk QRIS, `payment_detail.type` bernilai `"qris"` dan field `qr_string` / `qr_template` (URL gambar QR) yang terisi, sedangkan `payment_no` kosong.
+
+> Catatan: `payment_detail.fee`/`total` di atas berasal dari response API provider (iPaymu/Midtrans) saat payment dibuat, **bukan** dihitung dari `fee`/`fee_type` pada katalog `GET /api/v1/payment-channels`. Gunakan `fee`/`fee_type` di katalog channel hanya untuk estimasi/tampilan sebelum payment dibuat; nilai final yang ditagihkan selalu ada di `payment_detail` hasil `POST /api/v1/payments`.
 
 Field penting yang **wajib disimpan** oleh backend produk untuk keperluan langkah berikutnya:
 

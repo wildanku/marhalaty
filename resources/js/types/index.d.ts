@@ -467,6 +467,7 @@ export interface PaymentChannel {
   code: string;
   name: string;
   fee: number;
+  fee_type: "FIX" | "PERCENT";
   currency: string;
   image: string | null;
   supports_payment_page: boolean;

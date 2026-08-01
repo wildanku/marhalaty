@@ -102,7 +102,7 @@ class CheckoutService
                     ]);
                 }
 
-                $paymentFee = (int) ($channel['fee'] ?? 0);
+                $paymentFee = $this->satutera->resolveFee($channel, $preFeeAmount);
             }
 
             $total = $subtotal + $shippingCost + $paymentFee;

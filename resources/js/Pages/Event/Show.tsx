@@ -5,6 +5,7 @@ import { PageProps, GontorEvent, Rsvp, CustomFormField, EventAddon } from "@/typ
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import CurrencyInput from "@/Components/CurrencyInput";
+import { resolveSatuteraFee } from "@/utils/paymentFee";
 
 // ─── Local Types ─────────────────────────────────────────────────────────────
 
@@ -92,17 +93,19 @@ interface PaymentChannel extends PaymentChannelData {
   method: "qris" | "va";
 }
 
-// Satutera's channel shape (fase 9) — a flat fee, no `fee_type`, and identified by
-// provider+method+code rather than code alone (payment-guidance.md §2). Kept as its own type
-// instead of reusing `PaymentChannel` above, which is iPaymu-shaped and currently dead code
-// (see the `{false && ...}` block below) — conflating the two would resurrect assumptions that
-// don't hold for Satutera.
+// Satutera's channel shape (fase 9), identified by provider+method+code rather than code alone
+// (payment-guidance.md §2). Kept as its own type instead of reusing `PaymentChannel` above, which
+// is iPaymu-shaped and currently dead code (see the `{false && ...}` block below) — conflating
+// the two would resurrect assumptions that don't hold for Satutera.
+// `fee_type` (payment-changes.md 2026-08-01): `FIX` = flat rupiah nominal, `PERCENT` = decimal
+// percentage of the pre-fee amount — resolve via `resolveSatuteraFee()`, never read `fee` raw.
 interface SatuteraChannel {
   provider: string;
   method: "qris" | "va";
   code: string;
   name: string;
   fee: number;
+  fee_type?: string;
   image?: string | null;
 }
 
@@ -358,7 +361,7 @@ export default function Show({
           ch.method === data.payment_method &&
           ch.code === data.payment_channel
       );
-      if (channel) adminFee = channel.fee;
+      if (channel) adminFee = resolveSatuteraFee(channel, subtotal);
     }
 
     return { pkg, infak, addons, subtotal, adminFee, total: subtotal + adminFee };
@@ -2018,7 +2021,7 @@ export default function Show({
                       );
                       return channel ? (
                         <p className="font-body text-xs text-on-surface-variant mt-0.5">
-                          {formatRupiah(channel.fee)}
+                          {formatRupiah(resolveSatuteraFee(channel, totals.subtotal))}
                         </p>
                       ) : null;
                     })()}
@@ -2275,6 +2278,7 @@ export default function Show({
                   data.channel_provider === ch.provider &&
                   data.payment_method === ch.method &&
                   data.payment_channel === ch.code;
+                const chFee = resolveSatuteraFee(ch, totals.subtotal);
                 return (
                   <button
                     key={`${ch.provider}-${ch.method}-${ch.code}`}
@@ -2314,7 +2318,7 @@ export default function Show({
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="font-body text-xs text-on-surface-variant">Biaya</span>
                         <span className="font-body text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
-                          {ch.fee === 0 ? "Gratis" : `+${formatRupiah(ch.fee)}`}
+                          {chFee === 0 ? "Gratis" : `+${formatRupiah(chFee)}`}
                         </span>
                       </div>
                     </div>

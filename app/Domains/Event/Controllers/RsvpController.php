@@ -178,7 +178,7 @@ class RsvpController extends Controller
                     ]);
                 }
 
-                $paymentFee = (int) ($channel['fee'] ?? 0);
+                $paymentFee = $satutera->resolveFee($channel, $totalAmount);
             }
 
             // D36: `transactions.amount` carries the channel fee on top of the registration total;

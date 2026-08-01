@@ -16,6 +16,7 @@ import ShippingRatePicker from "@/Components/Store/ShippingRatePicker";
 import ShippingMethodDetailModal from "@/Components/Store/ShippingMethodDetailModal";
 import OrderSummary from "@/Components/Store/OrderSummary";
 import StoreBadgeIcons from "@/Components/Store/StoreBadgeIcons";
+import { resolveSatuteraFee } from "@/utils/paymentFee";
 
 interface CheckoutSummary {
   subtotal: number;
@@ -201,7 +202,8 @@ function CheckoutForm({
   const storeAddress =
     store.primary_address?.full_address ?? store.primary_address?.address_line ?? null;
 
-  const total = summary.subtotal + (shippingCost ?? 0) + (selectedChannel?.fee ?? 0);
+  const selectedChannelFee = resolveSatuteraFee(selectedChannel, preFeeAmount);
+  const total = summary.subtotal + (shippingCost ?? 0) + selectedChannelFee;
 
   return (
     <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
@@ -419,6 +421,7 @@ function CheckoutForm({
                             channel={channel}
                             selected={selectedChannel}
                             onSelect={setSelectedChannel}
+                            preFeeAmount={preFeeAmount}
                           />
                         ))}
                       </div>
@@ -437,6 +440,7 @@ function CheckoutForm({
                             channel={channel}
                             selected={selectedChannel}
                             onSelect={setSelectedChannel}
+                            preFeeAmount={preFeeAmount}
                           />
                         ))}
                       </div>
@@ -495,7 +499,7 @@ function CheckoutForm({
               <OrderSummary
                 subtotal={summary.subtotal}
                 shippingCost={shippingCost}
-                paymentFee={selectedChannel?.fee ?? null}
+                paymentFee={selectedChannel ? selectedChannelFee : null}
                 requiresShipping={summary.requires_shipping}
               />
               {errorMessages.length > 0 && <ErrorBanner messages={errorMessages} />}
@@ -577,7 +581,7 @@ function CheckoutForm({
               <OrderSummary
                 subtotal={summary.subtotal}
                 shippingCost={shippingCost}
-                paymentFee={selectedChannel?.fee ?? null}
+                paymentFee={selectedChannel ? selectedChannelFee : null}
                 requiresShipping={summary.requires_shipping}
               />
             </div>
@@ -650,15 +654,18 @@ function ChannelOption({
   channel,
   selected,
   onSelect,
+  preFeeAmount,
 }: {
   channel: PaymentChannel;
   selected: PaymentChannel | null;
   onSelect: (c: PaymentChannel) => void;
+  preFeeAmount: number;
 }) {
   const isSelected =
     selected?.provider === channel.provider &&
     selected?.method === channel.method &&
     selected?.code === channel.code;
+  const fee = resolveSatuteraFee(channel, preFeeAmount);
 
   return (
     <label
@@ -680,7 +687,7 @@ function ChannelOption({
         <span className="text-sm font-medium text-on-surface truncate">{channel.name}</span>
       </div>
       <span className="text-xs text-on-surface-variant shrink-0">
-        {channel.fee > 0 ? `+Rp ${channel.fee.toLocaleString("id-ID")}` : "Gratis"}
+        {fee > 0 ? `+Rp ${fee.toLocaleString("id-ID")}` : "Gratis"}
       </span>
     </label>
   );
