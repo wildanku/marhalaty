@@ -10,11 +10,13 @@ interface ProductFormProps extends PageProps {
   store: Store;
   role: "owner" | "admin" | null;
   product: Product | null;
+  errors: Record<string, string>;
 }
 
 export default function ProductForm() {
-  const { store, role, product } = usePage<ProductFormProps>().props;
+  const { store, role, product, errors: pageErrors } = usePage<ProductFormProps>().props;
   const isEdit = product !== null;
+  const formKey = `store-product-form:${store.id}:${product?.id ?? "create"}`;
 
   const initialOptions: ProductOption[] = product?.options ?? [];
   const initialVariants: VariantDraft[] = (product?.variants ?? [])
@@ -28,7 +30,13 @@ export default function ProductForm() {
       sku: v.sku ?? "",
     }));
 
-  const { data, setData, post, processing, errors } = useForm({
+  const {
+    data,
+    setData,
+    post,
+    processing,
+    errors: formErrors,
+  } = useForm(formKey, {
     _method: isEdit ? ("put" as const) : undefined,
     name: product?.name ?? "",
     description: product?.description ?? "",
@@ -52,8 +60,8 @@ export default function ProductForm() {
   });
 
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const formErrors: Record<string, string | undefined> = errors;
-  const errorEntries = Object.entries(formErrors).filter(([, message]) => Boolean(message));
+  const errors: Record<string, string | undefined> = { ...pageErrors, ...formErrors };
+  const errorEntries = Object.entries(errors).filter(([, message]) => Boolean(message));
 
   const submit: FormEventHandler = (e) => {
     e.preventDefault();
@@ -247,7 +255,7 @@ export default function ProductForm() {
               <VariantEditor
                 options={data.options}
                 variants={data.variants}
-                errors={formErrors}
+                errors={errors}
                 requireWeight={data.type === "physical"}
                 onChange={(options, variants) => {
                   setData("options", options);
