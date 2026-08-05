@@ -31,7 +31,7 @@ class ProductService
                 'has_variants' => (bool) $data['has_variants'],
                 'price' => $data['has_variants'] ? null : $data['price'],
                 'stock_quantity' => $data['has_variants'] ? null : $data['stock_quantity'],
-                'weight_grams' => $data['type'] === 'physical' ? $data['weight_grams'] : null,
+                'weight_grams' => $data['type'] === 'physical' ? ($data['weight_grams'] ?? null) : null,
                 'options' => $data['has_variants'] ? $data['options'] : null,
             ];
 

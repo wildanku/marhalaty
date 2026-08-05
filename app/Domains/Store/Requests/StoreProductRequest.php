@@ -38,7 +38,15 @@ class StoreProductRequest extends FormRequest
 
             'price' => 'required_if:has_variants,false|nullable|numeric|min:0',
             'stock_quantity' => 'required_if:has_variants,false|nullable|integer|min:0',
-            'weight_grams' => 'required_if:type,physical|nullable|integer|min:1|max:500000',
+            // A product with variants stores the weight on each variant. The parent product
+            // weight is only required for a physical product without variants.
+            'weight_grams' => [
+                'nullable',
+                'integer',
+                'min:1',
+                'max:500000',
+                Rule::requiredIf(fn (): bool => $this->input('type') === 'physical' && ! $this->boolean('has_variants')),
+            ],
 
             'options' => 'required_if:has_variants,true|array|max:2',
             'options.*.name' => 'required|string|max:50',
@@ -50,7 +58,13 @@ class StoreProductRequest extends FormRequest
             'variants.*.option2_value' => 'nullable|string|max:50',
             'variants.*.price' => 'required|numeric|min:0',
             'variants.*.stock_quantity' => 'required|integer|min:0',
-            'variants.*.weight_grams' => 'nullable|integer|min:1|max:500000',
+            'variants.*.weight_grams' => [
+                'nullable',
+                'integer',
+                'min:1',
+                'max:500000',
+                Rule::requiredIf(fn (): bool => $this->input('type') === 'physical' && $this->boolean('has_variants')),
+            ],
             'variants.*.sku' => 'nullable|string|max:50',
 
             'images' => 'nullable|array|max:5',

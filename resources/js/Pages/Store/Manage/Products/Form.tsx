@@ -37,8 +37,14 @@ export default function ProductForm() {
     status: product?.status ?? "draft",
     has_variants: product?.has_variants ?? false,
     price: product?.price ?? "",
-    stock_quantity: product?.stock_quantity !== null && product?.stock_quantity !== undefined ? String(product.stock_quantity) : "",
-    weight_grams: product?.weight_grams !== null && product?.weight_grams !== undefined ? String(product.weight_grams) : "",
+    stock_quantity:
+      product?.stock_quantity !== null && product?.stock_quantity !== undefined
+        ? String(product.stock_quantity)
+        : "",
+    weight_grams:
+      product?.weight_grams !== null && product?.weight_grams !== undefined
+        ? String(product.weight_grams)
+        : "",
     options: initialOptions,
     variants: initialVariants,
     images: [] as File[],
@@ -46,11 +52,19 @@ export default function ProductForm() {
   });
 
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const formErrors: Record<string, string | undefined> = errors;
+  const errorEntries = Object.entries(formErrors).filter(([, message]) => Boolean(message));
 
   const submit: FormEventHandler = (e) => {
     e.preventDefault();
-    const url = isEdit ? `/my/stores/${store.id}/products/${product!.id}` : `/my/stores/${store.id}/products`;
-    post(url, { forceFormData: true });
+    const url = isEdit
+      ? `/my/stores/${store.id}/products/${product!.id}`
+      : `/my/stores/${store.id}/products`;
+    post(url, {
+      forceFormData: true,
+      preserveState: true,
+      preserveScroll: true,
+    });
   };
 
   return (
@@ -58,7 +72,10 @@ export default function ProductForm() {
       <Head title={isEdit ? `Edit ${product!.name}` : "Tambah Produk"} />
 
       <div className="max-w-3xl">
-        <Link href={`/my/stores/${store.id}/products`} className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-4">
+        <Link
+          href={`/my/stores/${store.id}/products`}
+          className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-4"
+        >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
           Produk
         </Link>
@@ -66,10 +83,29 @@ export default function ProductForm() {
           {isEdit ? "Edit Produk" : "Tambah Produk"}
         </h1>
 
-        <form onSubmit={submit} className="bg-surface-container-lowest rounded-3xl p-8 border border-surface-container-high space-y-8">
+        {errorEntries.length > 0 && (
+          <div
+            role="alert"
+            className="mb-6 rounded-2xl bg-error-container px-5 py-4 text-sm text-on-error-container"
+          >
+            <p className="font-semibold">Produk belum dapat disimpan. Periksa isian berikut:</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {errorEntries.map(([field, message]) => (
+                <li key={field}>{message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <form
+          onSubmit={submit}
+          className="bg-surface-container-lowest rounded-3xl p-8 border border-surface-container-high space-y-8"
+        >
           <section className="space-y-6">
             <div>
-              <label className="block font-label text-sm font-medium text-on-surface mb-2">Nama Produk</label>
+              <label className="block font-label text-sm font-medium text-on-surface mb-2">
+                Nama Produk
+              </label>
               <input
                 type="text"
                 value={data.name}
@@ -80,14 +116,23 @@ export default function ProductForm() {
             </div>
 
             <div>
-              <label className="block font-label text-sm font-medium text-on-surface mb-2">Deskripsi</label>
-              <RichTextEditor value={data.description} onChange={(html) => setData("description", html)} />
-              {errors.description && <p className="mt-2 text-xs text-error">{errors.description}</p>}
+              <label className="block font-label text-sm font-medium text-on-surface mb-2">
+                Deskripsi
+              </label>
+              <RichTextEditor
+                value={data.description}
+                onChange={(html) => setData("description", html)}
+              />
+              {errors.description && (
+                <p className="mt-2 text-xs text-error">{errors.description}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label className="block font-label text-sm font-medium text-on-surface mb-2">Tipe Produk</label>
+                <label className="block font-label text-sm font-medium text-on-surface mb-2">
+                  Tipe Produk
+                </label>
                 <div className="flex gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -112,7 +157,9 @@ export default function ProductForm() {
               </div>
 
               <div>
-                <label className="block font-label text-sm font-medium text-on-surface mb-2">SKU (opsional)</label>
+                <label className="block font-label text-sm font-medium text-on-surface mb-2">
+                  SKU (opsional)
+                </label>
                 <input
                   type="text"
                   value={data.sku}
@@ -123,7 +170,9 @@ export default function ProductForm() {
               </div>
 
               <div>
-                <label className="block font-label text-sm font-medium text-on-surface mb-2">Status</label>
+                <label className="block font-label text-sm font-medium text-on-surface mb-2">
+                  Status
+                </label>
                 <select
                   value={data.status}
                   onChange={(e) => setData("status", e.target.value as Product["status"])}
@@ -155,12 +204,16 @@ export default function ProductForm() {
             {!data.has_variants ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block font-label text-sm font-medium text-on-surface mb-2">Harga</label>
+                  <label className="block font-label text-sm font-medium text-on-surface mb-2">
+                    Harga
+                  </label>
                   <CurrencyInput value={data.price} onChange={(v) => setData("price", v)} />
                   {errors.price && <p className="mt-2 text-xs text-error">{errors.price}</p>}
                 </div>
                 <div>
-                  <label className="block font-label text-sm font-medium text-on-surface mb-2">Stok</label>
+                  <label className="block font-label text-sm font-medium text-on-surface mb-2">
+                    Stok
+                  </label>
                   <input
                     type="number"
                     min={0}
@@ -168,11 +221,15 @@ export default function ProductForm() {
                     onChange={(e) => setData("stock_quantity", e.target.value)}
                     className="block w-full py-3 px-4 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors"
                   />
-                  {errors.stock_quantity && <p className="mt-2 text-xs text-error">{errors.stock_quantity}</p>}
+                  {errors.stock_quantity && (
+                    <p className="mt-2 text-xs text-error">{errors.stock_quantity}</p>
+                  )}
                 </div>
                 {data.type === "physical" && (
                   <div>
-                    <label className="block font-label text-sm font-medium text-on-surface mb-2">Berat (gram)</label>
+                    <label className="block font-label text-sm font-medium text-on-surface mb-2">
+                      Berat (gram)
+                    </label>
                     <input
                       type="number"
                       min={1}
@@ -180,7 +237,9 @@ export default function ProductForm() {
                       onChange={(e) => setData("weight_grams", e.target.value)}
                       className="block w-full py-3 px-4 bg-surface-container-high border-0 border-b-2 border-transparent focus:ring-0 focus:border-primary rounded-t-DEFAULT text-on-surface font-body sm:text-sm transition-colors"
                     />
-                    {errors.weight_grams && <p className="mt-2 text-xs text-error">{errors.weight_grams}</p>}
+                    {errors.weight_grams && (
+                      <p className="mt-2 text-xs text-error">{errors.weight_grams}</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -188,6 +247,7 @@ export default function ProductForm() {
               <VariantEditor
                 options={data.options}
                 variants={data.variants}
+                errors={formErrors}
                 requireWeight={data.type === "physical"}
                 onChange={(options, variants) => {
                   setData("options", options);
@@ -200,11 +260,18 @@ export default function ProductForm() {
           </section>
 
           <section className="border-t border-outline-variant/20 pt-6">
-            <label className="block font-label text-sm font-medium text-on-surface mb-2">Gambar Produk (maks. 5)</label>
+            <label className="block font-label text-sm font-medium text-on-surface mb-2">
+              Gambar Produk (maks. 5)
+            </label>
             {product && product.images.length > 0 && (
               <div className="flex flex-wrap gap-3 mb-3">
                 {product.images.map((url) => (
-                  <img key={url} src={url} alt={product.name} className="w-16 h-16 rounded-lg object-cover border border-outline-variant/30" />
+                  <img
+                    key={url}
+                    src={url}
+                    alt={product.name}
+                    className="w-16 h-16 rounded-lg object-cover border border-outline-variant/30"
+                  />
                 ))}
               </div>
             )}
@@ -222,7 +289,12 @@ export default function ProductForm() {
             {imagePreviews.length > 0 && (
               <div className="flex flex-wrap gap-3 mt-3">
                 {imagePreviews.map((url) => (
-                  <img key={url} src={url} alt="Preview" className="w-16 h-16 rounded-lg object-cover border border-outline-variant/30" />
+                  <img
+                    key={url}
+                    src={url}
+                    alt="Preview"
+                    className="w-16 h-16 rounded-lg object-cover border border-outline-variant/30"
+                  />
                 ))}
               </div>
             )}
@@ -231,9 +303,12 @@ export default function ProductForm() {
 
           {data.type === "digital" && (
             <section className="border-t border-outline-variant/20 pt-6">
-              <label className="block font-label text-sm font-medium text-on-surface mb-2">File Unduhan</label>
+              <label className="block font-label text-sm font-medium text-on-surface mb-2">
+                File Unduhan
+              </label>
               <p className="text-xs text-on-surface-variant mb-2">
-                Dikirim ke pembeli sebagai tautan unduh setelah pembayaran lunas. Tidak bisa diakses publik.
+                Dikirim ke pembeli sebagai tautan unduh setelah pembayaran lunas. Tidak bisa diakses
+                publik.
               </p>
               <input
                 type="file"
@@ -241,7 +316,9 @@ export default function ProductForm() {
                 onChange={(e) => setData("digital_file", e.target.files?.[0] ?? null)}
                 className="block w-full text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-primary-container file:text-on-primary-container file:font-label file:font-medium"
               />
-              {errors.digital_file && <p className="mt-2 text-xs text-error">{errors.digital_file}</p>}
+              {errors.digital_file && (
+                <p className="mt-2 text-xs text-error">{errors.digital_file}</p>
+              )}
             </section>
           )}
 

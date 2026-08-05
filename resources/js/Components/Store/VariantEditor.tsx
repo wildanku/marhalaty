@@ -14,6 +14,7 @@ export interface VariantDraft {
 interface VariantEditorProps {
   options: ProductOption[];
   variants: VariantDraft[];
+  errors: Record<string, string | undefined>;
   onChange: (options: ProductOption[], variants: VariantDraft[]) => void;
   requireWeight: boolean;
 }
@@ -25,7 +26,9 @@ function comboKey(option1Value: string, option2Value: string | null): string {
 }
 
 function regenerateVariants(options: ProductOption[], existing: VariantDraft[]): VariantDraft[] {
-  const existingByKey = new Map(existing.map((v) => [comboKey(v.option1_value, v.option2_value), v]));
+  const existingByKey = new Map(
+    existing.map((v) => [comboKey(v.option1_value, v.option2_value), v])
+  );
 
   const group1Values = options[0]?.values ?? [];
   const group2Values = options[1]?.values ?? null;
@@ -56,7 +59,13 @@ function regenerateVariants(options: ProductOption[], existing: VariantDraft[]):
   });
 }
 
-export default function VariantEditor({ options, variants, onChange, requireWeight }: VariantEditorProps) {
+export default function VariantEditor({
+  options,
+  variants,
+  errors,
+  onChange,
+  requireWeight,
+}: VariantEditorProps) {
   const [chipDrafts, setChipDrafts] = useState<Record<number, string>>({});
   const [bulkPrice, setBulkPrice] = useState("");
 
@@ -96,7 +105,9 @@ export default function VariantEditor({ options, variants, onChange, requireWeig
   const updateVariant = (key: string, patch: Partial<VariantDraft>) => {
     onChange(
       options,
-      variants.map((v) => (comboKey(v.option1_value, v.option2_value) === key ? { ...v, ...patch } : v))
+      variants.map((v) =>
+        comboKey(v.option1_value, v.option2_value) === key ? { ...v, ...patch } : v
+      )
     );
   };
 
@@ -108,13 +119,18 @@ export default function VariantEditor({ options, variants, onChange, requireWeig
     );
   };
 
-  const warnings = variants.filter((v) => !v.price || Number(v.price) <= 0 || !v.stock_quantity || Number(v.stock_quantity) <= 0);
+  const warnings = variants.filter(
+    (v) => !v.price || Number(v.price) <= 0 || !v.stock_quantity || Number(v.stock_quantity) <= 0
+  );
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         {options.map((group, index) => (
-          <div key={index} className="bg-surface-container rounded-2xl p-5 border border-outline-variant/20">
+          <div
+            key={index}
+            className="bg-surface-container rounded-2xl p-5 border border-outline-variant/20"
+          >
             <div className="flex items-center gap-3 mb-3">
               <input
                 type="text"
@@ -141,7 +157,11 @@ export default function VariantEditor({ options, variants, onChange, requireWeig
                   className="inline-flex items-center gap-1.5 bg-primary-container text-on-primary-container px-3 py-1.5 rounded-full text-sm font-label"
                 >
                   {value}
-                  <button type="button" onClick={() => removeValue(index, value)} className="hover:opacity-70">
+                  <button
+                    type="button"
+                    onClick={() => removeValue(index, value)}
+                    className="hover:opacity-70"
+                  >
                     <span className="material-symbols-outlined text-[14px]">close</span>
                   </button>
                 </span>
@@ -188,7 +208,12 @@ export default function VariantEditor({ options, variants, onChange, requireWeig
       {variants.length > 0 && (
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <CurrencyInput value={bulkPrice} onChange={setBulkPrice} className="max-w-[220px]" placeholder="Isi semua harga" />
+            <CurrencyInput
+              value={bulkPrice}
+              onChange={setBulkPrice}
+              className="max-w-[220px]"
+              placeholder="Isi semua harga"
+            />
             <button
               type="button"
               onClick={applyBulkPrice}
@@ -213,15 +238,33 @@ export default function VariantEditor({ options, variants, onChange, requireWeig
                   <th className="px-4 py-3 text-left font-semibold">Harga</th>
                   <th className="px-4 py-3 text-left font-semibold">Stok</th>
                   <th className="px-4 py-3 text-left font-semibold">SKU</th>
-                  {requireWeight && <th className="px-4 py-3 text-left font-semibold">Berat (gram)</th>}
+                  {requireWeight && (
+                    <th className="px-4 py-3 text-left font-semibold">Berat (gram)</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
                 {variants.map((variant) => {
+                  const variantIndex = variants.indexOf(variant);
                   const key = comboKey(variant.option1_value, variant.option2_value);
-                  const isWarning = !variant.price || Number(variant.price) <= 0 || !variant.stock_quantity || Number(variant.stock_quantity) <= 0;
+                  const isWarning =
+                    !variant.price ||
+                    Number(variant.price) <= 0 ||
+                    !variant.stock_quantity ||
+                    Number(variant.stock_quantity) <= 0;
+                  const priceError = errors[`variants.${variantIndex}.price`];
+                  const stockError = errors[`variants.${variantIndex}.stock_quantity`];
+                  const skuError = errors[`variants.${variantIndex}.sku`];
+                  const weightError = errors[`variants.${variantIndex}.weight_grams`];
                   return (
-                    <tr key={key} className={isWarning ? "bg-tertiary-container/20" : ""}>
+                    <tr
+                      key={key}
+                      className={
+                        isWarning || priceError || stockError || skuError || weightError
+                          ? "bg-tertiary-container/20"
+                          : ""
+                      }
+                    >
                       <td className="px-4 py-3 font-medium text-on-surface whitespace-nowrap">
                         {[variant.option1_value, variant.option2_value].filter(Boolean).join(" / ")}
                       </td>
@@ -231,6 +274,9 @@ export default function VariantEditor({ options, variants, onChange, requireWeig
                           onChange={(v) => updateVariant(key, { price: v })}
                           className="w-32"
                         />
+                        {priceError && (
+                          <p className="mt-1 max-w-32 text-xs text-error">{priceError}</p>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <input
@@ -240,6 +286,9 @@ export default function VariantEditor({ options, variants, onChange, requireWeig
                           onChange={(e) => updateVariant(key, { stock_quantity: e.target.value })}
                           className="w-24 py-2 px-3 bg-surface border border-outline rounded-lg text-sm"
                         />
+                        {stockError && (
+                          <p className="mt-1 max-w-24 text-xs text-error">{stockError}</p>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <input
@@ -248,6 +297,7 @@ export default function VariantEditor({ options, variants, onChange, requireWeig
                           onChange={(e) => updateVariant(key, { sku: e.target.value })}
                           className="w-28 py-2 px-3 bg-surface border border-outline rounded-lg text-sm"
                         />
+                        {skuError && <p className="mt-1 max-w-28 text-xs text-error">{skuError}</p>}
                       </td>
                       {requireWeight && (
                         <td className="px-4 py-3">
@@ -258,6 +308,9 @@ export default function VariantEditor({ options, variants, onChange, requireWeig
                             onChange={(e) => updateVariant(key, { weight_grams: e.target.value })}
                             className="w-24 py-2 px-3 bg-surface border border-outline rounded-lg text-sm"
                           />
+                          {weightError && (
+                            <p className="mt-1 max-w-24 text-xs text-error">{weightError}</p>
+                          )}
                         </td>
                       )}
                     </tr>
