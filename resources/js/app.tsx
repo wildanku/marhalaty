@@ -14,8 +14,8 @@ createInertiaApp({
     pages[`./Pages/${name}.tsx`]().then((module) => {
       const Page = module.default;
 
-      // God-mode admin panel has no shopping cart — it authenticates via a separate guard.
-      if (name.startsWith("GodMode/")) return Page;
+      // Admin and standalone Basic CMS pages should not inherit the storefront cart overlay.
+      if (name.startsWith("GodMode/") || name.startsWith("PublicPages/")) return Page;
 
       const Wrapped = (props: Record<string, unknown>) => (
         <>

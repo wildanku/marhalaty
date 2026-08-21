@@ -16,10 +16,12 @@ use App\Domains\GodMode\Controllers\EmailTesterController;
 use App\Domains\GodMode\Controllers\EventAddonController;
 use App\Domains\GodMode\Controllers\EventPackageController;
 use App\Domains\GodMode\Controllers\HomepageHighlightController;
+use App\Domains\GodMode\Controllers\PageController as GodModePageController;
 use App\Domains\GodMode\Controllers\PaymentSettingController;
 use App\Domains\GodMode\Controllers\ProductSearchController;
 use App\Domains\GodMode\Controllers\StoreBadgeController;
 use App\Domains\GodMode\Controllers\UserController;
+use App\Domains\Page\Controllers\PageController as PublicPageController;
 use App\Domains\Shared\Controllers\PaymentChannelController;
 use App\Domains\Shared\Controllers\SatuteraWebhookController;
 use App\Domains\Shared\Controllers\TelegramWebhookController;
@@ -263,6 +265,15 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         // Admin Activity Logs
         Route::get('/activity-logs', [AdminActivityLogController::class, 'index'])->name('activity-logs.index');
 
+        // Pages
+        Route::get('/pages/check-slug', [GodModePageController::class, 'checkSlug'])->name('pages.check-slug');
+        Route::get('/pages', [GodModePageController::class, 'index'])->name('pages.index');
+        Route::get('/pages/create', [GodModePageController::class, 'create'])->name('pages.create');
+        Route::post('/pages', [GodModePageController::class, 'store'])->name('pages.store');
+        Route::get('/pages/{page}/edit', [GodModePageController::class, 'edit'])->name('pages.edit');
+        Route::put('/pages/{page}', [GodModePageController::class, 'update'])->name('pages.update');
+        Route::delete('/pages/{page}', [GodModePageController::class, 'destroy'])->name('pages.destroy');
+
         // Users
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users-search', [UserController::class, 'search'])->name('users.search');
@@ -360,3 +371,9 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         Route::delete('/homepage-highlights/{id}', [HomepageHighlightController::class, 'destroy'])->name('homepage-highlights.destroy');
     });
 });
+
+// Public CMS pages use a final, single-segment catch-all. Keeping this route last guarantees that
+// every application route above wins before a published page slug is considered.
+Route::get('/{page:slug}', [PublicPageController::class, 'show'])
+    ->where('page', '[a-z0-9]+(?:-[a-z0-9]+)*')
+    ->name('pages.show');
