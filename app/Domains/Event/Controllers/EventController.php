@@ -15,12 +15,22 @@ class EventController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $scope = $request->query('scope', 'all');
+        $period = $request->query('period', 'upcoming');
 
-        $query = Event::query()->orderBy('event_date', 'asc');
+        if (! in_array($scope, ['all', 'global', 'marhalah'], true)) {
+            $scope = 'all';
+        }
 
-        if ($request->has('scope') && $request->scope === 'marhalah') {
+        if (! in_array($period, ['upcoming', 'past'], true)) {
+            $period = 'upcoming';
+        }
+
+        $query = Event::query()->with('packages');
+
+        if ($scope === 'marhalah') {
             $query->where('visibility_scope', $user->marhalah_year);
-        } elseif ($request->has('scope') && $request->scope === 'global') {
+        } elseif ($scope === 'global') {
             $query->where(function ($q) {
                 $q->whereNull('visibility_scope')
                     ->orWhere('visibility_scope', 'global');
@@ -34,9 +44,18 @@ class EventController extends Controller
             });
         }
 
+        if ($period === 'past') {
+            $query->where('event_date', '<', now())
+                ->orderByDesc('event_date');
+        } else {
+            $query->where('event_date', '>=', now())
+                ->orderBy('event_date');
+        }
+
         return Inertia::render('Event/Index', [
             'events' => $query->get(),
-            'currentScope' => $request->scope ?? 'all',
+            'currentScope' => $scope,
+            'currentPeriod' => $period,
         ]);
     }
 

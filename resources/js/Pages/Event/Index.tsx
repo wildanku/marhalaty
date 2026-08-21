@@ -7,6 +7,7 @@ import { useTranslate } from "@/hooks/useTranslate";
 interface EventIndexProps extends PageProps {
   events: GontorEvent[];
   currentScope: string;
+  currentPeriod: "upcoming" | "past";
 }
 
 function formatEventDate(dateStr: string) {
@@ -47,13 +48,23 @@ function PaymentBadge({ event }: { event: GontorEvent }) {
   );
 }
 
-export default function Index({ events, currentScope }: EventIndexProps) {
+export default function Index({ events, currentScope, currentPeriod }: EventIndexProps) {
   const { t } = useTranslate();
+  const isPastEvents = currentPeriod === "past";
 
   const filters = [
     { key: "all", label: t("Semua Acara") },
     { key: "global", label: t("Global") },
   ];
+
+  const periods = [
+    { key: "upcoming" as const, label: t("Acara Mendatang") },
+    { key: "past" as const, label: t("Acara Sebelumnya") },
+  ];
+
+  const visitEvents = (scope: string, period: "upcoming" | "past") => {
+    router.get("/events", { scope, period }, { preserveScroll: true });
+  };
 
   return (
     <div className="min-h-screen bg-surface text-on-surface antialiased font-body">
@@ -73,12 +84,37 @@ export default function Index({ events, currentScope }: EventIndexProps) {
             {t("Temukan acara mendatang, reuni marhalah, dan pertemuan komunitas alumni.")}
           </p>
 
+          {/* Event Period Tabs */}
+          <div
+            className="mt-7 inline-flex rounded-xl bg-surface-container p-1"
+            role="tablist"
+            aria-label={t("Periode acara")}
+          >
+            {periods.map((period) => (
+              <button
+                key={period.key}
+                type="button"
+                role="tab"
+                aria-selected={currentPeriod === period.key}
+                onClick={() => visitEvents(currentScope, period.key)}
+                className={`rounded-lg px-4 py-2 font-label text-sm font-semibold transition-all sm:px-5 ${
+                  currentPeriod === period.key
+                    ? "bg-surface-container-lowest text-primary shadow-sm"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                {period.label}
+              </button>
+            ))}
+          </div>
+
           {/* Filter Pills */}
-          <div className="flex gap-2 mt-7 flex-wrap">
+          <div className="flex gap-2 mt-4 flex-wrap">
             {filters.map((f) => (
               <button
                 key={f.key}
-                onClick={() => router.get("/events", { scope: f.key }, { preserveScroll: true })}
+                type="button"
+                onClick={() => visitEvents(f.key, currentPeriod)}
                 className={`px-5 py-2 rounded-full font-label text-sm font-semibold transition-all ${
                   currentScope === f.key
                     ? "bg-primary text-on-primary shadow-sm"
@@ -100,24 +136,28 @@ export default function Index({ events, currentScope }: EventIndexProps) {
               <span className="material-symbols-outlined text-4xl text-outline">event_busy</span>
             </div>
             <h3 className="font-headline text-xl font-bold text-on-surface mb-2">
-              {t("Belum Ada Acara")}
+              {isPastEvents ? t("Belum Ada Acara Sebelumnya") : t("Belum Ada Acara Mendatang")}
             </h3>
             <p className="text-on-surface-variant font-body text-sm max-w-xs">
-              {t("Tidak ada acara yang sesuai filter saat ini. Coba pilih kategori lain.")}
+              {isPastEvents
+                ? t("Belum ada agenda yang telah selesai untuk filter ini.")
+                : t(
+                    "Tidak ada acara mendatang yang sesuai filter saat ini. Coba pilih kategori lain."
+                  )}
             </p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
             {events.map((event, index) => {
               const date = formatEventDate(event.event_date);
-              const isFirst = index === 0;
+              const isFirstUpcomingEvent = index === 0 && !isPastEvents;
 
               return (
                 <Link
                   key={event.id}
                   href={`/events/${event.slug}`}
                   className={`group flex flex-col sm:flex-row gap-0 rounded-2xl overflow-hidden border transition-all duration-300 hover:shadow-[0px_8px_32px_rgba(80,100,71,0.12)] hover:-translate-y-0.5 ${
-                    isFirst
+                    isFirstUpcomingEvent
                       ? "border-primary/20 bg-primary/[0.03]"
                       : "border-outline-variant/30 bg-surface-container-lowest"
                   }`}
@@ -125,21 +165,21 @@ export default function Index({ events, currentScope }: EventIndexProps) {
                   {/* Date Badge */}
                   <div
                     className={`flex sm:flex-col items-center justify-center gap-3 sm:gap-1 px-6 py-4 sm:py-8 sm:w-24 shrink-0 ${
-                      isFirst
+                      isFirstUpcomingEvent
                         ? "bg-primary text-on-primary"
                         : "bg-surface-container text-on-surface"
                     }`}
                   >
                     <span
                       className={`font-headline font-extrabold text-3xl sm:text-4xl leading-none ${
-                        isFirst ? "text-on-primary" : "text-primary"
+                        isFirstUpcomingEvent ? "text-on-primary" : "text-primary"
                       }`}
                     >
                       {date.day}
                     </span>
                     <span
                       className={`font-label font-bold text-sm uppercase tracking-wider ${
-                        isFirst ? "text-on-primary/80" : "text-on-surface-variant"
+                        isFirstUpcomingEvent ? "text-on-primary/80" : "text-on-surface-variant"
                       }`}
                     >
                       {date.month}
@@ -151,6 +191,11 @@ export default function Index({ events, currentScope }: EventIndexProps) {
                     <div className="flex-1 min-w-0">
                       {/* Badges */}
                       <div className="flex flex-wrap items-center gap-2 mb-2">
+                        {isPastEvents && (
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold font-label bg-surface-container-high text-on-surface-variant">
+                            {t("Selesai")}
+                          </span>
+                        )}
                         <PaymentBadge event={event} />
                         {event.visibility_scope && event.visibility_scope !== "global" ? (
                           <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold font-label bg-secondary-container text-on-surface-variant">
@@ -187,7 +232,7 @@ export default function Index({ events, currentScope }: EventIndexProps) {
                     <div className="shrink-0 self-end sm:self-auto">
                       <span
                         className={`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full font-label font-semibold text-sm transition-all ${
-                          isFirst
+                          isFirstUpcomingEvent
                             ? "bg-primary text-on-primary group-hover:bg-primary/90"
                             : "bg-surface-container text-on-surface group-hover:bg-primary group-hover:text-on-primary"
                         }`}
