@@ -5,6 +5,7 @@ import { PageProps, GontorEvent, Rsvp, CustomFormField, EventAddon } from "@/typ
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import CurrencyInput from "@/Components/CurrencyInput";
+import { normalizeAddonFormOptions } from "@/utils/addonFormOptions";
 import { resolveSatuteraFee } from "@/utils/paymentFee";
 
 // ─── Local Types ─────────────────────────────────────────────────────────────
@@ -1429,9 +1430,9 @@ export default function Show({
                               }`}
                             >
                               <option value="">-- Pilih {form.label.toLowerCase()} --</option>
-                              {form.options?.map((opt: string) => (
-                                <option key={opt} value={opt}>
-                                  {opt}
+                              {normalizeAddonFormOptions(form.options).map((option) => (
+                                <option key={option.key} value={option.value}>
+                                  {option.label}
                                 </option>
                               ))}
                             </select>
@@ -1721,9 +1722,9 @@ export default function Show({
                                   }`}
                                 >
                                   <option value="">-- Pilih {form.label.toLowerCase()} --</option>
-                                  {form.options?.map((opt: string) => (
-                                    <option key={opt} value={opt}>
-                                      {opt}
+                                  {normalizeAddonFormOptions(form.options).map((option) => (
+                                    <option key={option.key} value={option.value}>
+                                      {option.label}
                                     </option>
                                   ))}
                                 </select>

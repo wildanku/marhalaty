@@ -2,7 +2,7 @@
 
 @font-face {
   font-family: "Overused Grotesk";
-  src: url("/fonts/overused_grotesk/fonts/variable/OverusedGrotesk-VF.woff2") format("woff2");
+  src: url("../fonts/overused_grotesk/OverusedGrotesk-VF.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
 }

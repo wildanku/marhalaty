@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Head, useForm, Link } from "@inertiajs/react";
 import AsyncSelect from "@/Components/AsyncSelect";
 import GodModeLayout from "@/Layouts/GodModeLayout";
+import { normalizeAddonFormOptions } from "@/utils/addonFormOptions";
 
 const formatRp = (val: string | number) =>
   "Rp " + parseInt(String(val) || "0").toLocaleString("id-ID");
@@ -434,7 +435,11 @@ export default function ManualRegister({ admin, event }: ManualRegisterProps) {
                                             className="w-full bg-[#161b22] border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
                                           >
                                             <option value="">-- Pilih --</option>
-                                            {form.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                                            {normalizeAddonFormOptions(form.options).map((option) => (
+                                              <option key={option.key} value={option.value}>
+                                                {option.label}
+                                              </option>
+                                            ))}
                                           </select>
                                         ) : (
                                           <input
@@ -551,7 +556,11 @@ export default function ManualRegister({ admin, event }: ManualRegisterProps) {
                                                 className="w-full bg-[#161b22] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white"
                                               >
                                                 <option value="">-- Pilih --</option>
-                                                {form.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                                                {normalizeAddonFormOptions(form.options).map((option) => (
+                                                  <option key={option.key} value={option.value}>
+                                                    {option.label}
+                                                  </option>
+                                                ))}
                                               </select>
                                             ) : (
                                               <input
