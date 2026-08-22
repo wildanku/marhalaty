@@ -68,6 +68,8 @@ export default function VariantEditor({
 }: VariantEditorProps) {
   const [chipDrafts, setChipDrafts] = useState<Record<number, string>>({});
   const [bulkPrice, setBulkPrice] = useState("");
+  const [bulkStock, setBulkStock] = useState("");
+  const canAddBulkStock = Number.isSafeInteger(Number(bulkStock)) && Number(bulkStock) > 0;
 
   const addGroup = () => {
     if (options.length >= MAX_OPTION_GROUPS) return;
@@ -117,6 +119,26 @@ export default function VariantEditor({
       options,
       variants.map((v) => ({ ...v, price: bulkPrice }))
     );
+  };
+
+  const addBulkStock = () => {
+    const stockToAdd = Number(bulkStock);
+    if (!canAddBulkStock) return;
+
+    onChange(
+      options,
+      variants.map((variant) => {
+        const currentStock = Number(variant.stock_quantity);
+        const normalizedCurrentStock =
+          Number.isSafeInteger(currentStock) && currentStock >= 0 ? currentStock : 0;
+
+        return {
+          ...variant,
+          stock_quantity: String(normalizedCurrentStock + stockToAdd),
+        };
+      })
+    );
+    setBulkStock("");
   };
 
   const warnings = variants.filter(
@@ -207,20 +229,42 @@ export default function VariantEditor({
 
       {variants.length > 0 && (
         <div>
-          <div className="flex items-center gap-3 mb-4">
-            <CurrencyInput
-              value={bulkPrice}
-              onChange={setBulkPrice}
-              className="max-w-[220px]"
-              placeholder="Isi semua harga"
-            />
-            <button
-              type="button"
-              onClick={applyBulkPrice}
-              className="px-4 py-2 bg-surface-container-high rounded-lg text-sm font-label font-medium text-on-surface-variant hover:bg-surface-container-highest whitespace-nowrap"
-            >
-              Terapkan ke Semua
-            </button>
+          <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-2">
+            <div className="flex items-center gap-3">
+              <CurrencyInput
+                value={bulkPrice}
+                onChange={setBulkPrice}
+                className="max-w-[220px]"
+                placeholder="Isi semua harga"
+              />
+              <button
+                type="button"
+                onClick={applyBulkPrice}
+                className="px-4 py-2 bg-surface-container-high rounded-lg text-sm font-label font-medium text-on-surface-variant hover:bg-surface-container-highest whitespace-nowrap"
+              >
+                Terapkan ke Semua
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={bulkStock}
+                onChange={(event) => setBulkStock(event.target.value)}
+                placeholder="Tambah stok semua"
+                aria-label="Jumlah stok yang ditambahkan ke semua varian"
+                className="w-full max-w-[220px] py-2 px-3 bg-surface border border-outline rounded-lg text-sm"
+              />
+              <button
+                type="button"
+                onClick={addBulkStock}
+                disabled={!canAddBulkStock}
+                className="px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-label font-medium hover:bg-primary-container hover:text-on-primary-container disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                Tambah ke Semua
+              </button>
+            </div>
           </div>
 
           {warnings.length > 0 && (

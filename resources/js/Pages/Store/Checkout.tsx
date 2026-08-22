@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Head, Link, useForm, usePage } from "@inertiajs/react";
+import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
 import {
   Cart,
   PageProps,
@@ -38,6 +38,19 @@ interface ManualAccountPreview {
   account_holder: string;
   branch: string | null;
   instructions: string | null;
+}
+
+interface CheckoutFormData {
+  user_address_id: number | null;
+  shipping_courier_code: string | null;
+  shipping_service: string | null;
+  shipping_method_id: string | null;
+  payment_gateway: string;
+  payment_provider: string;
+  payment_method: string;
+  payment_channel: string;
+  buyer_note: string;
+  item_notes: Record<string, string>;
 }
 
 type CheckoutPageProps = PageProps &
@@ -121,7 +134,7 @@ function CheckoutForm({
   const preFeeAmount = summary.subtotal + (shippingCost ?? 0);
   const qrisOnlyActive = preFeeAmount > 0 && preFeeAmount < qrisOnlyBelowAmount;
 
-  const { data, setData, post, processing, errors } = useForm({
+  const { data, setData, post, processing, errors } = useForm<CheckoutFormData>({
     user_address_id: null as number | null,
     shipping_courier_code: null as string | null,
     shipping_service: null as string | null,
@@ -131,6 +144,7 @@ function CheckoutForm({
     payment_method: "",
     payment_channel: "",
     buyer_note: "",
+    item_notes: {},
   });
 
   const paymentReady =
@@ -173,6 +187,24 @@ function CheckoutForm({
 
   const doSubmit = () => {
     post(`/checkout/${store.slug}`);
+  };
+
+  const noteFor = (itemId: number, initial: string | null | undefined): string =>
+    data.item_notes[String(itemId)] ?? initial ?? "";
+
+  const changeItemNote = (itemId: number, note: string) => {
+    setData("item_notes", {
+      ...data.item_notes,
+      [String(itemId)]: note,
+    });
+  };
+
+  const saveItemNote = (itemId: number, quantity: number, note: string) => {
+    router.patch(
+      `/cart/items/${itemId}`,
+      { quantity, note: note.trim() || null },
+      { preserveScroll: true }
+    );
   };
 
   // Deduplicated so e.g. payment_provider/payment_method/payment_channel all failing at once
@@ -229,35 +261,54 @@ function CheckoutForm({
           <div className="lg:col-span-2 space-y-5">
             <SectionCard icon="inventory_2" title="Produk">
               <div className="divide-y divide-outline-variant/10">
-                {cart.items?.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                    <div className="w-14 h-14 rounded-xl bg-surface-container-high flex items-center justify-center overflow-hidden shrink-0">
-                      {item.product?.primary_image_url && (
-                        <img
-                          src={item.product.primary_image_url}
-                          alt={item.product.name}
-                          className="w-full h-full object-cover"
+                {cart.items?.map((item) => {
+                  const note = noteFor(item.id, item.note);
+
+                  return (
+                    <div key={item.id} className="py-3 first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-xl bg-surface-container-high flex items-center justify-center overflow-hidden shrink-0">
+                          {item.product?.primary_image_url && (
+                            <img
+                              src={item.product.primary_image_url}
+                              alt={item.product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-on-surface truncate">
+                            {item.product?.name}
+                          </p>
+                          {item.variant && (
+                            <p className="text-xs text-on-surface-variant mt-0.5">
+                              {item.variant.label}
+                            </p>
+                          )}
+                        </div>
+                        <p className="text-sm text-on-surface-variant shrink-0">
+                          × {item.quantity}
+                        </p>
+                      </div>
+                      <div className="mt-3 pl-[4.5rem]">
+                        <input
+                          type="text"
+                          value={note}
+                          maxLength={250}
+                          placeholder="Catatan untuk produk ini (opsional) — mis. ukuran, warna"
+                          onChange={(event) => changeItemNote(item.id, event.target.value)}
+                          onBlur={(event) =>
+                            saveItemNote(item.id, item.quantity, event.target.value)
+                          }
+                          className="block w-full py-2 px-3 bg-surface-container-high border-0 rounded-xl focus:ring-2 focus:ring-primary/40 text-on-surface font-body text-xs placeholder:text-on-surface-variant/60"
                         />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-on-surface truncate">
-                        {item.product?.name}
-                      </p>
-                      {item.variant && (
-                        <p className="text-xs text-on-surface-variant mt-0.5">
-                          {item.variant.label}
+                        <p className="text-[11px] text-on-surface-variant/60 mt-1 text-right">
+                          {note.length}/250
                         </p>
-                      )}
-                      {item.note && (
-                        <p className="text-xs text-on-surface-variant/80 italic mt-0.5 truncate">
-                          "{item.note}"
-                        </p>
-                      )}
+                      </div>
                     </div>
-                    <p className="text-sm text-on-surface-variant shrink-0">× {item.quantity}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </SectionCard>
 

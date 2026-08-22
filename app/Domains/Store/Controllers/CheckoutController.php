@@ -73,6 +73,8 @@ class CheckoutController extends Controller
             'payment_method' => 'required_if:payment_gateway,satutera|nullable|string|max:20',
             'payment_channel' => 'required_if:payment_gateway,satutera|nullable|string|max:30',
             'buyer_note' => 'nullable|string|max:500',
+            'item_notes' => 'nullable|array',
+            'item_notes.*' => 'nullable|string|max:250',
         ]);
 
         $cart = Cart::where('user_id', $request->user()->id)

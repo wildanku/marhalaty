@@ -42,6 +42,7 @@ class CheckoutService
      *   payment_method?: string|null,
      *   payment_channel?: string|null,
      *   buyer_note?: string|null,
+     *   item_notes?: array<string, string|null>,
      * } $data
      */
     public function place(User $buyer, Cart $cart, array $data): StoreOrder
@@ -56,6 +57,18 @@ class CheckoutService
             $cart->load('items');
             if ($cart->items->isEmpty()) {
                 throw ValidationException::withMessages(['cart' => 'Keranjang kosong.']);
+            }
+
+            // The checkout page lets buyers change an item note without returning to the cart.
+            // Only apply entries for cart items loaded for this buyer/store, then use those same
+            // in-memory values when creating order-item snapshots below.
+            foreach ($cart->items as $cartItem) {
+                if (! array_key_exists((string) $cartItem->id, $data['item_notes'] ?? [])) {
+                    continue;
+                }
+
+                $note = trim((string) $data['item_notes'][(string) $cartItem->id]) ?: null;
+                $cartItem->update(['note' => $note]);
             }
 
             [$orderItemsData, $subtotal, $totalWeight, $requiresShipping] = $this->lockAndValidateItems($cart);
