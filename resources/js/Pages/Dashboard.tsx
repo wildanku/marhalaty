@@ -1,12 +1,22 @@
-import { Head, Link, usePage } from "@inertiajs/react";
+import { useState } from "react";
+import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
 import { PageProps, Rsvp } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import PendingPaymentModal from "@/Components/Event/PendingPaymentModal";
 import { useTranslate } from "@/hooks/useTranslate";
 
 export default function Dashboard() {
-  const { auth, rsvps } = usePage<PageProps<{ rsvps: Rsvp[] }>>().props;
+  const { auth, rsvps, enabledPaymentProviders, qrisOnlyBelowAmount } = usePage<
+    PageProps<{
+      rsvps: Rsvp[];
+      enabledPaymentProviders: string[];
+      qrisOnlyBelowAmount: number;
+    }>
+  >().props;
   const { t, locale } = useTranslate();
+  const [paymentRsvp, setPaymentRsvp] = useState<Rsvp | null>(null);
+  const cancelForm = useForm<{ return_to_dashboard: boolean }>({ return_to_dashboard: true });
 
   const statusConfig: Record<string, { label: string; bg: string; text: string; icon: string }> = {
     pending: {
@@ -43,6 +53,21 @@ export default function Dashboard() {
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(parseFloat(val));
+
+  const cancelRegistration = (rsvp: Rsvp) => {
+    const transaction = rsvp.latest_transaction;
+    if (!transaction) return;
+
+    if (
+      !window.confirm(
+        "Batalkan pendaftaran dan hapus pembayaran ini? Tindakan ini tidak dapat dibatalkan."
+      )
+    ) {
+      return;
+    }
+
+    cancelForm.post(`/payments/${transaction.id}/cancel`);
+  };
 
   return (
     <div className="min-h-screen bg-background text-on-background font-body antialiased">
@@ -128,6 +153,8 @@ export default function Dashboard() {
                 const event = rsvp.event;
                 const tx = rsvp.latest_transaction;
                 const paymentHash = tx?.payment_hash;
+                const canManagePendingPayment =
+                  rsvp.status === "pending" && tx !== null && tx !== undefined && tx.proof === null;
 
                 return (
                   <div
@@ -256,6 +283,29 @@ export default function Dashboard() {
                             )}
                           </>
                         )}
+                        {canManagePendingPayment && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setPaymentRsvp(rsvp)}
+                              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary-container/45 hover:bg-primary-container/70 text-on-primary-container px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">
+                                sync_alt
+                              </span>
+                              Ubah Pembayaran
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => cancelRegistration(rsvp)}
+                              disabled={cancelForm.processing}
+                              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-error/25 bg-error-container/35 hover:bg-error-container text-on-error-container px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                              Hapus Pendaftaran
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -265,6 +315,15 @@ export default function Dashboard() {
           )}
         </section>
       </div>
+      {paymentRsvp && (
+        <PendingPaymentModal
+          key={paymentRsvp.id}
+          rsvp={paymentRsvp}
+          enabledPaymentProviders={enabledPaymentProviders}
+          qrisOnlyBelowAmount={qrisOnlyBelowAmount}
+          onClose={() => setPaymentRsvp(null)}
+        />
+      )}
       <Footer />
     </div>
   );

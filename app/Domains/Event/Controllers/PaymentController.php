@@ -3,9 +3,13 @@
 namespace App\Domains\Event\Controllers;
 
 use App\Contracts\PaymentProviderInterface;
+use App\Domains\Event\Models\Rsvp;
 use App\Domains\Event\Models\Transaction;
+use App\Domains\Event\Requests\ReplacePendingRsvpPaymentRequest;
+use App\Domains\Event\Services\PendingRsvpPaymentService;
 use App\Domains\Shared\Services\PaymentSettingsService;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -39,13 +43,17 @@ class PaymentController extends Controller
      */
     public function cancel(Request $request, int $id)
     {
-        $transaction = Transaction::with('rsvp')
+        $transaction = Transaction::with(['rsvp.event', 'proof'])
             ->where('user_id', $request->user()->id)
             ->findOrFail($id);
 
         // Only allow cancellation of pending transactions
-        if ($transaction->status !== 'pending') {
+        if ($transaction->status !== 'pending' || $transaction->rsvp->status !== 'pending') {
             return redirect()->back()->with('error', 'Hanya transaksi pending yang dapat dibatalkan.');
+        }
+
+        if ($transaction->proof !== null) {
+            return redirect()->back()->with('error', 'Bukti transfer sudah diunggah dan sedang menunggu verifikasi. Hubungi admin untuk bantuan.');
         }
 
         $userId = $request->user()->id;
@@ -56,13 +64,12 @@ class PaymentController extends Controller
             // Cancel transaction
             $transaction->update(['status' => 'cancelled']);
 
-            // Delete RSVP registration — forceDelete() here is a plain hard delete (Rsvp doesn't
-            // use SoftDeletes, so Model::forceDelete() falls back to delete()), which fires the
-            // same `deleted` event as any other delete. RsvpObserver::deleted() reacts to that by
+            // Delete the RSVP registration. Rsvp does not use SoftDeletes, so this is a hard
+            // delete and fires the normal `deleted` event. RsvpObserver::deleted() reacts by
             // releasing any product reservations this RSVP was holding
             // (docs/plan/mvp2/8-event-product-integration.md) — nothing else to do here.
             if ($transaction->rsvp) {
-                $transaction->rsvp->forceDelete();
+                $transaction->rsvp->delete();
             }
 
             Log::info('Payment cancelled and RSVP deleted', [
@@ -72,8 +79,31 @@ class PaymentController extends Controller
             ]);
         });
 
+        if ($request->boolean('return_to_dashboard')) {
+            return redirect()->route('dashboard')
+                ->with('success', 'Pendaftaran dan pembayaran berhasil dibatalkan.');
+        }
+
         return redirect()->route('events.show', $eventSlug)
             ->with('success', 'Pendaftaran dibatalkan. Anda dapat mendaftar kembali kapan saja.');
+    }
+
+    /**
+     * Replace payment instructions for the authenticated user's own pending RSVP, preserving the
+     * original registration, price snapshot, and merchandise reservations.
+     */
+    public function replacePendingPayment(
+        ReplacePendingRsvpPaymentRequest $request,
+        Rsvp $rsvp,
+        PendingRsvpPaymentService $pendingPayment,
+    ) {
+        /** @var User $user */
+        $user = $request->user();
+        $transaction = $pendingPayment->replace($rsvp, $user, $request->validated());
+
+        return redirect()
+            ->route('payment.show', $transaction->payment_hash)
+            ->with('success', 'Metode pembayaran diperbarui. Instruksi pembayaran telah dikirim ulang.');
     }
 
     /**
@@ -112,8 +142,9 @@ class PaymentController extends Controller
                 return;
             }
 
-            // Idempotency: skip if already processed
-            if ($transaction->status === 'paid') {
+            // A replaced/cancelled payment must never be resurrected by a late provider callback.
+            // This also makes duplicate paid callbacks idempotent.
+            if ($transaction->status !== 'pending') {
                 return;
             }
 

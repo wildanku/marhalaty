@@ -93,6 +93,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/events/{slug}/rsvp', [RsvpController::class, 'store'])->name('events.rsvp');
     Route::get('/rsvps/{id}/edit', [RsvpController::class, 'edit'])->name('rsvps.edit');
     Route::put('/rsvps/{id}', [RsvpController::class, 'update'])->name('rsvps.update');
+    Route::post('/rsvps/{rsvp}/payment-method', [PaymentController::class, 'replacePendingPayment'])->name('rsvps.payment-method.replace');
 
     // Payment routes (authenticated user)
     Route::get('/payments/{id}', [PaymentController::class, 'show'])->name('payments.show');
