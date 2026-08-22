@@ -100,6 +100,7 @@ function CheckoutForm({
   const [addressId, setAddressId] = useState<number | null>(null);
   const [shippingRate, setShippingRate] = useState<ShippingRate | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<StoreShippingMethod | null>(null);
+  const [useAutomaticCourier, setUseAutomaticCourier] = useState(false);
   const [selectedGateway, setSelectedGateway] = useState<string | null>(
     paymentGateways.length === 1 ? paymentGateways[0].code : null
   );
@@ -113,15 +114,24 @@ function CheckoutForm({
   const selectCustomMethod = (method: StoreShippingMethod) => {
     setSelectedMethod(method);
     setShippingRate(null);
+    setUseAutomaticCourier(false);
+  };
+
+  const selectAutomaticCourier = () => {
+    setSelectedMethod(null);
+    setShippingRate(null);
+    setUseAutomaticCourier(true);
   };
 
   const selectCourierRate = (rate: ShippingRate | null) => {
     setShippingRate(rate);
-    if (rate) setSelectedMethod(null);
+    setSelectedMethod(null);
+    setUseAutomaticCourier(true);
   };
 
   const isPickup = selectedMethod?.type === "pickup";
-  const needsAddress = summary.requires_shipping && !isPickup;
+  const needsAddress =
+    summary.requires_shipping && (useAutomaticCourier || (selectedMethod !== null && !isPickup));
 
   const shippingCost = summary.requires_shipping
     ? selectedMethod
@@ -155,7 +165,7 @@ function CheckoutForm({
     (!summary.requires_shipping ||
       (selectedMethod !== null
         ? isPickup || addressId !== null
-        : addressId !== null && shippingRate !== null));
+        : useAutomaticCourier && addressId !== null && shippingRate !== null));
 
   // Keep the submitted form data in sync with these picks as they happen, rather than only at
   // submit time: `post()` serializes `data` synchronously when called, so a `setData()` inside
@@ -314,97 +324,103 @@ function CheckoutForm({
 
             {summary.requires_shipping && (
               <SectionCard icon="local_shipping" title="Pilih Pengiriman">
-                {shippingMethods.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    {shippingMethods.map((method) => {
-                      const isSelected = selectedMethod?.id === method.id;
-                      const fee = Number(method.fee);
-                      return (
-                        <label
-                          key={method.id}
-                          className={`flex items-start justify-between gap-3 p-4 rounded-2xl border cursor-pointer transition-colors ${
-                            isSelected
-                              ? "border-primary bg-primary-container/20"
-                              : "border-outline-variant/20 hover:border-outline-variant"
-                          }`}
-                        >
-                          <div className="flex items-start gap-3 min-w-0">
-                            <input
-                              type="radio"
-                              name="shipping_method"
-                              checked={isSelected}
-                              onChange={() => selectCustomMethod(method)}
-                              className="mt-0.5 text-primary focus:ring-primary"
-                            />
-                            <div className="min-w-0">
-                              <p className="font-medium text-on-surface text-sm">{method.name}</p>
-                              {method.type === "pickup" && (
-                                <p className="text-xs text-on-surface-variant mt-0.5">
-                                  Ambil langsung di toko, tanpa ongkos kirim
-                                </p>
-                              )}
-                              {isSelected && method.type === "pickup" && (
-                                <div className="flex items-start gap-2 mt-3 rounded-xl bg-surface-container-lowest/70 px-3 py-2.5">
-                                  <span className="material-symbols-outlined text-primary text-base shrink-0">
-                                    location_on
-                                  </span>
-                                  <div>
-                                    <p className="text-xs font-label font-semibold text-on-surface">
-                                      Alamat toko
-                                    </p>
-                                    <p className="text-xs text-on-surface-variant mt-0.5">
-                                      {storeAddress ??
-                                        "Alamat toko belum diatur. Hubungi penjual untuk konfirmasi."}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-                              {method.description && (
-                                <>
-                                  <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-2">
-                                    {method.description}
+                <div className="space-y-2">
+                  {shippingMethods.map((method) => {
+                    const isSelected = selectedMethod?.id === method.id;
+                    const fee = Number(method.fee);
+                    return (
+                      <label
+                        key={method.id}
+                        className={`flex items-start justify-between gap-3 p-4 rounded-2xl border cursor-pointer transition-colors ${
+                          isSelected
+                            ? "border-primary bg-primary-container/20"
+                            : "border-outline-variant/20 hover:border-outline-variant"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3 min-w-0">
+                          <input
+                            type="radio"
+                            name="shipping_method"
+                            checked={isSelected}
+                            onChange={() => selectCustomMethod(method)}
+                            className="mt-0.5 text-primary focus:ring-primary"
+                          />
+                          <div className="min-w-0">
+                            <p className="font-medium text-on-surface text-sm">{method.name}</p>
+                            {method.type === "pickup" && (
+                              <p className="text-xs text-on-surface-variant mt-0.5">
+                                Ambil langsung di toko, tanpa ongkos kirim
+                              </p>
+                            )}
+                            {isSelected && method.type === "pickup" && (
+                              <div className="flex items-start gap-2 mt-3 rounded-xl bg-surface-container-lowest/70 px-3 py-2.5">
+                                <span className="material-symbols-outlined text-primary text-base shrink-0">
+                                  location_on
+                                </span>
+                                <div>
+                                  <p className="text-xs font-label font-semibold text-on-surface">
+                                    Alamat toko
                                   </p>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      setDetailMethod(method);
-                                    }}
-                                    className="text-xs font-label font-semibold text-primary mt-1 hover:underline"
-                                  >
-                                    Lihat selengkapnya
-                                  </button>
-                                </>
-                              )}
-                            </div>
+                                  <p className="text-xs text-on-surface-variant mt-0.5">
+                                    {storeAddress ??
+                                      "Alamat toko belum diatur. Hubungi penjual untuk konfirmasi."}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                            {method.description && (
+                              <>
+                                <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-2">
+                                  {method.description}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setDetailMethod(method);
+                                  }}
+                                  className="text-xs font-label font-semibold text-primary mt-1 hover:underline"
+                                >
+                                  Lihat selengkapnya
+                                </button>
+                              </>
+                            )}
                           </div>
-                          <p className="font-headline font-semibold text-on-surface whitespace-nowrap">
-                            {fee > 0 ? formatRupiah(fee) : "Gratis"}
-                          </p>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
+                        </div>
+                        <p className="font-headline font-semibold text-on-surface whitespace-nowrap">
+                          {fee > 0 ? formatRupiah(fee) : "Gratis"}
+                        </p>
+                      </label>
+                    );
+                  })}
 
-                {/* Only pickup hides this — there's no address to price a courier against once
-                    picked. A `flat` method keeps it visible so the buyer can still switch to a
-                    real courier (selectCourierRate clears selectedMethod when that happens). */}
-                {!isPickup && (
-                  <>
-                    {shippingMethods.length > 0 && (
-                      <p className="text-xs uppercase tracking-wider text-on-surface-variant font-label mb-2">
-                        Atau Kurir Ongkir
-                      </p>
-                    )}
-                    <ShippingRatePicker
-                      storeId={store.id}
-                      addressId={addressId}
-                      value={shippingRate}
-                      onSelect={selectCourierRate}
-                    />
-                  </>
-                )}
+                  <label
+                    className={`flex items-start justify-between gap-3 p-4 rounded-2xl border cursor-pointer transition-colors ${
+                      useAutomaticCourier
+                        ? "border-primary bg-primary-container/20"
+                        : "border-outline-variant/20 hover:border-outline-variant"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <input
+                        type="radio"
+                        name="shipping_method"
+                        checked={useAutomaticCourier}
+                        onChange={selectAutomaticCourier}
+                        className="mt-0.5 text-primary focus:ring-primary"
+                      />
+                      <div className="min-w-0">
+                        <p className="font-medium text-on-surface text-sm">Kirim ke alamat</p>
+                        <p className="text-xs text-on-surface-variant mt-0.5">
+                          Kurir otomatis — pilih alamat untuk melihat layanan dan ongkir.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-on-surface-variant text-xl">
+                      local_shipping
+                    </span>
+                  </label>
+                </div>
                 {errors.shipping_method_id && (
                   <p className="mt-2 text-xs text-error">{errors.shipping_method_id}</p>
                 )}
@@ -417,6 +433,17 @@ function CheckoutForm({
                   initialAddresses={addresses}
                   value={addressId}
                   onChange={setAddressId}
+                />
+              </SectionCard>
+            )}
+
+            {useAutomaticCourier && (
+              <SectionCard icon="local_shipping" title="Pilih Kurir & Ongkir">
+                <ShippingRatePicker
+                  storeId={store.id}
+                  addressId={addressId}
+                  value={shippingRate}
+                  onSelect={selectCourierRate}
                 />
               </SectionCard>
             )}
