@@ -3,8 +3,12 @@ import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { PageProps, StoreOrder, Transaction } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import DonationNotice from "@/Components/Payment/DonationNotice";
 import { validateFile } from "@/Helpers/fileValidation";
-import SatuteraPanel, { SatuteraLiveStatus, SATUTERA_FINAL_STATUSES } from "@/Components/Payment/SatuteraPanel";
+import SatuteraPanel, {
+  SatuteraLiveStatus,
+  SATUTERA_FINAL_STATUSES,
+} from "@/Components/Payment/SatuteraPanel";
 
 interface ManualAccount {
   id: number;
@@ -70,7 +74,11 @@ export default function PaymentPage() {
         </div>
 
         {isManual && status === "pending" && (
-          <ManualPaymentBlock hash={hash} manualAccounts={manualAccounts} hasExistingProof={!!transaction.proof} />
+          <ManualPaymentBlock
+            hash={hash}
+            manualAccounts={manualAccounts}
+            hasExistingProof={!!transaction.proof}
+          />
         )}
 
         {!isManual && (
@@ -113,6 +121,8 @@ export default function PaymentPage() {
             </Link>
           </div>
         )}
+
+        {(status === "paid" || transaction.proof) && <DonationNotice />}
 
         {(status === "failed" || status === "cancelled" || status === "expired") && (
           <div className="bg-error-container text-on-error-container rounded-3xl p-8 mb-6 text-center">
@@ -228,7 +238,9 @@ function ManualPaymentBlock({ hash, manualAccounts, hasExistingProof }: ManualPa
           manualAccounts.map((account, idx) => (
             <div key={account.id} className="bg-surface-container rounded-xl p-4 space-y-1">
               <div className="flex items-center justify-between">
-                <p className="font-headline font-bold text-on-surface text-lg">{account.bank_name}</p>
+                <p className="font-headline font-bold text-on-surface text-lg">
+                  {account.bank_name}
+                </p>
                 {manualAccounts.length > 1 && (
                   <span className="text-[10px] font-bold bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full uppercase">
                     Rekening {idx + 1}
@@ -239,7 +251,9 @@ function ManualPaymentBlock({ hash, manualAccounts, hasExistingProof }: ManualPa
                 {account.account_number}
               </p>
               <p className="text-sm text-on-surface-variant">a.n. {account.account_holder}</p>
-              {account.branch && <p className="text-xs text-on-surface-variant">Cabang {account.branch}</p>}
+              {account.branch && (
+                <p className="text-xs text-on-surface-variant">Cabang {account.branch}</p>
+              )}
               {account.instructions && (
                 <p className="text-xs text-on-surface-variant mt-2">{account.instructions}</p>
               )}
@@ -267,7 +281,9 @@ function ManualPaymentBlock({ hash, manualAccounts, hasExistingProof }: ManualPa
           </label>
           <div
             className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-              form.data.proof ? "border-primary bg-primary/5" : "border-surface-container-high hover:border-outline-variant"
+              form.data.proof
+                ? "border-primary bg-primary/5"
+                : "border-surface-container-high hover:border-outline-variant"
             }`}
           >
             <input

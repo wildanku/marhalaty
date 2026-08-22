@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Head, useForm, Link } from "@inertiajs/react";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import DonationNotice from "@/Components/Payment/DonationNotice";
 import { validateFile } from "@/Helpers/fileValidation";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 
@@ -557,6 +558,8 @@ export default function PaymentShow({
               </Link>
             </div>
           )}
+
+          {(transaction.status === "paid" || hasProof) && <DonationNotice />}
         </main>
         <Footer />
       </div>

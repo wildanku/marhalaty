@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import DonationNotice from "@/Components/Payment/DonationNotice";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 import { validateFile, MAX_FILE_SIZE_MB } from "@/Helpers/fileValidation";
 import SatuteraPanel, {
@@ -833,6 +834,8 @@ export default function PaymentPage({
               </Link>
             </div>
           )}
+
+          {(liveStatus === "paid" || transaction.proof) && <DonationNotice />}
         </main>
       </div>
       <Footer />

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import DonationNotice from "@/Components/Payment/DonationNotice";
 import { validateFile } from "@/Helpers/fileValidation";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 
@@ -112,27 +113,30 @@ export default function ConfirmationPage({
               </p>
             </div>
           ) : isPaid ? (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
-              <span
-                className="material-symbols-outlined text-5xl text-emerald-600 block mb-3"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                verified
-              </span>
-              <h2 className="font-headline font-bold text-on-surface text-lg mb-2">
-                Pembayaran Sudah Dikonfirmasi
-              </h2>
-              <p className="font-body text-sm text-on-surface-variant mb-4">
-                Tidak perlu upload bukti lagi.
-              </p>
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-full font-headline font-bold text-sm hover:opacity-90"
-              >
-                <span className="material-symbols-outlined text-[18px]">dashboard</span>
-                Dashboard
-              </Link>
-            </div>
+            <>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center mb-6">
+                <span
+                  className="material-symbols-outlined text-5xl text-emerald-600 block mb-3"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  verified
+                </span>
+                <h2 className="font-headline font-bold text-on-surface text-lg mb-2">
+                  Pembayaran Sudah Dikonfirmasi
+                </h2>
+                <p className="font-body text-sm text-on-surface-variant mb-4">
+                  Tidak perlu upload bukti lagi.
+                </p>
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-full font-headline font-bold text-sm hover:opacity-90"
+                >
+                  <span className="material-symbols-outlined text-[18px]">dashboard</span>
+                  Dashboard
+                </Link>
+              </div>
+              <DonationNotice />
+            </>
           ) : (
             <div className="bg-surface-container-lowest rounded-2xl border border-surface-container-high p-6 shadow-sm">
               {/* Previous proof notice */}
