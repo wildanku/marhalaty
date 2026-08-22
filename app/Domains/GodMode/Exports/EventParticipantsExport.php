@@ -219,7 +219,7 @@ class AddonsSheet implements FromCollection, ShouldAutoSize, WithHeadings, WithS
     {
         return [
             '#', 'Nama Peserta', 'Email', 'Domisili', 'Paket', 'Nama Addon', 'Qty',
-            'Harga Satuan', 'Total', 'Tipe', 'Varian', 'Status RSVP',
+            'Harga Satuan', 'Total', 'Tipe', 'Varian', 'Catatan Produk', 'Status RSVP',
         ];
     }
 
@@ -273,6 +273,7 @@ class AddonsSheet implements FromCollection, ShouldAutoSize, WithHeadings, WithS
                     (float) ($addon['total'] ?? 0),
                     isset($addon['is_included']) && $addon['is_included'] ? 'Bundled' : 'Beli',
                     $varStr ?: '-',
+                    $addon['note'] ?? '-',
                     $rsvp->status,
                 ];
             }
@@ -295,6 +296,7 @@ class AddonsSheet implements FromCollection, ShouldAutoSize, WithHeadings, WithS
                         0,
                         0,
                         'Bundled',
+                        '-',
                         '-',
                         $rsvp->status,
                     ];

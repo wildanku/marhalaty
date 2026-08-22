@@ -77,6 +77,10 @@ class RsvpController extends Controller
             'purchased_addon_forms.*' => 'nullable|array',
             'purchased_addon_forms.*.*' => 'nullable|array',
             'purchased_addon_forms.*.*.*' => 'nullable|string|max:255',
+            'included_addon_notes' => 'nullable|array',
+            'included_addon_notes.*' => 'nullable|string|max:250',
+            'purchased_addon_notes' => 'nullable|array',
+            'purchased_addon_notes.*' => 'nullable|string|max:250',
         ]);
 
         $infakAmount = $validated['infak_amount'] ?? 0;

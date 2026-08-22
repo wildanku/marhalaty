@@ -47,7 +47,7 @@ class EventController extends Controller
     {
         $event = Event::with(['addons', 'packages'])->findOrFail($id);
 
-        $rsvps = Rsvp::with(['package.includedAddons', 'latestTransaction'])
+        $rsvps = Rsvp::with(['user:id,name', 'package.includedAddons', 'latestTransaction'])
             ->where('event_id', $id)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -132,12 +132,33 @@ class EventController extends Controller
             }
         }
 
+        // Notes are stored on RSVP addon snapshots (rather than on the addon catalog) because
+        // they belong to one participant's product pickup request. Only product-linked addons
+        // can create this key; older/manual rows simply do not appear in this recap.
+        $addonNotes = $paidRsvps
+            ->flatMap(function (Rsvp $rsvp): array {
+                return collect($rsvp->add_ons_snapshot ?? [])
+                    ->filter(fn (array $addon): bool => trim((string) ($addon['note'] ?? '')) !== '')
+                    ->map(fn (array $addon): array => [
+                        'rsvp_id' => $rsvp->id,
+                        'participant_name' => $rsvp->is_manual_entry
+                            ? ($rsvp->guest_name ?? '—')
+                            : ($rsvp->user?->name ?? '—'),
+                        'addon_name' => $addon['name'] ?? '—',
+                        'note' => $addon['note'],
+                    ])
+                    ->all();
+            })
+            ->values()
+            ->all();
+
         return Inertia::render('GodMode/Events/Show', [
             'admin' => auth('admin')->user(),
             'event' => $event,
             'stats' => $stats,
             'package_stats' => $packageStats,
             'addon_stats' => array_values($addonStats),
+            'addon_notes' => $addonNotes,
             'packages' => $event->packages,
         ]);
     }

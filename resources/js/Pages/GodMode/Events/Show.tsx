@@ -33,6 +33,13 @@ interface AddonStat {
   revenue: number;
 }
 
+interface AddonNote {
+  rsvp_id: number;
+  participant_name: string;
+  addon_name: string;
+  note: string;
+}
+
 interface ParticipantRsvp extends Rsvp {
   user: {
     id: number;
@@ -80,6 +87,7 @@ interface EventShowProps {
   stats: EventStats;
   package_stats: PackageStat[];
   addon_stats: AddonStat[];
+  addon_notes: AddonNote[];
 }
 
 const formatRp = (val: string | number) =>
@@ -200,8 +208,6 @@ function QuickReviewModal({ transactionId, action, userName, onClose }: QuickRev
   );
 }
 
-
-
 export default function EventShow({
   admin,
   event,
@@ -209,6 +215,7 @@ export default function EventShow({
   stats,
   package_stats,
   addon_stats,
+  addon_notes,
 }: EventShowProps) {
   const [activeTab, setActiveTab] = useState<"peserta" | "paket" | "addon" | "infak">("peserta");
   const [search, setSearch] = useState("");
@@ -239,7 +246,7 @@ export default function EventShow({
       const res = await fetch(
         `/god-mode/events/${event.id}/api-rsvps?page=${page}&search=${encodeURIComponent(
           search
-        )}&status=${isInfak ? 'paid' : filterStatus}&has_infak=${isInfak ? 1 : 0}`
+        )}&status=${isInfak ? "paid" : filterStatus}&has_infak=${isInfak ? 1 : 0}`
       );
       const json = await res.json();
       setRsvpsData(json.data);
@@ -262,7 +269,7 @@ export default function EventShow({
     }, 500);
     return () => clearTimeout(timer);
   }, [search, filterStatus, activeTab, page]);
-  
+
   const handleDeleteRsvp = (rsvpId: number) => {
     if (confirm("Apakah Anda yakin ingin menghapus peserta ini?")) {
       setDeleting(rsvpId);
@@ -282,13 +289,11 @@ export default function EventShow({
     if (totalPages <= 1) return null;
     return (
       <div className="flex items-center justify-between px-5 py-3 border-t border-white/5 bg-[#161b22]">
-        <span className="text-sm text-white/40">
-          Total: {totalItems} data
-        </span>
+        <span className="text-sm text-white/40">Total: {totalItems} data</span>
         <div className="flex gap-1">
           <button
             disabled={page <= 1 || loading}
-            onClick={() => setPage(p => p - 1)}
+            onClick={() => setPage((p) => p - 1)}
             className="px-3 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white/70 text-sm"
           >
             Prev
@@ -298,7 +303,7 @@ export default function EventShow({
           </span>
           <button
             disabled={page >= totalPages || loading}
-            onClick={() => setPage(p => p + 1)}
+            onClick={() => setPage((p) => p + 1)}
             className="px-3 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white/70 text-sm"
           >
             Next
@@ -317,7 +322,10 @@ export default function EventShow({
           transactionId={modal.transactionId}
           action={modal.action}
           userName={modal.userName}
-          onClose={() => { setModal(null); fetchData(); }}
+          onClose={() => {
+            setModal(null);
+            fetchData();
+          }}
         />
       )}
 
@@ -328,8 +336,6 @@ export default function EventShow({
           onClose={() => setImagePreview(null)}
         />
       )}
-
-
 
       {/* Top bar */}
       <div className="mb-6 flex flex-wrap justify-between items-center gap-3">
@@ -353,8 +359,10 @@ export default function EventShow({
                 );
               }}
             />
-            <span className={`text-xs font-bold uppercase ${event.is_registration_enabled !== false ? 'text-emerald-400' : 'text-white/40'}`}>
-              {event.is_registration_enabled !== false ? 'Open' : 'Closed'}
+            <span
+              className={`text-xs font-bold uppercase ${event.is_registration_enabled !== false ? "text-emerald-400" : "text-white/40"}`}
+            >
+              {event.is_registration_enabled !== false ? "Open" : "Closed"}
             </span>
           </div>
           <div className="relative">
@@ -364,15 +372,14 @@ export default function EventShow({
             >
               <span className="material-symbols-outlined text-base">download</span>
               Export
-              <span className="material-symbols-outlined text-sm">{isExportOpen ? 'expand_less' : 'expand_more'}</span>
+              <span className="material-symbols-outlined text-sm">
+                {isExportOpen ? "expand_less" : "expand_more"}
+              </span>
             </button>
-            
+
             {isExportOpen && (
               <>
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setIsExportOpen(false)}
-                ></div>
+                <div className="fixed inset-0 z-40" onClick={() => setIsExportOpen(false)}></div>
                 <div className="absolute right-0 mt-2 w-52 bg-[#161b22] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 py-1">
                   <a
                     href={`/god-mode/events/${event.id}/export-excel`}
@@ -552,9 +559,7 @@ export default function EventShow({
           <div className="p-5 border-b border-white/5 flex flex-wrap gap-3 items-center justify-between">
             <h3 className="text-base font-bold text-white">
               Daftar Peserta
-              <span className="ml-2 text-white/40 font-normal text-sm">
-                ({totalItems} total)
-              </span>
+              <span className="ml-2 text-white/40 font-normal text-sm">({totalItems} total)</span>
             </h3>
             <div className="flex gap-3">
               <input
@@ -627,7 +632,7 @@ export default function EventShow({
                             href={`/god-mode/events/${event.id}/participants/${rsvp.id}`}
                             className="font-semibold text-blue-400 hover:text-blue-300 hover:underline transition-colors"
                           >
-                            {rsvp.is_manual_entry ? rsvp.guest_name : rsvp.user?.name ?? "—"}
+                            {rsvp.is_manual_entry ? rsvp.guest_name : (rsvp.user?.name ?? "—")}
                           </Link>
                           {rsvp.is_manual_entry && (
                             <span className="ml-2 inline-block bg-blue-900/40 text-blue-300 text-[10px] font-bold px-1.5 py-0.5 rounded border border-blue-700/50">
@@ -635,21 +640,38 @@ export default function EventShow({
                             </span>
                           )}
                           <div className="mt-0.5">
-                            {(rsvp.is_manual_entry ? rsvp.guest_phone : rsvp.user?.phone_number) && getWhatsAppUrl((rsvp.is_manual_entry ? rsvp.guest_phone : rsvp.user?.phone_number) as string) ? (
+                            {(rsvp.is_manual_entry ? rsvp.guest_phone : rsvp.user?.phone_number) &&
+                            getWhatsAppUrl(
+                              (rsvp.is_manual_entry
+                                ? rsvp.guest_phone
+                                : rsvp.user?.phone_number) as string
+                            ) ? (
                               <a
-                                href={getWhatsAppUrl((rsvp.is_manual_entry ? rsvp.guest_phone : rsvp.user?.phone_number) as string) ?? "#"}
+                                href={
+                                  getWhatsAppUrl(
+                                    (rsvp.is_manual_entry
+                                      ? rsvp.guest_phone
+                                      : rsvp.user?.phone_number) as string
+                                  ) ?? "#"
+                                }
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 hover:underline transition-colors"
-                                title={`Chat ${(rsvp.is_manual_entry ? rsvp.guest_name : rsvp.user?.name) ?? ''} di WhatsApp`}
+                                title={`Chat ${(rsvp.is_manual_entry ? rsvp.guest_name : rsvp.user?.name) ?? ""} di WhatsApp`}
                               >
-                                <span>{rsvp.is_manual_entry ? rsvp.guest_phone : rsvp.user?.phone_number}</span>
+                                <span>
+                                  {rsvp.is_manual_entry
+                                    ? rsvp.guest_phone
+                                    : rsvp.user?.phone_number}
+                                </span>
                               </a>
                             ) : (
                               <span className="text-xs text-white/30">—</span>
                             )}
                           </div>
-                          <div className="text-xs text-white/40 mt-0.5">{rsvp.is_manual_entry ? (rsvp.guest_email || "—") : domicile}</div>
+                          <div className="text-xs text-white/40 mt-0.5">
+                            {rsvp.is_manual_entry ? rsvp.guest_email || "—" : domicile}
+                          </div>
                           <div className="text-xs text-white/30 mt-0.5">
                             {new Date(rsvp.created_at).toLocaleString("id-ID", {
                               dateStyle: "long",
@@ -850,69 +872,113 @@ export default function EventShow({
       {/* ─── Addon Tab ───────────────────────────────────────────────────── */}
       {activeTab === "addon" && (
         <>
-        <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
-          <div className="p-5 border-b border-white/5">
-            <h3 className="font-bold text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-purple-400 text-[18px]">
-                category
-              </span>
-              Statistik Addon
-              <span className="text-xs text-white/40 font-normal">(hanya peserta lunas)</span>
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left text-white/70">
-              <thead className="bg-white/5 text-xs uppercase text-white/40 border-b border-white/5">
-                <tr>
-                  <th className="px-5 py-3 font-semibold">Nama Addon</th>
-                  <th className="px-5 py-3 font-semibold text-right">Pemesan (Lunas)</th>
-                  <th className="px-5 py-3 font-semibold text-right">Total Qty</th>
-                  <th className="px-5 py-3 font-semibold text-right">Pendapatan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {addon_stats.length === 0 ? (
+          <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
+            <div className="p-5 border-b border-white/5">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-purple-400 text-[18px]">
+                  category
+                </span>
+                Statistik Addon
+                <span className="text-xs text-white/40 font-normal">(hanya peserta lunas)</span>
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left text-white/70">
+                <thead className="bg-white/5 text-xs uppercase text-white/40 border-b border-white/5">
                   <tr>
-                    <td colSpan={4} className="px-5 py-8 text-center text-white/30">
-                      Belum ada addon dari peserta lunas.
-                    </td>
+                    <th className="px-5 py-3 font-semibold">Nama Addon</th>
+                    <th className="px-5 py-3 font-semibold text-right">Pemesan (Lunas)</th>
+                    <th className="px-5 py-3 font-semibold text-right">Total Qty</th>
+                    <th className="px-5 py-3 font-semibold text-right">Pendapatan</th>
                   </tr>
-                ) : (
-                  addon_stats.map((addon) => (
-                    <tr key={addon.addon_id} className="hover:bg-white/2">
-                      <td className="px-5 py-4 font-semibold text-white">{addon.addon_name}</td>
-                      <td className="px-5 py-4 text-right">{addon.count}</td>
-                      <td className="px-5 py-4 text-right">{addon.total_qty}</td>
-                      <td className="px-5 py-4 text-right font-semibold text-white">
-                        {formatRp(addon.revenue)}
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {addon_stats.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-5 py-8 text-center text-white/30">
+                        Belum ada addon dari peserta lunas.
                       </td>
                     </tr>
-                  ))
-                )}
-                {addon_stats.length > 0 && (
-                  <tr className="bg-white/5 font-bold">
-                    <td className="px-5 py-3 text-white/60 text-xs uppercase tracking-wider">
-                      Total
-                    </td>
-                    <td className="px-5 py-3 text-right text-white">
-                      {addon_stats.reduce((s, a) => s + a.count, 0)}
-                    </td>
-                    <td className="px-5 py-3 text-right text-white">
-                      {addon_stats.reduce((s, a) => s + a.total_qty, 0)}
-                    </td>
-                    <td className="px-5 py-3 text-right text-white">
-                      {formatRp(addon_stats.reduce((s, a) => s + a.revenue, 0))}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    addon_stats.map((addon) => (
+                      <tr key={addon.addon_id} className="hover:bg-white/2">
+                        <td className="px-5 py-4 font-semibold text-white">{addon.addon_name}</td>
+                        <td className="px-5 py-4 text-right">{addon.count}</td>
+                        <td className="px-5 py-4 text-right">{addon.total_qty}</td>
+                        <td className="px-5 py-4 text-right font-semibold text-white">
+                          {formatRp(addon.revenue)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                  {addon_stats.length > 0 && (
+                    <tr className="bg-white/5 font-bold">
+                      <td className="px-5 py-3 text-white/60 text-xs uppercase tracking-wider">
+                        Total
+                      </td>
+                      <td className="px-5 py-3 text-right text-white">
+                        {addon_stats.reduce((s, a) => s + a.count, 0)}
+                      </td>
+                      <td className="px-5 py-3 text-right text-white">
+                        {addon_stats.reduce((s, a) => s + a.total_qty, 0)}
+                      </td>
+                      <td className="px-5 py-3 text-right text-white">
+                        {formatRp(addon_stats.reduce((s, a) => s + a.revenue, 0))}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
 
-        <div className="mt-6">
-          <ProductReservationsRecap eventId={event.id} />
-        </div>
+          <div className="mt-6">
+            {addon_notes.length > 0 && (
+              <div className="mb-6 bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
+                <div className="p-5 border-b border-white/5">
+                  <h3 className="font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-amber-400 text-[18px]">
+                      edit_note
+                    </span>
+                    Catatan Produk dari Peserta
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left text-white/70">
+                    <thead className="bg-white/5 text-xs uppercase text-white/40 border-b border-white/5">
+                      <tr>
+                        <th className="px-5 py-3 font-semibold">Peserta</th>
+                        <th className="px-5 py-3 font-semibold">Addon</th>
+                        <th className="px-5 py-3 font-semibold">Catatan</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {addon_notes.map((addonNote, index) => (
+                        <tr
+                          key={`${addonNote.rsvp_id}-${addonNote.addon_name}-${index}`}
+                          className="hover:bg-white/2"
+                        >
+                          <td className="px-5 py-4">
+                            <Link
+                              href={`/god-mode/events/${event.id}/participants/${addonNote.rsvp_id}`}
+                              className="font-semibold text-blue-400 hover:text-blue-300 hover:underline"
+                            >
+                              {addonNote.participant_name}
+                            </Link>
+                          </td>
+                          <td className="px-5 py-4 text-white">{addonNote.addon_name}</td>
+                          <td className="px-5 py-4 text-amber-100 whitespace-pre-line">
+                            {addonNote.note}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            <ProductReservationsRecap eventId={event.id} />
+          </div>
         </>
       )}
 
@@ -953,21 +1019,21 @@ export default function EventShow({
                   </tr>
                 ) : (
                   rsvpsData.map((rsvp) => (
-                      <tr key={rsvp.id} className="hover:bg-white/2">
-                        <td className="px-5 py-4 font-semibold text-white">
-                          {rsvp.user?.name ?? "—"}
-                        </td>
-                        <td className="px-5 py-4 text-white/60">{rsvp.package?.name ?? "—"}</td>
-                        <td className="px-5 py-4 text-right font-semibold text-teal-400">
-                          {formatRp(rsvp.infak_amount)}
-                        </td>
-                        <td className="px-5 py-4 text-white/60 text-xs">
-                          {rsvp.latest_transaction?.paid_at
-                            ? new Date(rsvp.latest_transaction.paid_at).toLocaleString("id-ID")
-                            : "—"}
-                        </td>
-                      </tr>
-                    ))
+                    <tr key={rsvp.id} className="hover:bg-white/2">
+                      <td className="px-5 py-4 font-semibold text-white">
+                        {rsvp.user?.name ?? "—"}
+                      </td>
+                      <td className="px-5 py-4 text-white/60">{rsvp.package?.name ?? "—"}</td>
+                      <td className="px-5 py-4 text-right font-semibold text-teal-400">
+                        {formatRp(rsvp.infak_amount)}
+                      </td>
+                      <td className="px-5 py-4 text-white/60 text-xs">
+                        {rsvp.latest_transaction?.paid_at
+                          ? new Date(rsvp.latest_transaction.paid_at).toLocaleString("id-ID")
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))
                 )}
                 {stats.total_infak && parseFloat(stats.total_infak) > 0 && (
                   <tr className="bg-white/5 font-bold">
@@ -1060,7 +1126,9 @@ function ProductReservationsRecap({ eventId }: { eventId: number }) {
                 <div>
                   <p className="font-semibold text-white">
                     {row.product_name}
-                    {row.variant_label && <span className="text-white/50"> — {row.variant_label}</span>}
+                    {row.variant_label && (
+                      <span className="text-white/50"> — {row.variant_label}</span>
+                    )}
                   </p>
                   <p className="text-xs text-white/40">{row.store_name}</p>
                 </div>

@@ -144,6 +144,7 @@ export interface RsvpAddonSnapshot {
   variants: Record<string, string> | null;
   variant_slots?: Record<string, string | string[]> | null;
   form?: Record<string, any> | null;
+  note?: string | null;
   total: number;
 }
 

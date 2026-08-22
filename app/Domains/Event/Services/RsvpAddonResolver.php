@@ -40,8 +40,10 @@ class RsvpAddonResolver
      *   addons?: array<int, array{id:int, quantity:int}>,
      *   purchased_addon_variants?: array<int|string, mixed>,
      *   purchased_addon_forms?: array<int|string, mixed>,
+     *   purchased_addon_notes?: array<int|string, string|null>,
      *   included_addon_variants?: array<int|string, mixed>,
      *   included_addon_forms?: array<int|string, mixed>,
+     *   included_addon_notes?: array<int|string, string|null>,
      * }  $validated  Exactly RsvpController@store's already-validated request array — same keys
      *   it reads today (`addons`, `purchased_addon_variants`, etc.), so this is a drop-in
      *   replacement for its two addon loops, not a new payload shape to build.
@@ -67,6 +69,7 @@ class RsvpAddonResolver
 
         $purchasedAddonVariants = $validated['purchased_addon_variants'] ?? [];
         $purchasedAddonForms = $validated['purchased_addon_forms'] ?? [];
+        $purchasedAddonNotes = $validated['purchased_addon_notes'] ?? [];
 
         foreach ($validated['addons'] ?? [] as $purchasedAddon) {
             $addon = EventAddon::where('id', $purchasedAddon['id'])
@@ -77,9 +80,12 @@ class RsvpAddonResolver
             $quantity = (int) $purchasedAddon['quantity'];
             $variantSlots = $purchasedAddonVariants[$purchasedAddon['id']] ?? null;
             $form = $purchasedAddonForms[$purchasedAddon['id']] ?? null;
+            $note = $addon->is_product_linked
+                ? $this->normalizeNote($purchasedAddonNotes[$purchasedAddon['id']] ?? null)
+                : null;
 
             if ($addon->is_product_linked) {
-                [$row, $rowReservations] = $this->resolveLinkedAddon($reservable, $addon, $quantity, $variantSlots, $form, isIncluded: false);
+                [$row, $rowReservations] = $this->resolveLinkedAddon($reservable, $addon, $quantity, $variantSlots, $form, $note, isIncluded: false);
                 $reservations = array_merge($reservations, $rowReservations);
             } elseif ($addon->has_variants) {
                 if ($addon->stock_quantity < $quantity) {
@@ -109,7 +115,12 @@ class RsvpAddonResolver
         // regardless of whether the buyer paid for it separately or it came bundled in a package.
         $includedAddonVariants = $validated['included_addon_variants'] ?? [];
         $includedAddonForms = $validated['included_addon_forms'] ?? [];
-        $includedAddonIds = array_unique(array_merge(array_keys($includedAddonVariants), array_keys($includedAddonForms)));
+        $includedAddonNotes = $validated['included_addon_notes'] ?? [];
+        $includedAddonIds = array_unique(array_merge(
+            array_keys($includedAddonVariants),
+            array_keys($includedAddonForms),
+            array_keys($includedAddonNotes),
+        ));
 
         if (! empty($includedAddonIds) && $package) {
             $package->loadMissing('includedAddons');
@@ -124,9 +135,12 @@ class RsvpAddonResolver
                 $quantity = (int) $includedAddon->pivot->included_quantity;
                 $variantSlots = $includedAddonVariants[$addonId] ?? null;
                 $form = $includedAddonForms[$addonId] ?? null;
+                $note = $includedAddon->is_product_linked
+                    ? $this->normalizeNote($includedAddonNotes[$addonId] ?? null)
+                    : null;
 
                 if ($includedAddon->is_product_linked) {
-                    [$row, $rowReservations] = $this->resolveLinkedAddon($reservable, $includedAddon, $quantity, $variantSlots, $form, isIncluded: true);
+                    [$row, $rowReservations] = $this->resolveLinkedAddon($reservable, $includedAddon, $quantity, $variantSlots, $form, $note, isIncluded: true);
                     $reservations = array_merge($reservations, $rowReservations);
                 } elseif ($includedAddon->has_variants) {
                     $row = $this->resolveManualVariantPricing($includedAddon, $quantity, $variantSlots, $form, isIncluded: true);
@@ -144,7 +158,7 @@ class RsvpAddonResolver
     /**
      * @return array{0: array<string, mixed>, 1: array<int, ProductReservation>}
      */
-    private function resolveLinkedAddon(Model $reservable, EventAddon $addon, int $quantity, mixed $variantSlots, mixed $form, bool $isIncluded): array
+    private function resolveLinkedAddon(Model $reservable, EventAddon $addon, int $quantity, mixed $variantSlots, mixed $form, ?string $note, bool $isIncluded): array
     {
         $reservations = [];
         $total = 0;
@@ -176,7 +190,7 @@ class RsvpAddonResolver
             }
         }
 
-        $row = $this->buildAddonRow($addon, $quantity, $variantSlots, $form, $isIncluded, $total);
+        $row = $this->buildAddonRow($addon, $quantity, $variantSlots, $form, $isIncluded, $total, $note);
 
         return [$row, $reservations];
     }
@@ -204,10 +218,10 @@ class RsvpAddonResolver
     /**
      * @return array<string, mixed>
      */
-    private function buildAddonRow(EventAddon $addon, int $quantity, mixed $variantSlots, mixed $form, bool $isIncluded, float $total): array
+    private function buildAddonRow(EventAddon $addon, int $quantity, mixed $variantSlots, mixed $form, bool $isIncluded, float $total, ?string $note = null): array
     {
         if ($isIncluded) {
-            return [
+            $row = [
                 'id' => $addon->id,
                 'name' => $addon->name,
                 'price' => 0,
@@ -217,9 +231,15 @@ class RsvpAddonResolver
                 'total' => 0,
                 'is_included' => true,
             ];
+
+            if ($note !== null) {
+                $row['note'] = $note;
+            }
+
+            return $row;
         }
 
-        return [
+        $row = [
             'id' => $addon->id,
             'name' => $addon->name,
             'price' => $quantity > 0 ? round($total / $quantity, 2) : (float) $addon->price,
@@ -228,6 +248,19 @@ class RsvpAddonResolver
             'form' => $form,
             'total' => $total,
         ];
+
+        if ($note !== null) {
+            $row['note'] = $note;
+        }
+
+        return $row;
+    }
+
+    private function normalizeNote(mixed $note): ?string
+    {
+        $normalized = trim((string) $note);
+
+        return $normalized === '' ? null : $normalized;
     }
 
     /**

@@ -213,6 +213,8 @@ export default function Show({
     purchased_addon_variants: IncludedAddonVariants;
     included_addon_forms: Record<number, Record<string, string>>;
     purchased_addon_forms: Record<number, Record<string, Record<string, string>>>;
+    included_addon_notes: Record<number, string>;
+    purchased_addon_notes: Record<number, string>;
     payment_provider: "manual" | "ipaymu" | "satutera";
     // Satutera-only (fase 9) — see the note on the backend validation rules in
     // RsvpController@store for why these are separate from `payment_provider` above.
@@ -228,6 +230,8 @@ export default function Show({
     purchased_addon_variants: {},
     included_addon_forms: {},
     purchased_addon_forms: {},
+    included_addon_notes: {},
+    purchased_addon_notes: {},
     payment_provider: "manual",
     channel_provider: "",
     payment_method: "",
@@ -472,8 +476,10 @@ export default function Show({
     // Clear purchased variant slots when qty drops to 0
     if (qty === 0) {
       const { [addonId]: _removed, ...rest } = data.purchased_addon_variants;
+      const { [addonId]: _removedNote, ...restNotes } = data.purchased_addon_notes;
       setData("addons" as "addons", updated as SelectedAddon[]);
       setData("purchased_addon_variants", rest);
+      setData("purchased_addon_notes", restNotes);
       return;
     }
     setData("addons", updated);
@@ -530,6 +536,20 @@ export default function Show({
     setData("purchased_addon_forms", {
       ...data.purchased_addon_forms,
       [addonId]: { ...prev, [slotIndex]: { ...slotData, [formKey]: value } },
+    });
+  };
+
+  const handleIncludedAddonNote = (addonId: number, note: string) => {
+    setData("included_addon_notes", {
+      ...data.included_addon_notes,
+      [addonId]: note,
+    });
+  };
+
+  const handlePurchasedAddonNote = (addonId: number, note: string) => {
+    setData("purchased_addon_notes", {
+      ...data.purchased_addon_notes,
+      [addonId]: note,
     });
   };
 
@@ -1321,6 +1341,26 @@ export default function Show({
                   </span>
                 </div>
 
+                {addon.is_product_linked && (
+                  <div className="pt-3 border-t border-surface-container-high">
+                    <label className="block font-body text-xs font-semibold text-on-surface mb-1.5">
+                      Catatan untuk produk{" "}
+                      <span className="font-normal text-on-surface-variant">(opsional)</span>
+                    </label>
+                    <textarea
+                      value={data.included_addon_notes[addon.id] ?? ""}
+                      onChange={(event) => handleIncludedAddonNote(addon.id, event.target.value)}
+                      maxLength={250}
+                      rows={2}
+                      placeholder="Contoh: titipkan ke teman atau permintaan khusus"
+                      className="w-full px-3 py-2 rounded-lg border-2 border-surface-container-high bg-surface font-body text-sm text-on-surface outline-none transition-colors focus:border-primary"
+                    />
+                    <p className="mt-1 text-right font-body text-[11px] text-on-surface-variant">
+                      {(data.included_addon_notes[addon.id] ?? "").length}/250
+                    </p>
+                  </div>
+                )}
+
                 {variantKeys.length > 0 &&
                   (() => {
                     const isComplete = Array.from({ length: qty }, (_, slotIdx) =>
@@ -1661,6 +1701,26 @@ export default function Show({
                         </div>
                       );
                     })}
+                  </div>
+                )}
+
+                {qty > 0 && addon.is_product_linked && (
+                  <div className="pt-3 border-t border-surface-container-high">
+                    <label className="block font-body text-xs font-semibold text-on-surface mb-1.5">
+                      Catatan untuk produk{" "}
+                      <span className="font-normal text-on-surface-variant">(opsional)</span>
+                    </label>
+                    <textarea
+                      value={data.purchased_addon_notes[addon.id] ?? ""}
+                      onChange={(event) => handlePurchasedAddonNote(addon.id, event.target.value)}
+                      maxLength={250}
+                      rows={2}
+                      placeholder="Contoh: titipkan ke teman atau permintaan khusus"
+                      className="w-full px-3 py-2 rounded-lg border-2 border-surface-container-high bg-surface font-body text-sm text-on-surface outline-none transition-colors focus:border-primary"
+                    />
+                    <p className="mt-1 text-right font-body text-[11px] text-on-surface-variant">
+                      {(data.purchased_addon_notes[addon.id] ?? "").length}/250
+                    </p>
                   </div>
                 )}
 

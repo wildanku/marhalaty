@@ -121,7 +121,10 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
   })();
 
   return (
-    <GodModeLayout admin={admin} title={`Peserta: ${rsvp.is_manual_entry ? rsvp.guest_name : (rsvp.user?.name ?? "—")}`}>
+    <GodModeLayout
+      admin={admin}
+      title={`Peserta: ${rsvp.is_manual_entry ? rsvp.guest_name : (rsvp.user?.name ?? "—")}`}
+    >
       <Head title={`God Mode - Detail Peserta`} />
 
       {imagePreview && (
@@ -155,19 +158,29 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
             <div className="space-y-3">
               <div>
                 <p className="text-xs text-white/40 mb-0.5">Nama</p>
-                <p className="text-white font-semibold">{rsvp.is_manual_entry ? rsvp.guest_name : (rsvp.user?.name ?? "—")}</p>
+                <p className="text-white font-semibold">
+                  {rsvp.is_manual_entry ? rsvp.guest_name : (rsvp.user?.name ?? "—")}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-white/40 mb-0.5">Email</p>
-                <p className="text-white/80 text-sm">{rsvp.is_manual_entry ? (rsvp.guest_email || "—") : (rsvp.user?.email ?? "—")}</p>
+                <p className="text-white/80 text-sm">
+                  {rsvp.is_manual_entry ? rsvp.guest_email || "—" : (rsvp.user?.email ?? "—")}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-white/40 mb-0.5">No. HP</p>
-                <p className="text-white/80 text-sm">{rsvp.is_manual_entry ? (rsvp.guest_phone || "—") : (rsvp.user?.phone_number ?? "—")}</p>
+                <p className="text-white/80 text-sm">
+                  {rsvp.is_manual_entry
+                    ? rsvp.guest_phone || "—"
+                    : (rsvp.user?.phone_number ?? "—")}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-white/40 mb-0.5">Marhalah</p>
-                <p className="text-white/80 text-sm">{rsvp.is_manual_entry ? "Manual Registration" : (rsvp.user?.marhalah_year ?? "—")}</p>
+                <p className="text-white/80 text-sm">
+                  {rsvp.is_manual_entry ? "Manual Registration" : (rsvp.user?.marhalah_year ?? "—")}
+                </p>
               </div>
               {cityName && (
                 <div>
@@ -178,7 +191,9 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
               {(rsvp.is_manual_entry ? rsvp.guest_country : rsvp.user?.country) && (
                 <div>
                   <p className="text-xs text-white/40 mb-0.5">Negara</p>
-                  <p className="text-white/80 text-sm">{rsvp.is_manual_entry ? rsvp.guest_country : rsvp.user?.country}</p>
+                  <p className="text-white/80 text-sm">
+                    {rsvp.is_manual_entry ? rsvp.guest_country : rsvp.user?.country}
+                  </p>
                 </div>
               )}
             </div>
@@ -381,7 +396,7 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
                         {addon.variants && Object.keys(addon.variants).length > 0 && (
                           <div className="text-xs text-white/40 mt-0.5">
                             {Object.entries(addon.variants)
-                              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+                              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
                               .join(", ")}
                           </div>
                         )}
@@ -389,19 +404,28 @@ export default function ParticipantShow({ admin, event, rsvp }: ParticipantShowP
                         {addon.variant_slots && Object.keys(addon.variant_slots).length > 0 && (
                           <div className="text-xs text-white/40 mt-0.5">
                             {Object.entries(addon.variant_slots)
-                              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+                              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
                               .join(", ")}
                           </div>
                         )}
                         {/* Custom Forms */}
                         {addon.form && Object.keys(addon.form).length > 0 && (
                           <div className="text-xs text-white/40 mt-0.5">
-                            {Object.entries(addon.form).map(([k, v]) => {
-                              if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
-                                return `[Item #${parseInt(k)+1}: ${Object.entries(v).map(([sk, sv]) => `${sk} = ${sv}`).join(', ')}]`;
-                              }
-                              return `${k}: ${v}`;
-                            }).join(" ")}
+                            {Object.entries(addon.form)
+                              .map(([k, v]) => {
+                                if (typeof v === "object" && v !== null && !Array.isArray(v)) {
+                                  return `[Item #${parseInt(k) + 1}: ${Object.entries(v)
+                                    .map(([sk, sv]) => `${sk} = ${sv}`)
+                                    .join(", ")}]`;
+                                }
+                                return `${k}: ${v}`;
+                              })
+                              .join(" ")}
+                          </div>
+                        )}
+                        {addon.note && (
+                          <div className="mt-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-2.5 py-2 text-xs text-amber-100">
+                            <span className="font-semibold">Catatan produk:</span> {addon.note}
                           </div>
                         )}
                         <span className="text-xs text-white/40">x{addon.quantity}</span>
