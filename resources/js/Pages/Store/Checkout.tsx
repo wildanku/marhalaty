@@ -312,16 +312,6 @@ function CheckoutForm({
               </div>
             </SectionCard>
 
-            {needsAddress && (
-              <SectionCard icon="location_on" title="Alamat Pengiriman">
-                <AddressPicker
-                  initialAddresses={addresses}
-                  value={addressId}
-                  onChange={setAddressId}
-                />
-              </SectionCard>
-            )}
-
             {summary.requires_shipping && (
               <SectionCard icon="local_shipping" title="Pilih Pengiriman">
                 {shippingMethods.length > 0 && (
@@ -352,6 +342,22 @@ function CheckoutForm({
                                 <p className="text-xs text-on-surface-variant mt-0.5">
                                   Ambil langsung di toko, tanpa ongkos kirim
                                 </p>
+                              )}
+                              {isSelected && method.type === "pickup" && (
+                                <div className="flex items-start gap-2 mt-3 rounded-xl bg-surface-container-lowest/70 px-3 py-2.5">
+                                  <span className="material-symbols-outlined text-primary text-base shrink-0">
+                                    location_on
+                                  </span>
+                                  <div>
+                                    <p className="text-xs font-label font-semibold text-on-surface">
+                                      Alamat toko
+                                    </p>
+                                    <p className="text-xs text-on-surface-variant mt-0.5">
+                                      {storeAddress ??
+                                        "Alamat toko belum diatur. Hubungi penjual untuk konfirmasi."}
+                                    </p>
+                                  </div>
+                                </div>
                               )}
                               {method.description && (
                                 <>
@@ -402,6 +408,16 @@ function CheckoutForm({
                 {errors.shipping_method_id && (
                   <p className="mt-2 text-xs text-error">{errors.shipping_method_id}</p>
                 )}
+              </SectionCard>
+            )}
+
+            {needsAddress && (
+              <SectionCard icon="location_on" title="Alamat Pengiriman">
+                <AddressPicker
+                  initialAddresses={addresses}
+                  value={addressId}
+                  onChange={setAddressId}
+                />
               </SectionCard>
             )}
 
