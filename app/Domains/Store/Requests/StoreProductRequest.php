@@ -3,6 +3,7 @@
 namespace App\Domains\Store\Requests;
 
 use App\Domains\Store\Models\Store;
+use App\Domains\Store\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,7 +14,7 @@ class StoreProductRequest extends FormRequest
         /** @var Store $store */
         $store = $this->route('store');
 
-        return $store->isManagedBy($this->user());
+        return auth('admin')->check() || $store->isManagedBy($this->user());
     }
 
     public function rules(): array
@@ -21,6 +22,17 @@ class StoreProductRequest extends FormRequest
         $store = $this->route('store');
         $product = $this->route('product');
 
+        return self::rulesFor($store, $product, $this);
+    }
+
+    /**
+     * Shared by the regular form and JSON import request so both entry points enforce the
+     * identical product, option, weight, and SKU constraints.
+     *
+     * @return array<string, array<int, mixed>|string>
+     */
+    public static function rulesFor(Store $store, ?Product $product = null, ?self $request = null): array
+    {
         return [
             'name' => 'required|string|max:150',
             // HTML from the rich text editor — generous cap to cover markup overhead over the
@@ -45,7 +57,7 @@ class StoreProductRequest extends FormRequest
                 'integer',
                 'min:1',
                 'max:500000',
-                Rule::requiredIf(fn (): bool => $this->input('type') === 'physical' && ! $this->boolean('has_variants')),
+                Rule::requiredIf(fn (): bool => $request?->input('type') === 'physical' && ! $request->boolean('has_variants')),
             ],
 
             'options' => 'required_if:has_variants,true|array|max:2',
@@ -63,7 +75,7 @@ class StoreProductRequest extends FormRequest
                 'integer',
                 'min:1',
                 'max:500000',
-                Rule::requiredIf(fn (): bool => $this->input('type') === 'physical' && $this->boolean('has_variants')),
+                Rule::requiredIf(fn (): bool => $request?->input('type') === 'physical' && $request->boolean('has_variants')),
             ],
             'variants.*.sku' => 'nullable|string|max:50',
 

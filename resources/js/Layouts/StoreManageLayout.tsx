@@ -4,6 +4,7 @@ import { Store } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import StatusBadge from "@/Components/Store/StatusBadge";
+import { storeManagementUrl } from "@/Helpers/storeManagementUrl";
 
 export type StoreManageNav =
   | "dashboard"
@@ -23,36 +24,36 @@ interface StoreManageLayoutProps {
 }
 
 const navItems = (
-  storeId: string,
+  baseUrl: string,
   isOwner: boolean
 ): { key: StoreManageNav; href: string; label: string; icon: string }[] => [
-  { key: "dashboard", href: `/my/stores/${storeId}`, label: "Ringkasan", icon: "space_dashboard" },
-  { key: "products", href: `/my/stores/${storeId}/products`, label: "Produk", icon: "inventory_2" },
-  { key: "orders", href: `/my/stores/${storeId}/orders`, label: "Pesanan", icon: "receipt_long" },
+  { key: "dashboard", href: baseUrl, label: "Ringkasan", icon: "space_dashboard" },
+  { key: "products", href: `${baseUrl}/products`, label: "Produk", icon: "inventory_2" },
+  { key: "orders", href: `${baseUrl}/orders`, label: "Pesanan", icon: "receipt_long" },
   {
     key: "shipping",
-    href: `/my/stores/${storeId}/shipping-methods`,
+    href: `${baseUrl}/shipping-methods`,
     label: "Pengiriman",
     icon: "local_shipping",
   },
   {
     key: "event-reservations",
-    href: `/my/stores/${storeId}/event-reservations`,
+    href: `${baseUrl}/event-reservations`,
     label: "Pesanan Event",
     icon: "event",
   },
   {
     key: "settings",
-    href: `/my/stores/${storeId}/settings`,
+    href: `${baseUrl}/settings`,
     label: "Profil Toko",
     icon: "storefront",
   },
-  { key: "address", href: `/my/stores/${storeId}/address`, label: "Alamat", icon: "location_on" },
+  { key: "address", href: `${baseUrl}/address`, label: "Alamat", icon: "location_on" },
   ...(isOwner
     ? [
         {
           key: "members" as const,
-          href: `/my/stores/${storeId}/members`,
+          href: `${baseUrl}/members`,
           label: "Anggota",
           icon: "group",
         },
@@ -67,11 +68,19 @@ export default function StoreManageLayout({
   children,
 }: StoreManageLayoutProps) {
   const isOwner = role === "owner";
-  const items = navItems(store.id, isOwner);
+  const baseUrl = storeManagementUrl(store.id);
+  const items = navItems(baseUrl, isOwner);
 
   return (
     <div className="min-h-screen bg-surface font-body selection:bg-primary/20">
-      <Header />
+      {baseUrl.startsWith("/god-mode") ? (
+        <div className="border-b border-outline-variant/20 bg-surface-container-low px-6 py-3 text-sm">
+          <Link href={`/god-mode/stores/${store.id}`} className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Kembali ke God Mode
+          </Link>
+        </div>
+      ) : <Header />}
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
         <div className="mb-6 flex items-center gap-4">

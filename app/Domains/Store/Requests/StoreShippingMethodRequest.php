@@ -12,7 +12,7 @@ class StoreShippingMethodRequest extends FormRequest
         /** @var Store $store */
         $store = $this->route('store');
 
-        return $store->isManagedBy($this->user());
+        return auth('admin')->check() || $store->isManagedBy($this->user());
     }
 
     public function rules(): array

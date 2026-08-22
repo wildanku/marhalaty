@@ -5,6 +5,7 @@ namespace App\Domains\Store\Controllers;
 use App\Domains\Store\Models\Store;
 use App\Domains\Store\Models\StoreShippingMethod;
 use App\Domains\Store\Requests\StoreShippingMethodRequest;
+use App\Domains\Store\Support\StoreManagementUrl;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -39,7 +40,7 @@ class StoreShippingMethodController extends Controller
 
         $store->shippingMethods()->create($request->validated());
 
-        return redirect()->route('stores.shipping-methods.index', $store)->with('success', 'Metode pengiriman berhasil dibuat.');
+        return redirect()->to(StoreManagementUrl::base($request, $store).'/shipping-methods')->with('success', 'Metode pengiriman berhasil dibuat.');
     }
 
     public function edit(Request $request, Store $store, StoreShippingMethod $shippingMethod)
@@ -61,7 +62,7 @@ class StoreShippingMethodController extends Controller
 
         $shippingMethod->update($request->validated());
 
-        return redirect()->route('stores.shipping-methods.index', $store)->with('success', 'Metode pengiriman berhasil diperbarui.');
+        return redirect()->to(StoreManagementUrl::base($request, $store).'/shipping-methods')->with('success', 'Metode pengiriman berhasil diperbarui.');
     }
 
     public function updateStatus(Request $request, Store $store, StoreShippingMethod $shippingMethod)
@@ -76,13 +77,13 @@ class StoreShippingMethodController extends Controller
         return redirect()->back()->with('success', 'Status metode pengiriman berhasil diperbarui.');
     }
 
-    public function destroy(Store $store, StoreShippingMethod $shippingMethod)
+    public function destroy(Request $request, Store $store, StoreShippingMethod $shippingMethod)
     {
         $this->authorize('manageShipping', $store);
         abort_unless($shippingMethod->store_id === $store->id, 404);
 
         $shippingMethod->delete();
 
-        return redirect()->route('stores.shipping-methods.index', $store)->with('success', 'Metode pengiriman berhasil dihapus.');
+        return redirect()->to(StoreManagementUrl::base($request, $store).'/shipping-methods')->with('success', 'Metode pengiriman berhasil dihapus.');
     }
 }

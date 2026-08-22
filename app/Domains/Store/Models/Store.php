@@ -143,8 +143,13 @@ class Store extends Model implements HasMedia
             ->exists();
     }
 
-    public function roleFor(User $user): ?string
+    public function roleFor(User|Admin $user): ?string
     {
+        if ($user instanceof Admin) {
+            // God Mode gets the full seller-management surface, including member administration.
+            return 'owner';
+        }
+
         return $this->members()
             ->where('user_id', $user->id)
             ->where('status', 'active')

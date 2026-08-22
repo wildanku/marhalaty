@@ -2,6 +2,7 @@ import { Head, Link, router, usePage } from "@inertiajs/react";
 import { PageProps, Store, StoreOrder } from "@/types";
 import StatusBadge from "@/Components/Store/StatusBadge";
 import StoreManageLayout from "@/Layouts/StoreManageLayout";
+import { storeManagementUrl } from "@/Helpers/storeManagementUrl";
 
 interface OrdersIndexProps extends PageProps {
   store: Store;
@@ -28,9 +29,10 @@ const STATUS_TABS: { key: string | null; label: string }[] = [
 
 export default function OrdersIndex() {
   const { store, role, orders, status } = usePage<OrdersIndexProps>().props;
+  const baseUrl = storeManagementUrl(store.id);
 
   const setStatus = (value: string | null) => {
-    router.get(`/my/stores/${store.id}/orders`, value ? { status: value } : {}, { preserveState: true, replace: true });
+    router.get(`${baseUrl}/orders`, value ? { status: value } : {}, { preserveState: true, replace: true });
   };
 
   return (
@@ -77,7 +79,7 @@ export default function OrdersIndex() {
                   {orders.data.map((order) => (
                     <tr
                       key={order.id}
-                      onClick={() => router.visit(`/my/stores/${store.id}/orders/${order.id}`)}
+                      onClick={() => router.visit(`${baseUrl}/orders/${order.id}`)}
                       className="hover:bg-surface-container-high/40 transition-colors cursor-pointer"
                     >
                       <td className="px-6 py-4 font-medium text-on-surface">{order.order_number}</td>

@@ -2,6 +2,7 @@ import { Head, Link, usePage } from "@inertiajs/react";
 import { PageProps, Store, StoreOrder } from "@/types";
 import StoreManageLayout from "@/Layouts/StoreManageLayout";
 import StatusBadge from "@/Components/Store/StatusBadge";
+import { storeManagementUrl } from "@/Helpers/storeManagementUrl";
 
 interface DashboardProps extends PageProps {
   store: Store;
@@ -15,6 +16,7 @@ interface DashboardProps extends PageProps {
 export default function Dashboard() {
   const { store, role, productCount, orderCount, shippingMethodCount, recentOrders } =
     usePage<DashboardProps>().props;
+  const baseUrl = storeManagementUrl(store.id);
 
   return (
     <StoreManageLayout store={store} role={role} activeNav="dashboard">
@@ -22,7 +24,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Link
-          href={`/my/stores/${store.id}/products`}
+          href={`${baseUrl}/products`}
           className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high hover:shadow-[0px_10px_30px_rgba(80,100,71,0.08)] transition-shadow"
         >
           <span className="material-symbols-outlined text-3xl text-primary">inventory_2</span>
@@ -30,7 +32,7 @@ export default function Dashboard() {
           <p className="text-sm text-on-surface-variant">Produk</p>
         </Link>
         <Link
-          href={`/my/stores/${store.id}/orders`}
+          href={`${baseUrl}/orders`}
           className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high hover:shadow-[0px_10px_30px_rgba(80,100,71,0.08)] transition-shadow"
         >
           <span className="material-symbols-outlined text-3xl text-primary">receipt_long</span>
@@ -38,7 +40,7 @@ export default function Dashboard() {
           <p className="text-sm text-on-surface-variant">Pesanan Masuk</p>
         </Link>
         <Link
-          href={`/my/stores/${store.id}/shipping-methods`}
+          href={`${baseUrl}/shipping-methods`}
           className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high hover:shadow-[0px_10px_30px_rgba(80,100,71,0.08)] transition-shadow"
         >
           <span className="material-symbols-outlined text-3xl text-primary">local_shipping</span>
@@ -48,7 +50,7 @@ export default function Dashboard() {
           <p className="text-sm text-on-surface-variant">Metode Pengiriman</p>
         </Link>
         <Link
-          href={`/my/stores/${store.id}/event-reservations`}
+          href={`${baseUrl}/event-reservations`}
           className="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container-high hover:shadow-[0px_10px_30px_rgba(80,100,71,0.08)] transition-shadow"
         >
           <span className="material-symbols-outlined text-3xl text-primary">event</span>
@@ -61,7 +63,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between p-5 border-b border-outline-variant/10">
           <h2 className="font-headline text-lg font-bold text-on-surface">Pesanan Terbaru</h2>
           <Link
-            href={`/my/stores/${store.id}/orders`}
+            href={`${baseUrl}/orders`}
             className="text-sm text-primary hover:underline font-label font-medium"
           >
             Lihat semua
@@ -93,7 +95,7 @@ export default function Dashboard() {
                 {recentOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-surface-container-high/40 transition-colors">
                     <td className="px-6 py-4 font-medium text-on-surface">
-                      <Link href={`/my/stores/${store.id}/orders/${order.id}`} className="hover:underline">
+                      <Link href={`${baseUrl}/orders/${order.id}`} className="hover:underline">
                         {order.order_number}
                       </Link>
                     </td>

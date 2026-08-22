@@ -5,6 +5,7 @@ import CurrencyInput from "@/Components/CurrencyInput";
 import RichTextEditor from "@/Components/RichTextEditor";
 import VariantEditor, { VariantDraft } from "@/Components/Store/VariantEditor";
 import StoreManageLayout from "@/Layouts/StoreManageLayout";
+import { storeManagementUrl } from "@/Helpers/storeManagementUrl";
 
 interface ProductFormProps extends PageProps {
   store: Store;
@@ -16,6 +17,7 @@ interface ProductFormProps extends PageProps {
 export default function ProductForm() {
   const { store, role, product, errors: pageErrors } = usePage<ProductFormProps>().props;
   const isEdit = product !== null;
+  const baseUrl = storeManagementUrl(store.id);
   const formKey = `store-product-form:${store.id}:${product?.id ?? "create"}`;
 
   const initialOptions: ProductOption[] = product?.options ?? [];
@@ -66,8 +68,8 @@ export default function ProductForm() {
   const submit: FormEventHandler = (e) => {
     e.preventDefault();
     const url = isEdit
-      ? `/my/stores/${store.id}/products/${product!.id}`
-      : `/my/stores/${store.id}/products`;
+      ? `${baseUrl}/products/${product!.id}`
+      : `${baseUrl}/products`;
     post(url, {
       forceFormData: true,
       preserveState: true,
@@ -81,7 +83,7 @@ export default function ProductForm() {
 
       <div className="max-w-3xl">
         <Link
-          href={`/my/stores/${store.id}/products`}
+          href={`${baseUrl}/products`}
           className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-4"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>

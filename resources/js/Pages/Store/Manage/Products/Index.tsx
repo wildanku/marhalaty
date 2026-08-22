@@ -2,6 +2,7 @@ import { Head, Link, router, usePage } from "@inertiajs/react";
 import { PageProps, Product, Store } from "@/types";
 import StatusBadge from "@/Components/Store/StatusBadge";
 import StoreManageLayout from "@/Layouts/StoreManageLayout";
+import { storeManagementUrl } from "@/Helpers/storeManagementUrl";
 
 interface ProductsIndexProps extends PageProps {
   store: Store;
@@ -17,14 +18,15 @@ interface ProductsIndexProps extends PageProps {
 
 export default function ProductsIndex() {
   const { store, role, products } = usePage<ProductsIndexProps>().props;
+  const baseUrl = storeManagementUrl(store.id);
 
   const changeStatus = (product: Product, status: string) => {
-    router.patch(`/my/stores/${store.id}/products/${product.id}/status`, { status }, { preserveScroll: true });
+    router.patch(`${baseUrl}/products/${product.id}/status`, { status }, { preserveScroll: true });
   };
 
   const destroy = (product: Product) => {
     if (!confirm(`Hapus produk "${product.name}"? Tindakan ini tidak bisa dibatalkan.`)) return;
-    router.delete(`/my/stores/${store.id}/products/${product.id}`, { preserveScroll: true });
+    router.delete(`${baseUrl}/products/${product.id}`, { preserveScroll: true });
   };
 
   return (
@@ -36,13 +38,22 @@ export default function ProductsIndex() {
           <div>
             <h1 className="font-headline text-2xl font-bold text-on-surface">Produk</h1>
           </div>
+          <div className="flex items-center gap-3">
           <Link
-            href={`/my/stores/${store.id}/products/create`}
+            href={`${baseUrl}/products/import`}
+            className="inline-flex items-center gap-2 border border-primary px-5 py-2.5 rounded-full font-label font-medium text-primary hover:bg-primary/10 transition-all"
+          >
+            <span className="material-symbols-outlined text-lg">data_object</span>
+            Impor JSON
+          </Link>
+          <Link
+            href={`${baseUrl}/products/create`}
             className="inline-flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-full font-label font-medium hover:bg-primary-container hover:text-on-primary-container transition-all"
           >
             <span className="material-symbols-outlined text-lg">add</span>
             Tambah Produk
           </Link>
+          </div>
         </div>
 
         <div className="bg-surface-container-lowest rounded-3xl border border-surface-container-high overflow-hidden">
@@ -103,7 +114,7 @@ export default function ProductsIndex() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link
-                            href={`/my/stores/${store.id}/products/${product.id}/edit`}
+                            href={`${baseUrl}/products/${product.id}/edit`}
                             className="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors text-xs font-semibold"
                           >
                             Edit

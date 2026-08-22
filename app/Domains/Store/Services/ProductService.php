@@ -63,6 +63,24 @@ class ProductService
         });
     }
 
+    /**
+     * Creates a batch in one transaction. Calling saveProduct() keeps the same variant validation
+     * and sanitisation as the manual form; an invalid product rolls the complete batch back.
+     *
+     * @param array<int, array<string, mixed>> $products
+     */
+    public function importProducts(Store $store, array $products): void
+    {
+        DB::transaction(function () use ($store, $products): void {
+            foreach ($products as $product) {
+                $this->saveProduct($store, $product + [
+                    'images' => [],
+                    'digital_file' => null,
+                ]);
+            }
+        });
+    }
+
     public function destroy(Product $product): void
     {
         if ($this->hasBeenOrdered($product)) {

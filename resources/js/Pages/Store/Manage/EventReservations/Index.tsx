@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Head, usePage } from "@inertiajs/react";
 import { PageProps, Store } from "@/types";
 import StoreManageLayout from "@/Layouts/StoreManageLayout";
+import { storeManagementUrl } from "@/Helpers/storeManagementUrl";
 
 interface EventReservationItem {
   product_name: string | null;
@@ -24,14 +25,15 @@ interface EventReservationsPageProps extends PageProps {
 
 export default function EventReservationsIndex() {
   const { store, role } = usePage<EventReservationsPageProps>().props;
+  const baseUrl = storeManagementUrl(store.id);
   const [groups, setGroups] = useState<EventReservationGroup[] | null>(null);
 
   useEffect(() => {
-    fetch(`/my/stores/${store.id}/api-event-reservations`)
+    fetch(`${baseUrl}/api-event-reservations`)
       .then((res) => (res.ok ? res.json() : []))
       .then(setGroups)
       .catch(() => setGroups([]));
-  }, [store.id]);
+  }, [baseUrl]);
 
   return (
     <StoreManageLayout store={store} role={role} activeNav="event-reservations">

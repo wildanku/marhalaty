@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import { PageProps, Store, StoreShippingMethod } from "@/types";
 import StoreManageLayout from "@/Layouts/StoreManageLayout";
+import { storeManagementUrl } from "@/Helpers/storeManagementUrl";
 
 interface ShippingMethodsIndexProps extends PageProps {
   store: Store;
@@ -15,10 +16,11 @@ const TYPE_LABEL: Record<StoreShippingMethod["type"], string> = {
 
 export default function ShippingMethodsIndex() {
   const { store, role, methods } = usePage<ShippingMethodsIndexProps>().props;
+  const baseUrl = storeManagementUrl(store.id);
 
   const toggleActive = (method: StoreShippingMethod) => {
     router.patch(
-      `/my/stores/${store.id}/shipping-methods/${method.id}/status`,
+      `${baseUrl}/shipping-methods/${method.id}/status`,
       { is_active: !method.is_active },
       { preserveScroll: true }
     );
@@ -27,7 +29,7 @@ export default function ShippingMethodsIndex() {
   const destroy = (method: StoreShippingMethod) => {
     if (!confirm(`Hapus metode pengiriman "${method.name}"? Tindakan ini tidak bisa dibatalkan.`))
       return;
-    router.delete(`/my/stores/${store.id}/shipping-methods/${method.id}`, { preserveScroll: true });
+    router.delete(`${baseUrl}/shipping-methods/${method.id}`, { preserveScroll: true });
   };
 
   return (
@@ -44,7 +46,7 @@ export default function ShippingMethodsIndex() {
             </p>
           </div>
           <Link
-            href={`/my/stores/${store.id}/shipping-methods/create`}
+            href={`${baseUrl}/shipping-methods/create`}
             className="inline-flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-full font-label font-medium hover:bg-primary-container hover:text-on-primary-container transition-all shrink-0"
           >
             <span className="material-symbols-outlined text-lg">add</span>
@@ -116,7 +118,7 @@ export default function ShippingMethodsIndex() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link
-                            href={`/my/stores/${store.id}/shipping-methods/${method.id}/edit`}
+                            href={`${baseUrl}/shipping-methods/${method.id}/edit`}
                             className="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors text-xs font-semibold"
                           >
                             Edit

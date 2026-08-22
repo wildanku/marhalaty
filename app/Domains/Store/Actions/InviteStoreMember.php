@@ -7,12 +7,13 @@ use App\Domains\Store\Models\StoreMember;
 use App\Jobs\SendStoreInvitationEmail;
 use App\Models\Scopes\MarhalahScope;
 use App\Models\User;
+use App\Models\Admin;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class InviteStoreMember
 {
-    public function execute(Store $store, User $inviter, string $email): StoreMember
+    public function execute(Store $store, User|Admin $inviter, string $email): StoreMember
     {
         // MarhalahScope filters users by marhalah_year when COMMUNITY_SCOPE=single. Store
         // membership must be invitable across cohorts, so this lookup deliberately bypasses it.
@@ -48,7 +49,7 @@ class InviteStoreMember
             [
                 'role' => 'admin',
                 'status' => 'invited',
-                'invited_by_user_id' => $inviter->id,
+                'invited_by_user_id' => $inviter instanceof User ? $inviter->id : null,
                 'invitation_token' => Str::random(64),
                 'invitation_expires_at' => now()->addDays(7),
                 'accepted_at' => null,

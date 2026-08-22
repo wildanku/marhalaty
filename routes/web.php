@@ -123,6 +123,8 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/{store}/products', [ProductController::class, 'index'])->name('products.index');
         Route::get('/{store}/products/create', [ProductController::class, 'create'])->name('products.create');
+        Route::get('/{store}/products/import', [ProductController::class, 'importForm'])->name('products.import.form');
+        Route::post('/{store}/products/import', [ProductController::class, 'import'])->name('products.import');
         Route::post('/{store}/products', [ProductController::class, 'store'])->name('products.store');
         Route::get('/{store}/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
         Route::put('/{store}/products/{product}', [ProductController::class, 'update'])->name('products.update');
@@ -346,6 +348,42 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         Route::get('/stores', [App\Domains\GodMode\Controllers\StoreController::class, 'index'])->name('stores.index');
         Route::get('/stores/create', [App\Domains\GodMode\Controllers\StoreController::class, 'create'])->name('stores.create');
         Route::post('/stores', [App\Domains\GodMode\Controllers\StoreController::class, 'store'])->name('stores.store');
+        // The seller-facing controllers and screens are reused so God Mode has the same complete
+        // management surface, while the middleware makes the admin the authorized actor.
+        Route::prefix('/stores/{store}/manage')->name('stores.manage.')->middleware('god-mode.store-management')->group(function () {
+            Route::get('/', [StoreController::class, 'show'])->name('dashboard');
+            Route::get('/settings', [StoreController::class, 'editSettings'])->name('settings');
+            Route::patch('/', [StoreController::class, 'update'])->name('update');
+            Route::get('/address', [StoreController::class, 'editAddress'])->name('address.edit');
+            Route::post('/address', [StoreController::class, 'updateAddress'])->name('address.store');
+            Route::get('/members', [StoreMemberController::class, 'index'])->name('members.index');
+            Route::post('/members', [StoreMemberController::class, 'invite'])->name('members.invite');
+            Route::delete('/members/{member}', [StoreMemberController::class, 'revoke'])->name('members.revoke');
+            Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+            Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
+            Route::get('/products/import', [ProductController::class, 'importForm'])->name('products.import.form');
+            Route::post('/products/import', [ProductController::class, 'import'])->name('products.import');
+            Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+            Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
+            Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+            Route::patch('/products/{product}/status', [ProductController::class, 'updateStatus'])->name('products.status');
+            Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+            Route::get('/orders', [StoreOrderManagementController::class, 'index'])->name('orders.index');
+            Route::get('/orders/{order}', [StoreOrderManagementController::class, 'show'])->name('orders.show');
+            Route::post('/orders/{order}/process', [StoreOrderManagementController::class, 'process'])->name('orders.process');
+            Route::post('/orders/{order}/ship', [StoreOrderManagementController::class, 'ship'])->name('orders.ship');
+            Route::post('/orders/{order}/cancel', [StoreOrderManagementController::class, 'cancel'])->name('orders.cancel');
+            Route::patch('/orders/{order}/status', [StoreOrderManagementController::class, 'updateStatus'])->name('orders.status.update');
+            Route::get('/shipping-methods', [StoreShippingMethodController::class, 'index'])->name('shipping-methods.index');
+            Route::get('/shipping-methods/create', [StoreShippingMethodController::class, 'create'])->name('shipping-methods.create');
+            Route::post('/shipping-methods', [StoreShippingMethodController::class, 'store'])->name('shipping-methods.store');
+            Route::get('/shipping-methods/{shippingMethod}/edit', [StoreShippingMethodController::class, 'edit'])->name('shipping-methods.edit');
+            Route::put('/shipping-methods/{shippingMethod}', [StoreShippingMethodController::class, 'update'])->name('shipping-methods.update');
+            Route::patch('/shipping-methods/{shippingMethod}/status', [StoreShippingMethodController::class, 'updateStatus'])->name('shipping-methods.status');
+            Route::delete('/shipping-methods/{shippingMethod}', [StoreShippingMethodController::class, 'destroy'])->name('shipping-methods.destroy');
+            Route::get('/event-reservations', [StoreEventReservationController::class, 'page'])->name('event-reservations');
+            Route::get('/api-event-reservations', [StoreEventReservationController::class, 'index'])->name('api-event-reservations');
+        });
         Route::get('/stores/{id}', [App\Domains\GodMode\Controllers\StoreController::class, 'show'])->name('stores.show');
         Route::post('/stores/{id}/approve', [App\Domains\GodMode\Controllers\StoreController::class, 'approve'])->name('stores.approve');
         Route::post('/stores/{id}/reject', [App\Domains\GodMode\Controllers\StoreController::class, 'reject'])->name('stores.reject');

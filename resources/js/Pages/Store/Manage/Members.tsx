@@ -3,6 +3,7 @@ import { Head, router, useForm, usePage } from "@inertiajs/react";
 import { PageProps, Store } from "@/types";
 import StatusBadge from "@/Components/Store/StatusBadge";
 import StoreManageLayout from "@/Layouts/StoreManageLayout";
+import { storeManagementUrl } from "@/Helpers/storeManagementUrl";
 
 interface MembersPageProps extends PageProps {
   store: Store;
@@ -11,18 +12,19 @@ interface MembersPageProps extends PageProps {
 
 export default function StoreMembers() {
   const { store, role } = usePage<MembersPageProps>().props;
+  const baseUrl = storeManagementUrl(store.id);
   const isOwner = role === "owner";
   const { data, setData, post, processing, errors, reset } = useForm({ email: "" });
   const members = store.members ?? [];
 
   const submit: FormEventHandler = (e) => {
     e.preventDefault();
-    post(`/my/stores/${store.id}/members`, { onSuccess: () => reset("email") });
+    post(`${baseUrl}/members`, { onSuccess: () => reset("email") });
   };
 
   const revoke = (memberId: number) => {
     if (!confirm("Cabut anggota ini dari toko?")) return;
-    router.delete(`/my/stores/${store.id}/members/${memberId}`);
+    router.delete(`${baseUrl}/members/${memberId}`);
   };
 
   return (

@@ -3,6 +3,7 @@ import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { PageProps, Store, StoreShippingMethod } from "@/types";
 import CurrencyInput from "@/Components/CurrencyInput";
 import StoreManageLayout from "@/Layouts/StoreManageLayout";
+import { storeManagementUrl } from "@/Helpers/storeManagementUrl";
 
 interface ShippingMethodFormProps extends PageProps {
   store: Store;
@@ -12,6 +13,7 @@ interface ShippingMethodFormProps extends PageProps {
 
 export default function ShippingMethodForm() {
   const { store, role, method } = usePage<ShippingMethodFormProps>().props;
+  const baseUrl = storeManagementUrl(store.id);
   const isEdit = method !== null;
 
   const { data, setData, post, put, processing, errors } = useForm({
@@ -25,9 +27,9 @@ export default function ShippingMethodForm() {
   const submit: FormEventHandler = (e) => {
     e.preventDefault();
     if (isEdit) {
-      put(`/my/stores/${store.id}/shipping-methods/${method!.id}`);
+      put(`${baseUrl}/shipping-methods/${method!.id}`);
     } else {
-      post(`/my/stores/${store.id}/shipping-methods`);
+      post(`${baseUrl}/shipping-methods`);
     }
   };
 
@@ -37,7 +39,7 @@ export default function ShippingMethodForm() {
 
       <div className="max-w-2xl">
         <Link
-          href={`/my/stores/${store.id}/shipping-methods`}
+          href={`${baseUrl}/shipping-methods`}
           className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-4"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>

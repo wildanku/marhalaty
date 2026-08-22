@@ -5,6 +5,7 @@ import StatusBadge from "@/Components/Store/StatusBadge";
 import OrderStatusControl from "@/Components/Store/OrderStatusControl";
 import OrderStatusTimeline from "@/Components/Store/OrderStatusTimeline";
 import StoreManageLayout from "@/Layouts/StoreManageLayout";
+import { storeManagementUrl } from "@/Helpers/storeManagementUrl";
 
 interface OrderShowProps extends PageProps {
   store: Store;
@@ -15,6 +16,7 @@ interface OrderShowProps extends PageProps {
 
 export default function OrderShow() {
   const { store, role, order, paymentStatus } = usePage<OrderShowProps>().props;
+  const baseUrl = storeManagementUrl(store.id);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelForm, setShowCancelForm] = useState(false);
@@ -25,7 +27,7 @@ export default function OrderShow() {
   const process = () => {
     setProcessing(true);
     router.post(
-      `/my/stores/${store.id}/orders/${order.id}/process`,
+      `${baseUrl}/orders/${order.id}/process`,
       {},
       {
         preserveScroll: true,
@@ -38,7 +40,7 @@ export default function OrderShow() {
     if (!trackingNumber.trim()) return;
     setProcessing(true);
     router.post(
-      `/my/stores/${store.id}/orders/${order.id}/ship`,
+      `${baseUrl}/orders/${order.id}/ship`,
       { tracking_number: trackingNumber },
       { preserveScroll: true, onFinish: () => setProcessing(false) }
     );
@@ -48,7 +50,7 @@ export default function OrderShow() {
     if (!cancelReason.trim()) return;
     setProcessing(true);
     router.post(
-      `/my/stores/${store.id}/orders/${order.id}/cancel`,
+      `${baseUrl}/orders/${order.id}/cancel`,
       { reason: cancelReason },
       {
         preserveScroll: true,
@@ -64,7 +66,7 @@ export default function OrderShow() {
 
       <div className="max-w-3xl">
         <Link
-          href={`/my/stores/${store.id}/orders`}
+          href={`${baseUrl}/orders`}
           className="text-sm text-on-surface-variant hover:text-primary flex items-center gap-1 mb-6"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -245,7 +247,7 @@ export default function OrderShow() {
         <div className="mt-6 space-y-6">
           <OrderStatusControl
             order={order}
-            updateUrl={`/my/stores/${store.id}/orders/${order.id}/status`}
+            updateUrl={`${baseUrl}/orders/${order.id}/status`}
           />
           <OrderStatusTimeline histories={order.status_histories ?? []} />
         </div>

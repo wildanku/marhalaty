@@ -112,7 +112,7 @@ class StoreOrderManagementController extends Controller
             $order,
             $validated['status'],
             $validated['reason'] ?? null,
-            'store_member',
+            auth('admin')->check() ? 'admin' : 'store_member',
             $request->user()->id,
             $validated['tracking_number'] ?? null,
         );

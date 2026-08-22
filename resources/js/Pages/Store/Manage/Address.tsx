@@ -3,6 +3,7 @@ import { Head, useForm, usePage } from "@inertiajs/react";
 import { PageProps, Store } from "@/types";
 import RegionPicker from "@/Components/Store/RegionPicker";
 import StoreManageLayout from "@/Layouts/StoreManageLayout";
+import { storeManagementUrl } from "@/Helpers/storeManagementUrl";
 
 interface AddressPageProps extends PageProps {
   store: Store;
@@ -11,6 +12,7 @@ interface AddressPageProps extends PageProps {
 
 export default function StoreAddressPage() {
   const { store, role } = usePage<AddressPageProps>().props;
+  const baseUrl = storeManagementUrl(store.id);
   const address = store.primary_address ?? null;
 
   const { data, setData, post, processing, errors } = useForm({
@@ -24,7 +26,7 @@ export default function StoreAddressPage() {
 
   const submit: FormEventHandler = (e) => {
     e.preventDefault();
-    post(`/my/stores/${store.id}/address`);
+    post(`${baseUrl}/address`);
   };
 
   const village = address?.village;

@@ -5,7 +5,9 @@ namespace App\Domains\Store\Controllers;
 use App\Domains\Store\Models\Product;
 use App\Domains\Store\Models\Store;
 use App\Domains\Store\Requests\StoreProductRequest;
+use App\Domains\Store\Requests\StoreProductImportRequest;
 use App\Domains\Store\Services\ProductService;
+use App\Domains\Store\Support\StoreManagementUrl;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -41,6 +43,26 @@ class ProductController extends Controller
         ]);
     }
 
+    public function importForm(Request $request, Store $store)
+    {
+        $this->authorize('manageProducts', $store);
+
+        return Inertia::render('Store/Manage/Products/Import', [
+            'store' => $store,
+            'role' => $store->roleFor($request->user()),
+        ]);
+    }
+
+    public function import(StoreProductImportRequest $request, Store $store)
+    {
+        $this->authorize('manageProducts', $store);
+
+        $this->products->importProducts($store, $request->products());
+
+        return redirect()->to(StoreManagementUrl::base($request, $store).'/products')
+            ->with('success', count($request->products()).' produk berhasil diimpor.');
+    }
+
     public function store(StoreProductRequest $request, Store $store)
     {
         $this->authorize('manageProducts', $store);
@@ -50,7 +72,7 @@ class ProductController extends Controller
             'images' => $request->file('images', []),
         ]);
 
-        return redirect()->route('stores.products.index', $store)->with('success', 'Produk berhasil dibuat.');
+        return redirect()->to(StoreManagementUrl::base($request, $store).'/products')->with('success', 'Produk berhasil dibuat.');
     }
 
     public function edit(Request $request, Store $store, Product $product)
@@ -77,7 +99,7 @@ class ProductController extends Controller
             'images' => $request->file('images', []),
         ], $product);
 
-        return redirect()->route('stores.products.index', $store)->with('success', 'Produk berhasil diperbarui.');
+        return redirect()->to(StoreManagementUrl::base($request, $store).'/products')->with('success', 'Produk berhasil diperbarui.');
     }
 
     public function updateStatus(Request $request, Store $store, Product $product)
@@ -94,13 +116,13 @@ class ProductController extends Controller
         return redirect()->back()->with('success', 'Status produk berhasil diperbarui.');
     }
 
-    public function destroy(Store $store, Product $product)
+    public function destroy(Request $request, Store $store, Product $product)
     {
         $this->authorize('manageProducts', $store);
         abort_unless($product->store_id === $store->id, 404);
 
         $this->products->destroy($product);
 
-        return redirect()->route('stores.products.index', $store)->with('success', 'Produk berhasil dihapus.');
+        return redirect()->to(StoreManagementUrl::base($request, $store).'/products')->with('success', 'Produk berhasil dihapus.');
     }
 }

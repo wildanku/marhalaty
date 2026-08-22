@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'god-mode.auth' => \App\Http\Middleware\GodModeAuth::class,
+            'god-mode.store-management' => \App\Http\Middleware\GodModeStoreManagementAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
