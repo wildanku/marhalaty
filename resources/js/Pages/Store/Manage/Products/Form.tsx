@@ -1,5 +1,5 @@
 import { FormEventHandler, useState } from "react";
-import { Head, Link, useForm, usePage } from "@inertiajs/react";
+import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
 import { PageProps, Product, ProductOption, Store } from "@/types";
 import CurrencyInput from "@/Components/CurrencyInput";
 import RichTextEditor from "@/Components/RichTextEditor";
@@ -11,11 +11,23 @@ interface ProductFormProps extends PageProps {
   store: Store;
   role: "owner" | "admin" | null;
   product: Product | null;
+  productImages?: ProductImage[];
   errors: Record<string, string>;
 }
 
+interface ProductImage {
+  id: number;
+  url: string;
+}
+
 export default function ProductForm() {
-  const { store, role, product, errors: pageErrors } = usePage<ProductFormProps>().props;
+  const {
+    store,
+    role,
+    product,
+    productImages,
+    errors: pageErrors,
+  } = usePage<ProductFormProps>().props;
   const isEdit = product !== null;
   const baseUrl = storeManagementUrl(store.id);
   const formKey = `store-product-form:${store.id}:${product?.id ?? "create"}`;
@@ -62,18 +74,35 @@ export default function ProductForm() {
   });
 
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<ProductImage[]>(productImages ?? []);
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
   const errors: Record<string, string | undefined> = { ...pageErrors, ...formErrors };
   const errorEntries = Object.entries(errors).filter(([, message]) => Boolean(message));
+  const remainingImageSlots = Math.max(0, 5 - existingImages.length);
 
   const submit: FormEventHandler = (e) => {
     e.preventDefault();
-    const url = isEdit
-      ? `${baseUrl}/products/${product!.id}`
-      : `${baseUrl}/products`;
+    const url = isEdit ? `${baseUrl}/products/${product!.id}` : `${baseUrl}/products`;
     post(url, {
       forceFormData: true,
       preserveState: true,
       preserveScroll: true,
+    });
+  };
+
+  const removeImage = (image: ProductImage) => {
+    if (!product || !confirm("Hapus gambar produk ini? Tindakan ini tidak bisa dibatalkan."))
+      return;
+
+    setDeletingImageId(image.id);
+    router.delete(`${baseUrl}/products/${product.id}/images/${image.id}`, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setExistingImages((images) =>
+          images.filter((existingImage) => existingImage.id !== image.id)
+        );
+      },
+      onFinish: () => setDeletingImageId(null),
     });
   };
 
@@ -273,15 +302,28 @@ export default function ProductForm() {
             <label className="block font-label text-sm font-medium text-on-surface mb-2">
               Gambar Produk (maks. 5)
             </label>
-            {product && product.images.length > 0 && (
+            {existingImages.length > 0 && (
               <div className="flex flex-wrap gap-3 mb-3">
-                {product.images.map((url) => (
-                  <img
-                    key={url}
-                    src={url}
-                    alt={product.name}
-                    className="w-16 h-16 rounded-lg object-cover border border-outline-variant/30"
-                  />
+                {existingImages.map((image) => (
+                  <div key={image.id} className="relative group">
+                    <img
+                      src={image.url}
+                      alt={product?.name ?? "Gambar produk"}
+                      className="w-16 h-16 rounded-lg object-cover border border-outline-variant/30"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(image)}
+                      disabled={deletingImageId === image.id}
+                      aria-label={`Hapus gambar ${product?.name ?? "produk"}`}
+                      title="Hapus gambar"
+                      className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-error text-on-error shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-error focus:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">
+                        {deletingImageId === image.id ? "progress_activity" : "close"}
+                      </span>
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -289,13 +331,19 @@ export default function ProductForm() {
               type="file"
               accept="image/png,image/jpeg,image/webp"
               multiple
+              disabled={remainingImageSlots === 0}
               onChange={(e) => {
-                const files = Array.from(e.target.files ?? []).slice(0, 5);
+                const files = Array.from(e.target.files ?? []).slice(0, remainingImageSlots);
                 setData("images", files);
                 setImagePreviews(files.map((f) => URL.createObjectURL(f)));
               }}
               className="block w-full text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-primary-container file:text-on-primary-container file:font-label file:font-medium"
             />
+            {remainingImageSlots === 0 && (
+              <p className="mt-2 text-xs text-on-surface-variant">
+                Hapus gambar terlebih dahulu untuk menambahkan gambar baru.
+              </p>
+            )}
             {imagePreviews.length > 0 && (
               <div className="flex flex-wrap gap-3 mt-3">
                 {imagePreviews.map((url) => (

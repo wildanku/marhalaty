@@ -128,6 +128,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{store}/products', [ProductController::class, 'store'])->name('products.store');
         Route::get('/{store}/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
         Route::put('/{store}/products/{product}', [ProductController::class, 'update'])->name('products.update');
+        Route::delete('/{store}/products/{product}/images/{media}', [ProductController::class, 'destroyImage'])->name('products.images.destroy');
         Route::patch('/{store}/products/{product}/status', [ProductController::class, 'updateStatus'])->name('products.status');
         Route::delete('/{store}/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 
@@ -366,6 +367,7 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
             Route::post('/products', [ProductController::class, 'store'])->name('products.store');
             Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
             Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+            Route::delete('/products/{product}/images/{media}', [ProductController::class, 'destroyImage'])->name('products.images.destroy');
             Route::patch('/products/{product}/status', [ProductController::class, 'updateStatus'])->name('products.status');
             Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
             Route::get('/orders', [StoreOrderManagementController::class, 'index'])->name('orders.index');

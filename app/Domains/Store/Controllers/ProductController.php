@@ -11,6 +11,7 @@ use App\Domains\Store\Support\StoreManagementUrl;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class ProductController extends Controller
 {
@@ -86,6 +87,12 @@ class ProductController extends Controller
             'store' => $store,
             'role' => $store->roleFor($request->user()),
             'product' => $product,
+            'productImages' => $product->getMedia('product-images')
+                ->map(fn (Media $media): array => [
+                    'id' => $media->id,
+                    'url' => $media->getUrl(),
+                ])
+                ->values(),
         ]);
     }
 
@@ -100,6 +107,25 @@ class ProductController extends Controller
         ], $product);
 
         return redirect()->to(StoreManagementUrl::base($request, $store).'/products')->with('success', 'Produk berhasil diperbarui.');
+    }
+
+    /**
+     * Delete one public image belonging to a product without affecting its other media or files.
+     */
+    public function destroyImage(Request $request, Store $store, Product $product, Media $media)
+    {
+        $this->authorize('manageProducts', $store);
+        abort_unless($product->store_id === $store->id, 404);
+        abort_unless(
+            $media->model_type === Product::class
+            && (string) $media->model_id === (string) $product->getKey()
+            && $media->collection_name === 'product-images',
+            404,
+        );
+
+        $media->delete();
+
+        return back()->with('success', 'Gambar produk berhasil dihapus.');
     }
 
     public function updateStatus(Request $request, Store $store, Product $product)
