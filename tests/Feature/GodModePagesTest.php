@@ -145,7 +145,7 @@ class GodModePagesTest extends TestCase
                 ->where('page.slug', 'resource-shape'));
     }
 
-    public function test_full_html_page_is_returned_without_application_markup_and_with_origin_sandbox(): void
+    public function test_full_html_page_is_returned_without_application_markup_and_with_popup_safe_sandbox(): void
     {
         Page::create([
             'title' => 'Campaign',
@@ -160,7 +160,7 @@ class GodModePagesTest extends TestCase
             ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
             ->assertHeader(
                 'Content-Security-Policy',
-                'sandbox allow-downloads allow-forms allow-modals allow-popups allow-scripts',
+                'sandbox allow-downloads allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-scripts',
             )
             ->assertSee('<style>body{color:red}</style>', false)
             ->assertDontSee('resources/css/app.css', false)

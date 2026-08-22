@@ -21,7 +21,11 @@ class PageController extends Controller
         if ($page->mode === PageMode::FullHtml) {
             return response($page->content, 200, [
                 'Content-Type' => 'text/html; charset=UTF-8',
-                'Content-Security-Policy' => 'sandbox allow-downloads allow-forms allow-modals allow-popups allow-scripts',
+                // Full HTML content remains sandboxed. Its links may deliberately open a new tab,
+                // however; that tab must not inherit the opaque `null` origin or Laravel's own
+                // Vite assets are blocked by CORS. The escape token affects only the popup/tab,
+                // not this admin-authored HTML document.
+                'Content-Security-Policy' => 'sandbox allow-downloads allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-scripts',
                 'Referrer-Policy' => 'strict-origin-when-cross-origin',
                 'X-Content-Type-Options' => 'nosniff',
             ]);
