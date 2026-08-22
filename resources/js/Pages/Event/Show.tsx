@@ -1943,6 +1943,7 @@ export default function Show({
                 </p>
                 {selectedPackage.included_addons.map((ia) => {
                   const variants = data.included_addon_variants[ia.id] ?? {};
+                  const note = data.included_addon_notes[ia.id]?.trim();
                   return (
                     <div key={ia.id} className="space-y-1.5">
                       <div className="flex items-center gap-2">
@@ -1971,6 +1972,16 @@ export default function Show({
                           ))}
                         </div>
                       )}
+                      {note && (
+                        <div className="ml-5 flex items-start gap-1.5 rounded-lg bg-amber-50 px-2.5 py-2 text-xs text-amber-900">
+                          <span className="material-symbols-outlined mt-px text-[14px] text-amber-600">
+                            edit_note
+                          </span>
+                          <span>
+                            <span className="font-semibold">Catatan:</span> {note}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1988,6 +1999,7 @@ export default function Show({
             {data.addons.map((a) => {
               const addonInfo = event.addons?.find((ea) => ea.id === a.id);
               const variants = data.purchased_addon_variants[a.id] ?? {};
+              const note = data.purchased_addon_notes[a.id]?.trim();
               return (
                 <div key={a.id} className="space-y-1">
                   <div className="flex justify-between items-start gap-2">
@@ -2010,6 +2022,16 @@ export default function Show({
                           {Array.isArray(variantValues) ? variantValues.join(", ") : variantValues}
                         </span>
                       ))}
+                    </div>
+                  )}
+                  {note && (
+                    <div className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-2.5 py-2 text-xs text-amber-900">
+                      <span className="material-symbols-outlined mt-px text-[14px] text-amber-600">
+                        edit_note
+                      </span>
+                      <span>
+                        <span className="font-semibold">Catatan:</span> {note}
+                      </span>
                     </div>
                   )}
                 </div>
