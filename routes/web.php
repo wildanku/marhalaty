@@ -404,6 +404,7 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
         Route::get('/store-orders/{id}', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'show'])->name('store-orders.show');
         Route::patch('/store-orders/{id}/status', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'updateStatus'])->name('store-orders.status.update');
         Route::get('/store-orders-export', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'exportExcel'])->name('store-orders.export');
+        Route::get('/store-orders-export/csv/{type}', [App\Domains\GodMode\Controllers\StoreOrderController::class, 'exportCsv'])->name('store-orders.export-csv');
 
         // Homepage Highlights (fase 10 — docs/plan/mvp2/10-storefront-frontside-ux.md)
         Route::get('/homepage-highlights', [HomepageHighlightController::class, 'index'])->name('homepage-highlights.index');

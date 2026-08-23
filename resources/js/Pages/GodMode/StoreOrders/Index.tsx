@@ -52,6 +52,7 @@ export default function StoreOrdersIndex({
   const [storeId, setStoreId] = useState(filters.store_id ?? "");
   const [dateFrom, setDateFrom] = useState(filters.date_from ?? "");
   const [dateTo, setDateTo] = useState(filters.date_to ?? "");
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   const applyFilters = (
     overrides: Partial<{
@@ -73,12 +74,15 @@ export default function StoreOrdersIndex({
     );
   };
 
-  const exportUrl = `/god-mode/store-orders-export?${new URLSearchParams({
+  const exportQuery = new URLSearchParams({
     ...(status ? { status } : {}),
     ...(storeId ? { store_id: storeId } : {}),
     ...(dateFrom ? { date_from: dateFrom } : {}),
     ...(dateTo ? { date_to: dateTo } : {}),
-  }).toString()}`;
+  }).toString();
+  const exportUrl = `/god-mode/store-orders-export?${exportQuery}`;
+  const csvExportUrl = (type: "pesanan" | "item" | "transaksi") =>
+    `/god-mode/store-orders-export/csv/${type}?${exportQuery}`;
 
   return (
     <GodModeLayout admin={admin} title="Store Orders">
@@ -151,13 +155,65 @@ export default function StoreOrdersIndex({
           />
         </div>
 
-        <a
-          href={exportUrl}
-          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-        >
-          <span className="material-symbols-outlined text-[18px]">download</span>
-          Ekspor Excel
-        </a>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsExportOpen((open) => !open)}
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">download</span>
+            Ekspor
+            <span className="material-symbols-outlined text-[18px]">
+              {isExportOpen ? "expand_less" : "expand_more"}
+            </span>
+          </button>
+
+          {isExportOpen && (
+            <>
+              <button
+                type="button"
+                aria-label="Tutup menu ekspor"
+                onClick={() => setIsExportOpen(false)}
+                className="fixed inset-0 z-40 cursor-default"
+              />
+              <div className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-white/10 bg-[#161b22] py-1 shadow-xl">
+                <a
+                  href={exportUrl}
+                  onClick={() => setIsExportOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/5 hover:text-emerald-400"
+                >
+                  <span className="material-symbols-outlined text-base">table_chart</span>
+                  Excel (Semua Data)
+                </a>
+                <div className="my-1 border-t border-white/5" />
+                <a
+                  href={csvExportUrl("pesanan")}
+                  onClick={() => setIsExportOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/5 hover:text-emerald-400"
+                >
+                  <span className="material-symbols-outlined text-base">receipt_long</span>
+                  CSV - Pesanan
+                </a>
+                <a
+                  href={csvExportUrl("item")}
+                  onClick={() => setIsExportOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/5 hover:text-emerald-400"
+                >
+                  <span className="material-symbols-outlined text-base">inventory_2</span>
+                  CSV - Detail Item
+                </a>
+                <a
+                  href={csvExportUrl("transaksi")}
+                  onClick={() => setIsExportOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/5 hover:text-emerald-400"
+                >
+                  <span className="material-symbols-outlined text-base">payments</span>
+                  CSV - Transaksi
+                </a>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">

@@ -3,6 +3,9 @@
 namespace App\Domains\GodMode\Controllers;
 
 use App\Domains\GodMode\Exports\StoreOrdersExport;
+use App\Domains\GodMode\Exports\StoreOrderItemsSheet;
+use App\Domains\GodMode\Exports\StoreOrdersSheet;
+use App\Domains\GodMode\Exports\StoreOrderTransactionsSheet;
 use App\Domains\Store\Models\Store;
 use App\Domains\Store\Models\StoreOrder;
 use App\Domains\Store\Services\OrderFulfillmentService;
@@ -91,7 +94,38 @@ class StoreOrderController extends Controller
 
     public function exportExcel(Request $request)
     {
-        $validated = $request->validate([
+        $orders = $this->exportOrders($this->validatedExportFilters($request));
+
+        $filename = 'store-orders-'.now()->format('Ymd-His').'.xlsx';
+
+        return Excel::download(new StoreOrdersExport($orders), $filename);
+    }
+
+    /**
+     * Export one Store Order dataset as CSV. CSV supports one tabular dataset at a time, so the
+     * same three datasets available in the Excel workbook are offered as separate downloads.
+     */
+    public function exportCsv(Request $request, string $type)
+    {
+        // Sheet classes live alongside StoreOrdersExport, so load that file before constructing
+        // one for a standalone CSV download.
+        class_exists(StoreOrdersExport::class);
+
+        $orders = $this->exportOrders($this->validatedExportFilters($request));
+        $filename = 'store-orders-'.$type.'-'.now()->format('Ymd-His').'.csv';
+
+        return match ($type) {
+            'pesanan' => Excel::download(new StoreOrdersSheet($orders), $filename, \Maatwebsite\Excel\Excel::CSV),
+            'item' => Excel::download(new StoreOrderItemsSheet($orders), $filename, \Maatwebsite\Excel\Excel::CSV),
+            'transaksi' => Excel::download(new StoreOrderTransactionsSheet($orders), $filename, \Maatwebsite\Excel\Excel::CSV),
+            default => abort(404),
+        };
+    }
+
+    /** @return array<string, string|null> */
+    private function validatedExportFilters(Request $request): array
+    {
+        return $request->validate([
             'status' => ['nullable', Rule::in([
                 'pending_payment', 'paid', 'processing', 'shipped', 'completed', 'cancelled', 'expired', 'refunded',
             ])],
@@ -99,17 +133,17 @@ class StoreOrderController extends Controller
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
+    }
 
-        $orders = StoreOrder::with(['store', 'buyer', 'items', 'transactions'])
-            ->when($validated['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
-            ->when($validated['store_id'] ?? null, fn ($q, $storeId) => $q->where('store_id', $storeId))
-            ->when($validated['date_from'] ?? null, fn ($q, $date) => $q->whereDate('created_at', '>=', $date))
-            ->when($validated['date_to'] ?? null, fn ($q, $date) => $q->whereDate('created_at', '<=', $date))
+    /** @param array<string, string|null> $filters */
+    private function exportOrders(array $filters)
+    {
+        return StoreOrder::with(['store', 'buyer', 'items', 'transactions'])
+            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
+            ->when($filters['store_id'] ?? null, fn ($q, $storeId) => $q->where('store_id', $storeId))
+            ->when($filters['date_from'] ?? null, fn ($q, $date) => $q->whereDate('created_at', '>=', $date))
+            ->when($filters['date_to'] ?? null, fn ($q, $date) => $q->whereDate('created_at', '<=', $date))
             ->orderBy('created_at')
             ->get();
-
-        $filename = 'store-orders-'.now()->format('Ymd-His').'.xlsx';
-
-        return Excel::download(new StoreOrdersExport($orders), $filename);
     }
 }
