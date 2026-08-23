@@ -42,13 +42,25 @@ const STATUS_STYLE: Record<string, string> = {
   refunded: "bg-white/5 text-white/70",
 };
 
-export default function StoreOrdersIndex({ admin, orders, stores, filters }: StoreOrdersIndexProps) {
+export default function StoreOrdersIndex({
+  admin,
+  orders,
+  stores,
+  filters,
+}: StoreOrdersIndexProps) {
   const [status, setStatus] = useState(filters.status ?? "");
   const [storeId, setStoreId] = useState(filters.store_id ?? "");
   const [dateFrom, setDateFrom] = useState(filters.date_from ?? "");
   const [dateTo, setDateTo] = useState(filters.date_to ?? "");
 
-  const applyFilters = (overrides: Partial<{ status: string; store_id: string; date_from: string; date_to: string }> = {}) => {
+  const applyFilters = (
+    overrides: Partial<{
+      status: string;
+      store_id: string;
+      date_from: string;
+      date_to: string;
+    }> = {}
+  ) => {
     router.get(
       "/god-mode/store-orders",
       {
@@ -62,6 +74,7 @@ export default function StoreOrdersIndex({ admin, orders, stores, filters }: Sto
   };
 
   const exportUrl = `/god-mode/store-orders-export?${new URLSearchParams({
+    ...(status ? { status } : {}),
     ...(storeId ? { store_id: storeId } : {}),
     ...(dateFrom ? { date_from: dateFrom } : {}),
     ...(dateTo ? { date_to: dateTo } : {}),
@@ -179,7 +192,9 @@ export default function StoreOrdersIndex({ admin, orders, stores, filters }: Sto
                     <td className="px-6 py-4">{order.buyer?.name}</td>
                     <td className="px-6 py-4">Rp {Number(order.total).toLocaleString("id-ID")}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${STATUS_STYLE[order.status] ?? "bg-white/5 text-white/70"}`}>
+                      <span
+                        className={`px-2.5 py-1 rounded-md text-xs font-semibold ${STATUS_STYLE[order.status] ?? "bg-white/5 text-white/70"}`}
+                      >
                         {order.status}
                       </span>
                     </td>
@@ -206,7 +221,11 @@ export default function StoreOrdersIndex({ admin, orders, stores, filters }: Sto
                     dangerouslySetInnerHTML={{ __html: link.label }}
                   />
                 ) : (
-                  <span key={i} className="px-3 py-1 rounded text-white/30" dangerouslySetInnerHTML={{ __html: link.label }} />
+                  <span
+                    key={i}
+                    className="px-3 py-1 rounded text-white/30"
+                    dangerouslySetInnerHTML={{ __html: link.label }}
+                  />
                 )
               )}
             </div>

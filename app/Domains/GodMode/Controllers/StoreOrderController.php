@@ -92,12 +92,16 @@ class StoreOrderController extends Controller
     public function exportExcel(Request $request)
     {
         $validated = $request->validate([
+            'status' => ['nullable', Rule::in([
+                'pending_payment', 'paid', 'processing', 'shipped', 'completed', 'cancelled', 'expired', 'refunded',
+            ])],
             'store_id' => 'nullable|exists:stores,id',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
         ]);
 
-        $orders = StoreOrder::with(['store', 'buyer', 'items'])
+        $orders = StoreOrder::with(['store', 'buyer', 'items', 'transactions'])
+            ->when($validated['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
             ->when($validated['store_id'] ?? null, fn ($q, $storeId) => $q->where('store_id', $storeId))
             ->when($validated['date_from'] ?? null, fn ($q, $date) => $q->whereDate('created_at', '>=', $date))
             ->when($validated['date_to'] ?? null, fn ($q, $date) => $q->whereDate('created_at', '<=', $date))
