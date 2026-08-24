@@ -4,6 +4,7 @@ import { Head, Link, useForm } from "@inertiajs/react";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import DonationNotice from "@/Components/Payment/DonationNotice";
+import UploadedProofCard from "@/Components/Payment/UploadedProofCard";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 import { validateFile, MAX_FILE_SIZE_MB } from "@/Helpers/fileValidation";
 import SatuteraPanel, {
@@ -190,6 +191,7 @@ export default function PaymentPage({
   const [copiedVa, setCopiedVa] = useState(false);
   const [fileValidationError, setFileValidationError] = useState<string | null>(null);
   const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [isReplacingProof, setIsReplacingProof] = useState(false);
 
   // Starts equal to the server-rendered `transaction.status` — updated by SatuteraPanel's
   // socket/countdown for a `satutera` transaction, and by the polling fallback below for any
@@ -717,41 +719,19 @@ export default function PaymentPage({
                   </span>
                   Upload Bukti Transfer
                 </h3>
-                {transaction.proof ? (
-                  <div className="space-y-3 mt-3">
-                    <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
-                      <span
-                        className="material-symbols-outlined text-emerald-600 text-[22px]"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        task_alt
-                      </span>
-                      <div>
-                        <p className="font-body text-sm font-semibold text-emerald-800">
-                          Bukti sudah diunggah — menunggu verifikasi admin
-                        </p>
-                        <p className="font-body text-xs text-emerald-700">
-                          {transaction.proof.original_name}
-                        </p>
-                      </div>
-                    </div>
-                    {transaction.proof.review_note && (
-                      <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 font-body">
-                        <strong>Catatan Admin:</strong> {transaction.proof.review_note}
-                      </div>
-                    )}
-                    <p className="font-body text-xs text-on-surface-variant">
-                      Ingin upload ulang?{" "}
-                      <Link
-                        href={`/payment-confirmation/${hash}`}
-                        className="text-primary hover:underline"
-                      >
-                        Halaman konfirmasi pembayaran
-                      </Link>
-                    </p>
-                  </div>
+                {transaction.proof && !isReplacingProof ? (
+                  <UploadedProofCard
+                    proof={transaction.proof}
+                    viewUrl={`/payment/${hash}/proof`}
+                    onReplace={() => setIsReplacingProof(true)}
+                  />
                 ) : (
                   <form onSubmit={submitProof} className="mt-3 space-y-3">
+                    {transaction.proof && (
+                      <p className="font-body text-sm font-semibold text-on-surface">
+                        Ganti bukti transfer
+                      </p>
+                    )}
                     <p className="font-body text-xs text-on-surface-variant">
                       Format: JPG, PNG, atau PDF. Maks 2 MB.
                     </p>

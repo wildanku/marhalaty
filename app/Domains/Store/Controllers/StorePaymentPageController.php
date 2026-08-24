@@ -6,6 +6,7 @@ use App\Domains\Event\Models\Transaction;
 use App\Domains\Shared\Services\PaymentSettingsService;
 use App\Domains\Store\Services\CheckoutService;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 /**
@@ -29,7 +30,7 @@ class StorePaymentPageController extends Controller
         // No-ops for manual transactions (no `payment_request` in metadata to retry).
         if ($order) {
             $checkout->retryPaymentInitiation($order, $transaction);
-            $transaction->refresh();
+            $transaction->refresh()->load('proof');
         }
 
         return Inertia::render('Store/PaymentPage', [
@@ -57,5 +58,27 @@ class StorePaymentPageController extends Controller
             'paid_at' => $transaction->paid_at,
             'expires_at' => $transaction->expired_at,
         ]);
+    }
+
+    /**
+     * Serve a proof through the payment hash, which is the public payment page's access token.
+     */
+    public function proof(string $hash)
+    {
+        $transaction = Transaction::with('proof')
+            ->where('payment_hash', $hash)
+            ->where('payment_provider', 'manual')
+            ->firstOrFail();
+
+        $proof = $transaction->proof;
+
+        abort_unless($proof && Storage::disk('public')->exists($proof->file_path), 404);
+
+        return Storage::disk('public')->response(
+            $proof->file_path,
+            $proof->original_name,
+            [],
+            'inline',
+        );
     }
 }

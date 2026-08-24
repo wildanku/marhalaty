@@ -267,7 +267,9 @@ export default function Dashboard() {
                                   payments
                                 </span>
                                 {tx?.payment_provider === "manual"
-                                  ? t("Upload Bukti Transfer")
+                                  ? tx.proof
+                                    ? t("Bukti Sudah Diunggah")
+                                    : t("Upload Bukti Transfer")
                                   : t("Bayar Sekarang")}
                               </Link>
                             ) : (

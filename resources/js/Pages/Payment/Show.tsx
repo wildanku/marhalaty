@@ -3,6 +3,7 @@ import { Head, useForm, Link } from "@inertiajs/react";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import DonationNotice from "@/Components/Payment/DonationNotice";
+import UploadedProofCard from "@/Components/Payment/UploadedProofCard";
 import { validateFile } from "@/Helpers/fileValidation";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 
@@ -68,6 +69,7 @@ export default function PaymentShow({
 }: PaymentShowProps) {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isReplacingProof, setIsReplacingProof] = useState(false);
 
   const copyToClipboard = (text: string, idx: number) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -445,46 +447,36 @@ export default function PaymentShow({
                 </h2>
                 {hasProof ? (
                   <div className="mt-4">
-                    <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-3">
-                      <span
-                        className="material-symbols-outlined text-emerald-600 text-[22px]"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        task_alt
-                      </span>
-                      <div>
-                        <p className="font-body text-sm font-semibold text-emerald-800">
-                          Bukti sudah diunggah
+                    <UploadedProofCard
+                      proof={transaction.proof!}
+                      viewUrl={`/payments/proof/${transaction.proof!.id}`}
+                      onReplace={() => setIsReplacingProof(true)}
+                    />
+                    {isReplacingProof && (
+                      <form onSubmit={submitProof} className="mt-4 space-y-3">
+                        <p className="font-body text-sm font-semibold text-on-surface">
+                          Ganti bukti transfer
                         </p>
-                        <p className="font-body text-xs text-emerald-700">
-                          {transaction.proof?.original_name}
-                        </p>
-                      </div>
-                    </div>
-                    {transaction.proof?.review_note && (
-                      <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 font-body">
-                        <strong>Catatan Admin:</strong> {transaction.proof.review_note}
-                      </div>
+                        <input
+                          type="file"
+                          accept=".jpg,.jpeg,.png,.pdf"
+                          onChange={handleProofFileChange}
+                          className="w-full text-sm text-on-surface-variant file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-surface-container file:text-on-surface file:font-medium hover:file:bg-surface-container-high"
+                        />
+                        {(fileError || proofForm.errors.proof) && (
+                          <p className="text-error text-xs">
+                            {fileError || proofForm.errors.proof}
+                          </p>
+                        )}
+                        <button
+                          type="submit"
+                          disabled={proofForm.processing || !proofForm.data.proof}
+                          className="w-full bg-surface-container text-on-surface py-3 rounded-full font-headline font-bold text-sm hover:bg-surface-container-high transition-all disabled:opacity-50"
+                        >
+                          Upload Ulang Bukti
+                        </button>
+                      </form>
                     )}
-                    <p className="font-body text-xs text-on-surface-variant mt-3">
-                      Jika ada kesalahan, kamu bisa upload ulang.
-                    </p>
-                    {/* Allow re-upload */}
-                    <form onSubmit={submitProof} className="mt-4 space-y-3">
-                      <input
-                        type="file"
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={(e) => proofForm.setData("proof", e.target.files?.[0] ?? null)}
-                        className="w-full text-sm text-on-surface-variant file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-surface-container file:text-on-surface file:font-medium hover:file:bg-surface-container-high"
-                      />
-                      <button
-                        type="submit"
-                        disabled={proofForm.processing || !proofForm.data.proof}
-                        className="w-full bg-surface-container text-on-surface py-3 rounded-full font-headline font-bold text-sm hover:bg-surface-container-high transition-all disabled:opacity-50"
-                      >
-                        Upload Ulang Bukti
-                      </button>
-                    </form>
                   </div>
                 ) : (
                   <form onSubmit={submitProof} className="mt-4 space-y-4">

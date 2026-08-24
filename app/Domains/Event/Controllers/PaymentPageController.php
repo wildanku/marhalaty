@@ -45,7 +45,7 @@ class PaymentPageController extends Controller
         // transactions (no `payment_request` in metadata to retry).
         if ($transaction->payment_provider === 'satutera' && $transaction->rsvp) {
             $this->rsvpPayment->retryPaymentInitiation($transaction->rsvp, $transaction);
-            $transaction->refresh();
+            $transaction->refresh()->load('proof');
         }
 
         $bankAccounts = $this->paymentSettings->manualAccounts();
@@ -77,6 +77,27 @@ class PaymentPageController extends Controller
             'paid_at' => $transaction->paid_at,
             'expires_at' => $transaction->expired_at,
         ]);
+    }
+
+    /**
+     * Serve a proof through the payment hash, which is the public payment page's access token.
+     */
+    public function proof(string $hash)
+    {
+        $transaction = Transaction::with('proof')
+            ->where('payment_hash', $hash)
+            ->firstOrFail();
+
+        $proof = $transaction->proof;
+
+        abort_unless($proof && Storage::disk('public')->exists($proof->file_path), 404);
+
+        return Storage::disk('public')->response(
+            $proof->file_path,
+            $proof->original_name,
+            [],
+            'inline',
+        );
     }
 
     /**

@@ -4,6 +4,7 @@ import { PageProps, StoreOrder, Transaction } from "@/types";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import DonationNotice from "@/Components/Payment/DonationNotice";
+import UploadedProofCard from "@/Components/Payment/UploadedProofCard";
 import { validateFile } from "@/Helpers/fileValidation";
 import SatuteraPanel, {
   SatuteraLiveStatus,
@@ -77,7 +78,7 @@ export default function PaymentPage() {
           <ManualPaymentBlock
             hash={hash}
             manualAccounts={manualAccounts}
-            hasExistingProof={!!transaction.proof}
+            proof={transaction.proof ?? null}
           />
         )}
 
@@ -194,11 +195,12 @@ export default function PaymentPage() {
 interface ManualPaymentBlockProps {
   hash: string;
   manualAccounts: ManualAccount[];
-  hasExistingProof: boolean;
+  proof: Transaction["proof"];
 }
 
-function ManualPaymentBlock({ hash, manualAccounts, hasExistingProof }: ManualPaymentBlockProps) {
+function ManualPaymentBlock({ hash, manualAccounts, proof }: ManualPaymentBlockProps) {
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isReplacingProof, setIsReplacingProof] = useState(false);
   const form = useForm<{ proof: File | null; notes: string }>({ proof: null, notes: "" });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -266,73 +268,76 @@ function ManualPaymentBlock({ hash, manualAccounts, hasExistingProof }: ManualPa
         )}
       </div>
 
-      {hasExistingProof && (
-        <div className="flex items-center gap-3 bg-tertiary-container text-on-tertiary-container rounded-xl px-4 py-3 mb-5 text-sm">
-          <span className="material-symbols-outlined text-[20px]">info</span>
-          Bukti sebelumnya sudah ada dan sedang ditinjau admin — unggah ulang di bawah akan
-          menggantikannya.
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block font-body font-semibold text-sm text-on-surface mb-2">
-            File Bukti Transfer <span className="text-error">*</span>
-          </label>
-          <div
-            className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-              form.data.proof
-                ? "border-primary bg-primary/5"
-                : "border-surface-container-high hover:border-outline-variant"
-            }`}
-          >
-            <input
-              type="file"
-              id="store-proof-file"
-              accept=".jpg,.jpeg,.png,.pdf"
-              className="sr-only"
-              onChange={handleFileChange}
-            />
-            <label htmlFor="store-proof-file" className="cursor-pointer block">
-              <span
-                className={`material-symbols-outlined text-4xl block mb-2 ${form.data.proof ? "text-primary" : "text-on-surface-variant/40"}`}
-              >
-                {form.data.proof ? "check_circle" : "cloud_upload"}
-              </span>
-              {form.data.proof ? (
-                <p className="text-sm font-semibold text-primary">{form.data.proof.name}</p>
-              ) : (
-                <p className="text-sm font-semibold text-on-surface-variant">
-                  Klik untuk pilih file (JPG, PNG, PDF maks 2 MB)
-                </p>
-              )}
-            </label>
-          </div>
-          {(fileError || form.errors.proof) && (
-            <p className="text-error text-xs mt-1">{fileError || form.errors.proof}</p>
+      {proof && !isReplacingProof ? (
+        <UploadedProofCard
+          proof={proof}
+          viewUrl={`/store/payment/${hash}/proof`}
+          onReplace={() => setIsReplacingProof(true)}
+        />
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {proof && (
+            <p className="font-body text-sm font-semibold text-on-surface">Ganti bukti transfer</p>
           )}
-        </div>
+          <div>
+            <label className="block font-body font-semibold text-sm text-on-surface mb-2">
+              File Bukti Transfer <span className="text-error">*</span>
+            </label>
+            <div
+              className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
+                form.data.proof
+                  ? "border-primary bg-primary/5"
+                  : "border-surface-container-high hover:border-outline-variant"
+              }`}
+            >
+              <input
+                type="file"
+                id="store-proof-file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                className="sr-only"
+                onChange={handleFileChange}
+              />
+              <label htmlFor="store-proof-file" className="cursor-pointer block">
+                <span
+                  className={`material-symbols-outlined text-4xl block mb-2 ${form.data.proof ? "text-primary" : "text-on-surface-variant/40"}`}
+                >
+                  {form.data.proof ? "check_circle" : "cloud_upload"}
+                </span>
+                {form.data.proof ? (
+                  <p className="text-sm font-semibold text-primary">{form.data.proof.name}</p>
+                ) : (
+                  <p className="text-sm font-semibold text-on-surface-variant">
+                    Klik untuk pilih file (JPG, PNG, PDF maks 2 MB)
+                  </p>
+                )}
+              </label>
+            </div>
+            {(fileError || form.errors.proof) && (
+              <p className="text-error text-xs mt-1">{fileError || form.errors.proof}</p>
+            )}
+          </div>
 
-        <div>
-          <label className="block font-body font-semibold text-sm text-on-surface mb-2">
-            Catatan <span className="text-on-surface-variant font-normal">(opsional)</span>
-          </label>
-          <textarea
-            value={form.data.notes}
-            onChange={(e) => form.setData("notes", e.target.value)}
-            rows={2}
-            className="w-full bg-surface border-2 border-surface-container focus:border-primary focus:outline-none rounded-xl px-4 py-3 text-sm text-on-surface resize-none transition-colors"
-          />
-        </div>
+          <div>
+            <label className="block font-body font-semibold text-sm text-on-surface mb-2">
+              Catatan <span className="text-on-surface-variant font-normal">(opsional)</span>
+            </label>
+            <textarea
+              value={form.data.notes}
+              onChange={(e) => form.setData("notes", e.target.value)}
+              rows={2}
+              className="w-full bg-surface border-2 border-surface-container focus:border-primary focus:outline-none rounded-xl px-4 py-3 text-sm text-on-surface resize-none transition-colors"
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={form.processing || !form.data.proof}
-          className="w-full bg-primary text-on-primary py-3.5 rounded-full font-label font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {form.processing ? "Mengunggah..." : "Unggah Bukti Pembayaran"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={form.processing || !form.data.proof}
+            className="w-full bg-primary text-on-primary py-3.5 rounded-full font-label font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {form.processing ? "Mengunggah..." : "Unggah Bukti Pembayaran"}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

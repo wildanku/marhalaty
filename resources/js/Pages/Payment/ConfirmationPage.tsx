@@ -4,6 +4,7 @@ import { Head, Link, useForm } from "@inertiajs/react";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
 import DonationNotice from "@/Components/Payment/DonationNotice";
+import UploadedProofCard from "@/Components/Payment/UploadedProofCard";
 import { validateFile } from "@/Helpers/fileValidation";
 import { PageProps, Transaction, Rsvp, GontorEvent } from "@/types";
 
@@ -29,6 +30,7 @@ export default function ConfirmationPage({
   hash,
 }: ConfirmationPageProps): ReactElement {
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isReplacingProof, setIsReplacingProof] = useState(false);
   const form = useForm<{ proof: File | null; notes: string }>({
     proof: null,
     notes: "",
@@ -139,111 +141,110 @@ export default function ConfirmationPage({
             </>
           ) : (
             <div className="bg-surface-container-lowest rounded-2xl border border-surface-container-high p-6 shadow-sm">
-              {/* Previous proof notice */}
-              {transaction.proof && (
-                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5">
-                  <span className="material-symbols-outlined text-amber-600 text-[20px]">info</span>
+              {transaction.proof && !isReplacingProof ? (
+                <UploadedProofCard
+                  proof={transaction.proof}
+                  viewUrl={`/payment/${hash}/proof`}
+                  onReplace={() => setIsReplacingProof(true)}
+                />
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {transaction.proof && (
+                    <p className="font-body text-sm font-semibold text-on-surface">
+                      Ganti bukti transfer
+                    </p>
+                  )}
+                  {/* File input */}
                   <div>
-                    <p className="font-body text-sm font-semibold text-amber-800">
-                      Bukti sebelumnya sudah ada
-                    </p>
-                    <p className="font-body text-xs text-amber-700">
-                      {transaction.proof.original_name} — Upload baru akan menggantikannya.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                {/* File input */}
-                <div>
-                  <label className="block font-body font-semibold text-sm text-on-surface mb-2">
-                    File Bukti Transfer <span className="text-error">*</span>
-                  </label>
-                  <p className="font-body text-xs text-on-surface-variant mb-3">
-                    Screenshot atau foto struk transfer. Format: JPG, PNG, atau PDF. Maks 2 MB.
-                  </p>
-                  <div
-                    className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-                      form.data.proof
-                        ? "border-primary bg-primary/5"
-                        : "border-surface-container-high hover:border-outline-variant"
-                    }`}
-                  >
-                    <input
-                      type="file"
-                      id="proof-file"
-                      accept=".jpg,.jpeg,.png,.pdf"
-                      className="sr-only"
-                      onChange={handleProofFileChange}
-                    />
-                    <label htmlFor="proof-file" className="cursor-pointer block">
-                      <span
-                        className={`material-symbols-outlined text-4xl block mb-2 ${form.data.proof ? "text-primary" : "text-on-surface-variant/40"}`}
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        {form.data.proof ? "check_circle" : "cloud_upload"}
-                      </span>
-                      {form.data.proof ? (
-                        <>
-                          <p className="font-body text-sm font-semibold text-primary">
-                            {form.data.proof.name}
-                          </p>
-                          <p className="font-body text-xs text-on-surface-variant mt-1">
-                            Klik untuk ganti file
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="font-body text-sm font-semibold text-on-surface-variant">
-                            Klik untuk pilih file
-                          </p>
-                          <p className="font-body text-xs text-on-surface-variant/60 mt-1">
-                            JPG, PNG, PDF maks 2 MB
-                          </p>
-                        </>
-                      )}
+                    <label className="block font-body font-semibold text-sm text-on-surface mb-2">
+                      File Bukti Transfer <span className="text-error">*</span>
                     </label>
+                    <p className="font-body text-xs text-on-surface-variant mb-3">
+                      Screenshot atau foto struk transfer. Format: JPG, PNG, atau PDF. Maks 2 MB.
+                    </p>
+                    <div
+                      className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
+                        form.data.proof
+                          ? "border-primary bg-primary/5"
+                          : "border-surface-container-high hover:border-outline-variant"
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        id="proof-file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        className="sr-only"
+                        onChange={handleProofFileChange}
+                      />
+                      <label htmlFor="proof-file" className="cursor-pointer block">
+                        <span
+                          className={`material-symbols-outlined text-4xl block mb-2 ${form.data.proof ? "text-primary" : "text-on-surface-variant/40"}`}
+                          style={{ fontVariationSettings: "'FILL' 1" }}
+                        >
+                          {form.data.proof ? "check_circle" : "cloud_upload"}
+                        </span>
+                        {form.data.proof ? (
+                          <>
+                            <p className="font-body text-sm font-semibold text-primary">
+                              {form.data.proof.name}
+                            </p>
+                            <p className="font-body text-xs text-on-surface-variant mt-1">
+                              Klik untuk ganti file
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="font-body text-sm font-semibold text-on-surface-variant">
+                              Klik untuk pilih file
+                            </p>
+                            <p className="font-body text-xs text-on-surface-variant/60 mt-1">
+                              JPG, PNG, PDF maks 2 MB
+                            </p>
+                          </>
+                        )}
+                      </label>
+                    </div>
+                    {(fileError || form.errors.proof) && (
+                      <p className="text-error text-xs mt-1">{fileError || form.errors.proof}</p>
+                    )}
                   </div>
-                  {(fileError || form.errors.proof) && (
-                    <p className="text-error text-xs mt-1">{fileError || form.errors.proof}</p>
-                  )}
-                </div>
 
-                {/* Notes */}
-                <div>
-                  <label className="block font-body font-semibold text-sm text-on-surface mb-2">
-                    Catatan <span className="text-on-surface-variant font-normal">(opsional)</span>
-                  </label>
-                  <textarea
-                    value={form.data.notes}
-                    onChange={(e) => form.setData("notes", e.target.value)}
-                    rows={3}
-                    placeholder="Misal: transfer dari rekening atas nama berbeda, dll."
-                    className="w-full bg-surface border-2 border-surface-container focus:border-primary focus:outline-none rounded-xl px-4 py-3 text-sm text-on-surface resize-none transition-colors"
-                  />
-                </div>
+                  {/* Notes */}
+                  <div>
+                    <label className="block font-body font-semibold text-sm text-on-surface mb-2">
+                      Catatan{" "}
+                      <span className="text-on-surface-variant font-normal">(opsional)</span>
+                    </label>
+                    <textarea
+                      value={form.data.notes}
+                      onChange={(e) => form.setData("notes", e.target.value)}
+                      rows={3}
+                      placeholder="Misal: transfer dari rekening atas nama berbeda, dll."
+                      className="w-full bg-surface border-2 border-surface-container focus:border-primary focus:outline-none rounded-xl px-4 py-3 text-sm text-on-surface resize-none transition-colors"
+                    />
+                  </div>
 
-                <button
-                  type="submit"
-                  disabled={form.processing || !form.data.proof}
-                  className="w-full bg-primary text-on-primary py-4 rounded-full font-headline font-bold text-sm hover:opacity-90 transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {form.processing ? (
-                    <>
-                      <span className="material-symbols-outlined text-[18px] animate-spin">
-                        progress_activity
-                      </span>
-                      Mengunggah...
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-[18px]">upload_file</span>
-                      Upload Bukti Pembayaran
-                    </>
-                  )}
-                </button>
-              </form>
+                  <button
+                    type="submit"
+                    disabled={form.processing || !form.data.proof}
+                    className="w-full bg-primary text-on-primary py-4 rounded-full font-headline font-bold text-sm hover:opacity-90 transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {form.processing ? (
+                      <>
+                        <span className="material-symbols-outlined text-[18px] animate-spin">
+                          progress_activity
+                        </span>
+                        Mengunggah...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                        Upload Bukti Pembayaran
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
           )}
         </main>

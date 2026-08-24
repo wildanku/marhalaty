@@ -206,12 +206,14 @@ Route::get('/api/debug/ipaymu-config', [PaymentController::class, 'debugIPaymuCo
 // Hash-based payment pages (public – hash is the access token)
 Route::get('/payment/{hash}', [PaymentPageController::class, 'show'])->name('payment.show');
 Route::get('/payment/{hash}/status', [PaymentPageController::class, 'status'])->name('payment.status');
+Route::get('/payment/{hash}/proof', [PaymentPageController::class, 'proof'])->name('payment.proof.show');
 Route::get('/payment-confirmation/{hash}', [PaymentPageController::class, 'confirmationShow'])->name('payment.confirmation.show');
 Route::post('/payment-confirmation/{hash}', [PaymentPageController::class, 'confirmationStore'])->name('payment.confirmation.store');
 
 // Store order payment page (separate from the RSVP page above — see MVP2 README decision D8)
 Route::get('/store/payment/{hash}', [StorePaymentPageController::class, 'show'])->name('store.payment.show');
 Route::get('/store/payment/{hash}/status', [StorePaymentPageController::class, 'status'])->name('store.payment.status');
+Route::get('/store/payment/{hash}/proof', [StorePaymentPageController::class, 'proof'])->name('store.payment.proof.show');
 Route::post('/store/payment/{hash}/proof', [StorePaymentProofController::class, 'store'])->name('store.payment.proof.store');
 
 // Public, credential-free payment channel catalog (cached). Context-neutral endpoint (fase 9,
