@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Head, Link, router, usePage } from "@inertiajs/react";
-import { PageProps, Store, StoreOrder } from "@/types";
+import { PageProps, PaymentProof, Store, StoreOrder } from "@/types";
 import StatusBadge from "@/Components/Store/StatusBadge";
 import OrderStatusControl from "@/Components/Store/OrderStatusControl";
 import OrderStatusTimeline from "@/Components/Store/OrderStatusTimeline";
@@ -12,11 +12,14 @@ interface OrderShowProps extends PageProps {
   role: "owner" | "admin" | null;
   order: StoreOrder;
   paymentStatus: string | null;
+  paymentProof: PaymentProof | null;
 }
 
 export default function OrderShow() {
-  const { store, role, order, paymentStatus } = usePage<OrderShowProps>().props;
+  const { store, role, order, paymentStatus, paymentProof } = usePage<OrderShowProps>().props;
   const baseUrl = storeManagementUrl(store.id);
+  const proofUrl = `${baseUrl}/orders/${order.id}/proof`;
+  const isProofPdf = paymentProof?.original_name.toLowerCase().endsWith(".pdf") ?? false;
   const [trackingNumber, setTrackingNumber] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelForm, setShowCancelForm] = useState(false);
@@ -102,6 +105,59 @@ export default function OrderShow() {
           <div className="mb-8 bg-tertiary-container text-on-tertiary-container rounded-2xl p-4 text-sm">
             <p className="font-label font-semibold mb-1">Catatan untuk Penjual</p>
             <p>{order.buyer_note}</p>
+          </div>
+        )}
+
+        {paymentProof && (
+          <div className="bg-surface-container-lowest rounded-3xl border border-surface-container-high p-5 mb-6">
+            <p className="font-label font-semibold text-on-surface mb-3">Bukti Transfer</p>
+            {isProofPdf ? (
+              <a
+                href={proofUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 rounded-xl border border-outline-variant/30 bg-surface-container p-4 hover:border-primary/40 transition-colors"
+              >
+                <span className="material-symbols-outlined text-error text-3xl">picture_as_pdf</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-on-surface truncate">
+                    {paymentProof.original_name}
+                  </span>
+                  <span className="block text-xs text-on-surface-variant mt-0.5">Buka dokumen bukti</span>
+                </span>
+                <span className="material-symbols-outlined text-primary text-[20px]">open_in_new</span>
+              </a>
+            ) : (
+              <a
+                href={proofUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="block overflow-hidden rounded-xl border border-outline-variant/30 bg-surface-container hover:border-primary/40 transition-colors"
+              >
+                <img
+                  src={proofUrl}
+                  alt={`Bukti transfer ${paymentProof.original_name}`}
+                  className="h-56 w-full object-contain bg-white"
+                />
+                <span className="flex items-center gap-2 px-3 py-2 text-xs text-on-surface-variant">
+                  <span className="material-symbols-outlined text-[16px] text-primary">open_in_new</span>
+                  <span className="truncate">{paymentProof.original_name}</span>
+                </span>
+              </a>
+            )}
+            {paymentProof.notes && (
+              <p className="text-xs text-on-surface-variant mt-2">Catatan pembeli: {paymentProof.notes}</p>
+            )}
+            {paymentProof.reviewed_at ? (
+              <p className="text-xs text-on-surface-variant mt-1">
+                Ditinjau admin {new Date(paymentProof.reviewed_at).toLocaleDateString("id-ID")}
+                {paymentProof.review_note ? ` — "${paymentProof.review_note}"` : ""}
+              </p>
+            ) : (
+              <p className="text-xs text-on-surface-variant mt-2 italic">
+                Menunggu verifikasi admin.
+              </p>
+            )}
           </div>
         )}
 

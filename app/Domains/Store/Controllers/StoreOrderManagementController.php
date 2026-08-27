@@ -7,6 +7,7 @@ use App\Domains\Store\Models\StoreOrder;
 use App\Domains\Store\Services\OrderFulfillmentService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -45,13 +46,32 @@ class StoreOrderManagementController extends Controller
         abort_unless($order->store_id === $store->id, 404);
 
         $order->load(['items', 'buyer', 'statusHistories']);
+        $transaction = $order->latestTransaction()?->loadMissing('proof');
 
         return Inertia::render('Store/Manage/Orders/Show', [
             'store' => $store,
             'role' => $store->roleFor($request->user()),
             'order' => $order,
-            'paymentStatus' => $order->latestTransaction()?->status,
+            'paymentStatus' => $transaction?->status,
+            'paymentProof' => $transaction?->proof,
         ]);
+    }
+
+    /**
+     * Stream the manual-transfer proof for this order's latest transaction — seller/god-mode
+     * management view only, gated by the same `manageOrders` policy as the rest of this
+     * controller (never the raw `/storage/{path}` link, which has no authorization check).
+     */
+    public function proof(Store $store, StoreOrder $order)
+    {
+        $this->authorize('manageOrders', $store);
+        abort_unless($order->store_id === $store->id, 404);
+
+        $proof = $order->latestTransaction()?->proof;
+
+        abort_unless($proof && Storage::disk('public')->exists($proof->file_path), 404);
+
+        return Storage::disk('public')->response($proof->file_path, $proof->original_name, [], 'inline');
     }
 
     public function process(Store $store, StoreOrder $order)

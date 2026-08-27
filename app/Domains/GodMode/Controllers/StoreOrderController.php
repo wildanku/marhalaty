@@ -45,7 +45,7 @@ class StoreOrderController extends Controller
 
     public function show(string $id)
     {
-        $order = StoreOrder::with(['store', 'buyer', 'items', 'transactions', 'statusHistories'])
+        $order = StoreOrder::with(['store', 'buyer', 'items', 'transactions.proof', 'statusHistories'])
             ->findOrFail($id);
 
         return Inertia::render('GodMode/StoreOrders/Show', [

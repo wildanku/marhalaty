@@ -134,6 +134,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/{store}/orders', [StoreOrderManagementController::class, 'index'])->name('orders.index');
         Route::get('/{store}/orders/{order}', [StoreOrderManagementController::class, 'show'])->name('orders.show');
+        Route::get('/{store}/orders/{order}/proof', [StoreOrderManagementController::class, 'proof'])->name('orders.proof');
         Route::post('/{store}/orders/{order}/process', [StoreOrderManagementController::class, 'process'])->name('orders.process');
         Route::post('/{store}/orders/{order}/ship', [StoreOrderManagementController::class, 'ship'])->name('orders.ship');
         Route::post('/{store}/orders/{order}/cancel', [StoreOrderManagementController::class, 'cancel'])->name('orders.cancel');
@@ -374,6 +375,7 @@ Route::prefix('god-mode')->name('god-mode.')->group(function () {
             Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
             Route::get('/orders', [StoreOrderManagementController::class, 'index'])->name('orders.index');
             Route::get('/orders/{order}', [StoreOrderManagementController::class, 'show'])->name('orders.show');
+            Route::get('/orders/{order}/proof', [StoreOrderManagementController::class, 'proof'])->name('orders.proof');
             Route::post('/orders/{order}/process', [StoreOrderManagementController::class, 'process'])->name('orders.process');
             Route::post('/orders/{order}/ship', [StoreOrderManagementController::class, 'ship'])->name('orders.ship');
             Route::post('/orders/{order}/cancel', [StoreOrderManagementController::class, 'cancel'])->name('orders.cancel');

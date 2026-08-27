@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import GodModeLayout from "@/Layouts/GodModeLayout";
+import ImagePreviewModal from "@/Components/ImagePreviewModal";
+import PaymentReviewModal from "@/Components/GodMode/PaymentReviewModal";
 import { StoreOrder } from "@/types";
 
 interface Admin {
@@ -45,6 +47,13 @@ export default function StoreOrderShow({ admin, order, paymentStatus }: StoreOrd
   const [reason, setReason] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [imagePreview, setImagePreview] = useState<{ imagePath: string; fileName: string } | null>(
+    null
+  );
+  const [reviewModal, setReviewModal] = useState<{
+    transactionId: number;
+    action: "approve" | "reject";
+  } | null>(null);
 
   const isReopen = target === "pending_payment";
   const needsReason = target === "cancelled";
@@ -76,6 +85,23 @@ export default function StoreOrderShow({ admin, order, paymentStatus }: StoreOrd
   return (
     <GodModeLayout admin={admin} title={order.order_number}>
       <Head title={`God Mode - ${order.order_number}`} />
+
+      {imagePreview && (
+        <ImagePreviewModal
+          imagePath={imagePreview.imagePath}
+          fileName={imagePreview.fileName}
+          onClose={() => setImagePreview(null)}
+        />
+      )}
+
+      {reviewModal && (
+        <PaymentReviewModal
+          transactionId={reviewModal.transactionId}
+          action={reviewModal.action}
+          userName={order.buyer?.name ?? "pembeli"}
+          onClose={() => setReviewModal(null)}
+        />
+      )}
 
       <Link href="/god-mode/store-orders" className="text-white/50 hover:text-white text-sm flex items-center gap-1 mb-4">
         <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -173,6 +199,77 @@ export default function StoreOrderShow({ admin, order, paymentStatus }: StoreOrd
                         </pre>
                       </details>
                     ) : null}
+
+                    {tx.payment_provider === "manual" && (
+                      <div className="mt-3 pt-3 border-t border-white/5">
+                        <p className="text-xs text-white/40 mb-2">Bukti Pembayaran</p>
+                        {tx.proof ? (
+                          <div className="bg-white/5 rounded-lg p-3 text-xs">
+                            <div className="flex items-center gap-2 text-white/70">
+                              <span className="material-symbols-outlined text-sm">attach_file</span>
+                              <span className="truncate flex-1">{tx.proof.original_name}</span>
+                            </div>
+                            {tx.proof.notes && (
+                              <p className="text-white/40 mt-1 pl-6">{tx.proof.notes}</p>
+                            )}
+                            {tx.proof.reviewed_at && (
+                              <div className="mt-2 pl-6 space-y-1">
+                                <p className="text-white/40">
+                                  Ditinjau: {new Date(tx.proof.reviewed_at).toLocaleDateString("id-ID")}
+                                </p>
+                                {tx.proof.review_note && (
+                                  <p className="text-white/60 italic">&ldquo;{tx.proof.review_note}&rdquo;</p>
+                                )}
+                              </div>
+                            )}
+                            <div className="flex gap-2 mt-2 ml-6">
+                              <button
+                                onClick={() =>
+                                  setImagePreview({
+                                    imagePath: `/god-mode/payments/${tx.id}/proof`,
+                                    fileName: tx.proof!.original_name,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-sm">preview</span>
+                                Lihat Gambar
+                              </button>
+                              <a
+                                href={`/god-mode/payments/${tx.id}/proof`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                Buka
+                              </a>
+                            </div>
+
+                            {tx.status === "pending" && (
+                              <div className="flex gap-2 mt-3 ml-6">
+                                <button
+                                  onClick={() => setReviewModal({ transactionId: tx.id, action: "approve" })}
+                                  className="inline-flex items-center gap-1 bg-emerald-700/30 hover:bg-emerald-700/50 text-emerald-300 border border-emerald-700/40 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[14px]">check</span>
+                                  Setujui
+                                </button>
+                                <button
+                                  onClick={() => setReviewModal({ transactionId: tx.id, action: "reject" })}
+                                  className="inline-flex items-center gap-1 bg-red-900/30 hover:bg-red-900/50 text-red-300 border border-red-700/40 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[14px]">close</span>
+                                  Tolak
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-white/30 text-xs italic">Belum upload</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
